@@ -52,7 +52,7 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     return x
 
 
-def convolutional_model():
+def convolutional_model(num_frames=4):
     # http://cs231n.github.io/convolutional-networks/
     # conv weights
     # #params = ks * ks * nb_filters * num_channels_input
@@ -64,7 +64,7 @@ def convolutional_model():
     # take 100 ms -> 4 frames.
     # if signal is 3 seconds, then take 100ms per 100ms and average out this network.
     # 8*8 = 64 features.
-    inputs = Input(shape=[8, 8, 4])
+    inputs = Input(shape=[16, 16, 1])
 
     def conv_and_res_block(inp, filters, stage):
         o = Conv2D(filters,
@@ -85,19 +85,19 @@ def convolutional_model():
     x = conv_and_res_block(x, 256, stage=3)
     x = conv_and_res_block(x, 512, stage=4)
 
-    # AveragePooling1D(name='average')(x)
-    # squeeze first! Reshape()
-
-    # test 1
-    # x = Lambda(lambda y: K.squeeze(y, axis=1))(x)
-    # x = AveragePooling1D(name='average')(x)
-
-    # test 2
-
     x = Dense(512, name='affine')(x)
     x = Lambda(lambda y: y / K.max(y, axis=1), name='ln')(x)
     m = Model(inputs, x, name='convolutional')
     return m
+
+# AveragePooling1D(name='average')(x)
+# squeeze first! Reshape()
+
+# test 1
+# x = Lambda(lambda y: K.squeeze(y, axis=1))(x)
+# x = AveragePooling1D(name='average')(x)
+
+# test 2
 
 # Maybe no averagePooling1D here but later on.
 # def convolutional_model():
