@@ -8,3 +8,4 @@ So please message me if you want to contribute. I'll be happy to hear your ideas
 - Input size to the network?
 - How many filter banks do we use?
 - Average Pooling 1D or 2D?
+- Sample Rate?
