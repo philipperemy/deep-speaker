@@ -2,6 +2,7 @@ import numpy as np
 from python_speech_features import fbank, delta
 
 from models import convolutional_model
+from triplet_loss import deep_speaker_loss
 
 
 def normalize_frames(m):
@@ -25,11 +26,12 @@ if __name__ == '__main__':
         frames_slice = frames_features[j - 8:j + 7]
         network_inputs.append(frames_slice)
 
-    model = convolutional_model(input_shapes=network_inputs[0].shape, num_frames=len(network_inputs[0]))
+    model = convolutional_model(input_shapes=list(network_inputs[0].shape) + [1],
+                                num_frames=len(network_inputs[0]))
     model.compile(optimizer='adam',
-                  loss='categorical_crossentropy',
+                  loss=deep_speaker_loss,
                   metrics=['accuracy'])
 
-    model.fit(network_inputs, np.array)
+    model.fit(network_inputs, np.array([0] * len(network_inputs)))
 
     print(model.summary())
