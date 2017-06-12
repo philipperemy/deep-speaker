@@ -25,8 +25,11 @@ if __name__ == '__main__':
         frames_slice = frames_features[j - 8:j + 7]
         network_inputs.append(frames_slice)
 
-    model = convolutional_model()
+    model = convolutional_model(input_shapes=network_inputs[0].shape, num_frames=len(network_inputs[0]))
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
+
+    model.fit(network_inputs, np.array)
+
     print(model.summary())
