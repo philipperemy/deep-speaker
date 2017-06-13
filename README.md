@@ -9,7 +9,7 @@ Work accomplished so far:
 - [ ] Define the inputs to the models
 - [ ] Determine the sample rate
 - [ ] Train the models
-- [ ] We're going to use the LibriSpeech dataset http://www.openslr.org/12/ with 5k+ speakers.
+- [ ] We're going to use the [LibriSpeech dataset](http://www.openslr.org/12/) with 5000+ different speakers
 
 So please message me if you want to contribute. I'll be happy to hear your ideas. There are a lot of undisclosed things in the paper, such as:
 
