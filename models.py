@@ -34,36 +34,25 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     x = get(Conv2D(filters,
                    kernel_size=kernel_size,
                    strides=1,
+                   activation=None,
                    padding='same',
                    kernel_initializer='glorot_uniform',
                    kernel_regularizer=regularizers.l2(l=0.0001),
                    name=conv_name_base + '_2a'))(input_tensor)
     x = get(BatchNormalization(name=conv_name_base + '_2a_bn'))(x)
-    # x = Activation('relu')(x)
     x = clipped_relu(x)
 
     x = get(Conv2D(filters,
                    kernel_size=kernel_size,
                    strides=1,
+                   activation=None,
                    padding='same',
                    kernel_initializer='glorot_uniform',
                    kernel_regularizer=regularizers.l2(l=0.0001),
                    name=conv_name_base + '_2b'))(x)
     x = get(BatchNormalization(name=conv_name_base + '_2b_bn'))(x)
 
-    # 1x1 conv
-    x = get(Conv2D(filters,
-                   kernel_size=1,
-                   strides=1,
-                   padding='same',
-                   kernel_initializer='glorot_uniform',
-                   kernel_regularizer=regularizers.l2(l=0.0001),
-                   name=conv_name_base + '2c_bn'))(x)
-
     x = layers.add([x, input_tensor])
-
-    x = get(BatchNormalization(name=conv_name_base + '2d_bn'))(x)
-    # x = Activation('relu')(x)
     x = clipped_relu(x)
     return x
 
@@ -113,32 +102,8 @@ def convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1)):
     x = Lambda(lambda y: y / K.squeeze(RepeatVector(512)(K.reshape(K.max(y, axis=1), (-1, 1))), axis=2), name='ln')(
         x)  # .shape = (BATCH_SIZE, 512)
 
-    # upscaling to maintain compatibility with keras framework
+    # upsampling to maintain compatibility with keras framework
     x = Lambda(lambda y: K.tile(y, (NUM_FRAMES, 1)))(x)
 
     m = Model(inputs, x, name='convolutional')
     return m
-
-    # inputs_list = []
-    # outputs_list = []
-    # for i in range(num_frames):
-    #     inputs = Input(shape=input_shapes)
-    #     inputs_list.append(inputs)
-    #     x = cnn_component(inputs)
-    #     outputs_list.append(x)
-    #
-    # def lambda_average(inp):
-    #     out = inp[0]
-    #     t = len(inp)
-    #     for j in range(1, t):
-    #         out += inp[j]
-    #     out *= (1.0 / t)
-    #     return out
-    #
-    # average_layer = get(Lambda(lambda y: lambda_average(y), name='average'))  # average
-    # x = average_layer(outputs_list)
-    # x = Dense(512, name='affine')(x)
-    # x = Lambda(lambda y: K.squeeze(K.squeeze(y, axis=1), axis=1))(x)
-    # x = Lambda(lambda y: y / K.max(y, axis=1), name='ln')(x)
-    # m = Model(inputs_list, x, name='convolutional')
-    # return m

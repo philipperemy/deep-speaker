@@ -36,7 +36,7 @@ if __name__ == '__main__':
                   loss=deep_speaker_loss,
                   metrics=['accuracy'])
 
+    print(model.summary())
     stub_targets = np.random.uniform(size=(BATCH_SIZE * NUM_FRAMES, 1))
     print(model.train_on_batch(network_inputs, stub_targets))
 
-    print(model.summary())
