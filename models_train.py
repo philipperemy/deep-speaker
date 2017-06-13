@@ -1,6 +1,7 @@
 import numpy as np
 from python_speech_features import fbank, delta
 
+from constants import *
 from models import convolutional_model
 from triplet_loss import deep_speaker_loss
 
@@ -22,16 +23,20 @@ if __name__ == '__main__':
     frames_features = np.hstack([filter_banks, delta_1, delta_2, np.expand_dims(energies, axis=1)])
     num_frames = len(frames_features)
     network_inputs = []
-    for j in range(8, num_frames - 7):
-        frames_slice = frames_features[j - 8:j + 7]
+    for j in range(8, num_frames - 8):
+        frames_slice = frames_features[j - 8:j + 8]
         network_inputs.append(frames_slice)
 
-    model = convolutional_model(input_shapes=list(network_inputs[0].shape) + [1],
-                                num_frames=len(network_inputs[0]))
+    # TODO: wrong but just to make it work now.
+    network_inputs = np.reshape(np.array(network_inputs)[0:BATCH_SIZE * NUM_FRAMES, 0:16, 0:16], (-1, 16, 16, 1))
+
+    # model = convolutional_model(batch_input_shape=[BATCH_SIZE * NUM_FRAMES] + list(frames_slice.shape) + [1])
+    model = convolutional_model(batch_input_shape=[BATCH_SIZE * NUM_FRAMES, 16, 16, 1])
     model.compile(optimizer='adam',
                   loss=deep_speaker_loss,
                   metrics=['accuracy'])
 
-    model.fit(network_inputs, np.array([0] * len(network_inputs)))
+    stub_targets = np.random.uniform(size=(BATCH_SIZE * NUM_FRAMES, 1))
+    print(model.train_on_batch(network_inputs, stub_targets))
 
     print(model.summary())
