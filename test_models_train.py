@@ -13,8 +13,9 @@ if __name__ == '__main__':
 
     model = convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1))
 
+    from triplet_loss import deep_speaker_loss
     model.compile(optimizer='adam',
-                  loss='mse',
+                  loss=deep_speaker_loss,
                   metrics=['accuracy'])
 
     network_inputs = np.reshape(network_inputs, (-1, 16, 16, 1))
