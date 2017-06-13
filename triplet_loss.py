@@ -10,14 +10,20 @@ def deep_speaker_loss(x1, x2):
     # x1.shape = (batch_size, embedding_size)
     # x2.shape = (batch_size, embedding_size)
     # CONVENTION IS:
-    # FIRST THIRD IS ANCHOR (SP1)
-    # SECOND THIRD IS POSITIVE EXAMPLE (SP1)
-    # LAST THIRD IS NEGATIVE EXAMPLE (SP2)
-    # WITH THIS CONVENTION WE ACTUALLY DON'T USE THE TARGETS.
+    # ANCHOR * num_frames
+    # POSITIVE_EX * num_frames
+    # NEGATIVE_EX * num_frames
+
+    # x2 = None  # you don't need to feed targets to this model. Follow the rules (anchor, pos, neg)
+    # WE UPSCALE with K.tile() so we have to remove the garbage. It's redundant.
+
+    x1 = x1[0:BATCH_SIZE]
+
     one_third_of_batch_size = BATCH_SIZE // 3
     anchor = x1[0:one_third_of_batch_size]
     positive_ex = x1[one_third_of_batch_size:2 * one_third_of_batch_size]
     negative_ex = x1[2 * one_third_of_batch_size:]
+
     return triplet_loss(anchor, positive_ex, negative_ex)
 
 

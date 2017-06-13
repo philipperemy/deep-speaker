@@ -1,7 +1,7 @@
 import numpy as np
 
+from constants import BATCH_SIZE, NUM_FRAMES
 from models import convolutional_model
-from triplet_loss import deep_speaker_loss
 
 
 def normalize_frames(m):
@@ -9,16 +9,25 @@ def normalize_frames(m):
 
 
 if __name__ == '__main__':
-    network_inputs = np.random.uniform(size=(3, 16, 16, 1))
+    network_inputs = np.random.uniform(size=(BATCH_SIZE, NUM_FRAMES, 16, 16, 1))
 
-    model = convolutional_model(input_shapes=list(network_inputs[0].shape),
-                                num_frames=len(network_inputs))
+    model = convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1))
 
     model.compile(optimizer='adam',
-                  loss=deep_speaker_loss,
+                  loss='mse',
                   metrics=['accuracy'])
 
-    inputs = list(np.expand_dims(network_inputs, axis=1))
-    model.fit(inputs, np.expand_dims([0] * len(inputs), axis=1))
+    network_inputs = np.reshape(network_inputs, (-1, 16, 16, 1))
 
-    print(model.summary())
+    output = model.predict(network_inputs)
+
+    # stub_targets = np.expand_dims([0] * BATCH_SIZE * NUM_FRAMES, axis=1)
+    stub_targets = np.random.uniform(size=(BATCH_SIZE * NUM_FRAMES, 512))
+    print(model.train_on_batch(network_inputs, stub_targets))
+
+    # from triplet_loss import deep_speaker_loss
+
+    # deep_speaker_loss(output, None)
+
+    # print(model.predict(np.expand_dims(network_inputs[0][0], axis=0)).shape)
+    # print(model.predict(np.reshape(network_inputs, (-1, 16, 16, 1))).shape)

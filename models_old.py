@@ -3,11 +3,9 @@ from keras import layers
 from keras import regularizers
 from keras.layers import Input
 from keras.layers.convolutional import Conv2D
-from keras.layers.core import Lambda, Dense, RepeatVector
+from keras.layers.core import Dense, Lambda
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
-
-from constants import *
 
 layers_dict = dict()
 
@@ -68,7 +66,7 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     return x
 
 
-def convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1)):
+def convolutional_model(input_shapes=(16, 16, 1), num_frames=4):
     # http://cs231n.github.io/convolutional-networks/
     # conv weights
     # #params = ks * ks * nb_filters * num_channels_input
@@ -103,42 +101,26 @@ def convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1)):
         x_ = conv_and_res_block(x_, 512, stage=4)
         return x_
 
-    inputs = Input(batch_shape=batch_input_shape)
-    x = cnn_component(inputs)
+    inputs_list = []
+    outputs_list = []
+    for i in range(num_frames):
+        inputs = Input(shape=input_shapes)
+        inputs_list.append(inputs)
+        x = cnn_component(inputs)
+        outputs_list.append(x)
+
+    def lambda_average(inp):
+        out = inp[0]
+        t = len(inp)
+        for j in range(1, t):
+            out += inp[j]
+        out *= (1.0 / t)
+        return out
+
+    average_layer = get(Lambda(lambda y: lambda_average(y), name='average'))  # average
+    x = average_layer(outputs_list)
+    x = Dense(512, name='affine')(x)
     x = Lambda(lambda y: K.squeeze(K.squeeze(y, axis=1), axis=1))(x)
-    x = Lambda(lambda y: K.reshape(y, (BATCH_SIZE, NUM_FRAMES, 512)))(x)
-    x = Lambda(lambda y: K.mean(y, axis=1))(x)  # .shape = (BATCH_SIZE, 2048)
-    x = Dense(512, name='affine')(x)  # .shape = (BATCH_SIZE, 512)
-    # x / K.squeeze(RepeatVector(512)(K.reshape(K.max(x, axis=1), (-1, 1))), axis=2)
-    x = Lambda(lambda y: y / K.squeeze(RepeatVector(512)(K.reshape(K.max(y, axis=1), (-1, 1))), axis=2), name='ln')(
-        x)  # .shape = (BATCH_SIZE, 512)
-
-    # upscaling to maintain compatibility with keras framework
-    x = Lambda(lambda y: K.tile(y, (NUM_FRAMES, 1)))(x)
-
-    m = Model(inputs, x, name='convolutional')
+    x = Lambda(lambda y: y / K.max(y, axis=1), name='ln')(x)
+    m = Model(inputs_list, x, name='convolutional')
     return m
-
-    # inputs_list = []
-    # outputs_list = []
-    # for i in range(num_frames):
-    #     inputs = Input(shape=input_shapes)
-    #     inputs_list.append(inputs)
-    #     x = cnn_component(inputs)
-    #     outputs_list.append(x)
-    #
-    # def lambda_average(inp):
-    #     out = inp[0]
-    #     t = len(inp)
-    #     for j in range(1, t):
-    #         out += inp[j]
-    #     out *= (1.0 / t)
-    #     return out
-    #
-    # average_layer = get(Lambda(lambda y: lambda_average(y), name='average'))  # average
-    # x = average_layer(outputs_list)
-    # x = Dense(512, name='affine')(x)
-    # x = Lambda(lambda y: K.squeeze(K.squeeze(y, axis=1), axis=1))(x)
-    # x = Lambda(lambda y: y / K.max(y, axis=1), name='ln')(x)
-    # m = Model(inputs_list, x, name='convolutional')
-    # return m
