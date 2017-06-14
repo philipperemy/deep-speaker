@@ -4,6 +4,7 @@ from keras import regularizers
 from keras.layers import Input
 from keras.layers.convolutional import Conv2D
 from keras.layers.core import Lambda, Dense, RepeatVector
+from keras.layers.core import Reshape
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 
@@ -94,16 +95,21 @@ def convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1)):
 
     inputs = Input(batch_shape=batch_input_shape)
     x = cnn_component(inputs)
-    x = Lambda(lambda y: K.squeeze(K.squeeze(y, axis=1), axis=1))(x)
-    x = Lambda(lambda y: K.reshape(y, (BATCH_SIZE, NUM_FRAMES, 512)))(x)
-    x = Lambda(lambda y: K.mean(y, axis=1))(x)  # .shape = (BATCH_SIZE, 2048)
-    x = Dense(512, name='affine')(x)  # .shape = (BATCH_SIZE, 512)
-    # x / K.squeeze(RepeatVector(512)(K.reshape(K.max(x, axis=1), (-1, 1))), axis=2)
+
+    x = Reshape((2048,))(x)
+    x = Dense(512, name='affine')(x)  # .shape = (BATCH_SIZE * NUM_FRAMES, 512)
     x = Lambda(lambda y: y / K.squeeze(RepeatVector(512)(K.reshape(K.max(y, axis=1), (-1, 1))), axis=2), name='ln')(
         x)  # .shape = (BATCH_SIZE, 512)
 
-    # upsampling to maintain compatibility with keras framework
-    x = Lambda(lambda y: K.tile(y, (NUM_FRAMES, 1)))(x)
+    # x = Lambda(lambda y: K.squeeze(K.squeeze(y, axis=1), axis=1))(x)
+    # x = Lambda(lambda y: K.reshape(y, (BATCH_SIZE, NUM_FRAMES, 512)))(x)
+    # x = Lambda(lambda y: K.mean(y, axis=1))(x)  # .shape = (BATCH_SIZE, 2048)
+    # # x / K.squeeze(RepeatVector(512)(K.reshape(K.max(x, axis=1), (-1, 1))), axis=2)
+    # x = Lambda(lambda y: y / K.squeeze(RepeatVector(512)(K.reshape(K.max(y, axis=1), (-1, 1))), axis=2), name='ln')(
+    #     x)  # .shape = (BATCH_SIZE, 512)
+    #
+    # # upsampling to maintain compatibility with keras framework
+    # x = Lambda(lambda y: K.tile(y, (NUM_FRAMES, 1)))(x)
 
     m = Model(inputs, x, name='convolutional')
     return m

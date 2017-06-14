@@ -1,42 +1,36 @@
-import numpy as np
-from python_speech_features import fbank, delta
+from time import time
 
-from constants import *
+import numpy as np
+
 from models import convolutional_model
+from pre_process import next_batch
 from triplet_loss import deep_speaker_loss
 
-
-def normalize_frames(m):
-    return [(v - np.mean(v)) / np.std(v) for v in m]
-
-
 if __name__ == '__main__':
-    signal = np.random.uniform(size=4000)
-    filter_banks, energies = fbank(signal, samplerate=4000, nfilt=64)
-    delta_1 = delta(filter_banks, N=1)
-    delta_2 = delta(delta_1, N=1)
+    b = next_batch()
+    batch_size = 3
+    num_frames = b.shape[0]
 
-    filter_banks = normalize_frames(filter_banks)
-    delta_1 = normalize_frames(delta_1)
-    delta_2 = normalize_frames(delta_2)
-
-    frames_features = np.hstack([filter_banks, delta_1, delta_2, np.expand_dims(energies, axis=1)])
-    num_frames = len(frames_features)
-    network_inputs = []
-    for j in range(8, num_frames - 8):
-        frames_slice = frames_features[j - 8:j + 8]
-        network_inputs.append(frames_slice)
-
-    # TODO: wrong but just to make it work now.
-    network_inputs = np.reshape(np.array(network_inputs)[0:BATCH_SIZE * NUM_FRAMES, 0:16, 0:16], (-1, 16, 16, 1))
-
-    # model = convolutional_model(batch_input_shape=[BATCH_SIZE * NUM_FRAMES] + list(frames_slice.shape) + [1])
-    model = convolutional_model(batch_input_shape=[BATCH_SIZE * NUM_FRAMES, 16, 16, 1])
+    model = convolutional_model(batch_input_shape=[None] + list(b.shape[1:]))
     model.compile(optimizer='adam',
-                  loss=deep_speaker_loss,
-                  metrics=['accuracy'])
+                  loss=deep_speaker_loss)
 
     print(model.summary())
-    stub_targets = np.random.uniform(size=(BATCH_SIZE * NUM_FRAMES, 1))
-    print(model.train_on_batch(network_inputs, stub_targets))
+    grad_steps = 0
+    orig_time = time()
+    while True:
+        anc = next_batch()
+        pos = next_batch()
+        neg = next_batch()
+        batch = np.concatenate([anc, pos, neg], axis=0)
 
+        # this line should not raise an error
+        # output.shape = (3, 383, 32, 32, 3)
+        # explanation  = (batch_size, num_frames, width, height, channels)
+        np.reshape(batch, (batch_size, num_frames, b.shape[2], b.shape[2], b.shape[3]))
+
+        stub_targets = np.random.uniform(size=(batch.shape[0], 1))
+        loss = model.train_on_batch(batch, stub_targets)[0]
+        print('batch #{0} processed in {1:.2f}s, training loss = {2}.'.format(grad_steps, time() - orig_time, loss))
+        grad_steps += 1
+        orig_time = time()
