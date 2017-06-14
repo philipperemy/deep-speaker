@@ -11,7 +11,8 @@ if __name__ == '__main__':
     batch_size = 3
     num_frames = b.shape[0]
 
-    model = convolutional_model(batch_input_shape=[None] + list(b.shape[1:]))
+    model = convolutional_model(batch_input_shape=[batch_size * num_frames] + list(b.shape[1:]),
+                                batch_size=batch_size, num_frames=num_frames)
     model.compile(optimizer='adam',
                   loss=deep_speaker_loss)
 
@@ -30,7 +31,7 @@ if __name__ == '__main__':
         np.reshape(batch, (batch_size, num_frames, b.shape[2], b.shape[2], b.shape[3]))
 
         stub_targets = np.random.uniform(size=(batch.shape[0], 1))
-        loss = model.train_on_batch(batch, stub_targets)[0]
+        loss = model.train_on_batch(batch, stub_targets)
         print('batch #{0} processed in {1:.2f}s, training loss = {2}.'.format(grad_steps, time() - orig_time, loss))
         grad_steps += 1
         orig_time = time()
