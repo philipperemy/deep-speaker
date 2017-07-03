@@ -5,3 +5,5 @@ BATCH_SIZE = 6  # should be a multiple of 3
 NUM_FRAMES = 2
 
 SAMPLE_RATE = 100
+
+TRUNCATE_SOUND_FIRST_SECONDS = 3

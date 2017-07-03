@@ -203,8 +203,8 @@ def find_files(directory, pattern='**/*.wav'):
 
 def read_audio(filename, sample_rate=SAMPLE_RATE):
     audio, sr = librosa.load(filename, sr=sample_rate, mono=True)
-    audio = audio.reshape(-1, 1)
-    return audio, sr
+    audio = audio.flatten()
+    return audio
 
 
 def read_librispeech_structure(directory):
