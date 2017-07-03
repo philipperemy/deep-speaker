@@ -9,9 +9,11 @@ Work accomplished so far:
 - [x] Data pipeline implementation. We're going to use the [LibriSpeech dataset](http://www.openslr.org/12/) with 5000+ different speakers.
 - [ ] Train the models 
 
-So please message me if you want to contribute. I'll be happy to hear your ideas. There are a lot of undisclosed things in the paper, such as:
+## Contributing
 
-- Input size to the network?
+Please message me if you want to contribute. I'll be happy to hear your ideas. There are a lot of undisclosed things in the paper, such as:
+
+- Input size to the network? Which inputs exactly?
 - How many filter banks do we use?
 - Sample Rate?
 
