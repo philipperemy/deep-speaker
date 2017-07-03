@@ -84,6 +84,7 @@ class MiniBatch:
 
         self.libri_batch = pd.DataFrame(pd.concat([anchor_batch, positive_batch, negative_batch], axis=0))
         self.audio_loaded = False
+        self.num_triplets = num_triplets
 
     def load_wav(self):
         self.libri_batch['raw_audio'] = self.libri_batch['filename'].apply(lambda x: read_audio(x))
@@ -102,17 +103,20 @@ class MiniBatch:
         for sig in x:
             new_x.append(pre_process_inputs(sig, target_sample_rate=SAMPLE_RATE))
         x = np.array(new_x)
-        print('x.shape = {}'.format(x.shape))
         y = self.libri_batch['speaker_id'].values
-        print('y.shape = {}'.format(y.shape))
+
+        # print('x.shape = {}'.format(x.shape))
+        # print('y.shape = {}'.format(y.shape))
+
+        # anchor examples [speakers] == positive examples [speakers]
+        np.testing.assert_array_equal(y[0:self.num_triplets], y[self.num_triplets:2 * self.num_triplets])
+
         return x, y
 
 
 def stochastic_mini_batch(libri, batch_size):
     mini_batch = MiniBatch(libri, batch_size)
     return mini_batch
-    # mini_batch.load_wav()
-    # mini_batch.to_inputs()
 
 
 def test():

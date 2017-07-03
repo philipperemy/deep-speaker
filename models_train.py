@@ -26,11 +26,13 @@ if __name__ == '__main__':
         batch = stochastic_mini_batch(libri, batch_size=BATCH_SIZE)
         x, y = batch.to_inputs()
 
-        # this line should not raise an error
-        # output.shape = (3, 383, 32, 32, 3)
+        # output.shape = (3, 383, 32, 32, 3) something like this
         # explanation  = (batch_size, num_frames, width, height, channels)
         x = np.reshape(x, (BATCH_SIZE * num_frames, b.shape[2], b.shape[2], b.shape[3]))
 
+        # we don't need to use the targets y, because we know by the convention that:
+        # we have [anchors, positive examples, negative examples]. The loss only uses x and
+        # can determine if a sample is an anchor, positive or negative sample.
         stub_targets = np.random.uniform(size=(x.shape[0], 1))
         loss = model.train_on_batch(x, stub_targets)
         print('batch #{0} processed in {1:.2f}s, training loss = {2}.'.format(grad_steps, time() - orig_time, loss))
