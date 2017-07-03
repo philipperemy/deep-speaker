@@ -208,10 +208,10 @@ def read_audio(filename):
 
 def read_librispeech_structure(directory):
     libri = pd.DataFrame()
-    libri['filenames'] = find_files(directory)
-    libri['chapter_id'] = libri['filenames'].apply(lambda x: x.split('/')[-2])
-    libri['speaker_id'] = libri['filenames'].apply(lambda x: x.split('/')[-3])
-    libri['dataset_id'] = libri['filenames'].apply(lambda x: x.split('/')[-4])
+    libri['filename'] = find_files(directory)
+    libri['chapter_id'] = libri['filename'].apply(lambda x: x.split('/')[-2])
+    libri['speaker_id'] = libri['filename'].apply(lambda x: x.split('/')[-3])
+    libri['dataset_id'] = libri['filename'].apply(lambda x: x.split('/')[-4])
     num_speakers = len(libri['speaker_id'].unique())
     print('Found {} files with {} different speakers.'.format(str(len(libri)).zfill(7), str(num_speakers).zfill(5)))
     print(libri.head(10))
@@ -220,7 +220,7 @@ def read_librispeech_structure(directory):
 
 def test():
     libri = read_librispeech_structure('/Volumes/Transcend/data-set/LibriSpeech')
-    read_audio(libri[0:1]['filenames'].values[0])
+    read_audio(libri[0:1]['filename'].values[0])
 
 
 if __name__ == '__main__':
