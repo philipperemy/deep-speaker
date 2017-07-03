@@ -186,6 +186,8 @@ import librosa
 import numpy as np
 import pandas as pd
 
+from constants import SAMPLE_RATE
+
 np.set_printoptions(threshold=np.nan)
 pd.set_option('display.height', 1000)
 pd.set_option('display.max_rows', 500)
@@ -199,9 +201,8 @@ def find_files(directory, pattern='**/*.wav'):
     return glob(os.path.join(directory, pattern), recursive=True)
 
 
-def read_audio(filename):
-    # Use native sample rate
-    audio, sr = librosa.load(filename, sr=None, mono=True)
+def read_audio(filename, sample_rate=SAMPLE_RATE):
+    audio, sr = librosa.load(filename, sr=sample_rate, mono=True)
     audio = audio.reshape(-1, 1)
     return audio, sr
 

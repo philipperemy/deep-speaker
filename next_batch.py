@@ -21,7 +21,7 @@ class MiniBatch:
         self.audio_loaded = False
 
     def load_wav(self):
-        self.libri_batch['raw_audio'] = self.libri_batch['filename'].apply(lambda x: read_audio(x)[0])
+        self.libri_batch['raw_audio'] = self.libri_batch['filename'].apply(lambda x: read_audio(x))
         self.audio_loaded = True
 
     def to_inputs(self):
