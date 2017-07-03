@@ -14,9 +14,33 @@
 
 import numpy as np
 import pandas as pd
+from python_speech_features import fbank, delta
 
 import constants as c
+from constants import SAMPLE_RATE
 from librispeech_wav_reader import read_audio
+
+
+def normalize_frames(m):
+    return [(v - np.mean(v)) / np.std(v) for v in m]
+
+
+def pre_process_inputs(signal=np.random.uniform(size=32000), target_sample_rate=8000):
+    filter_banks, energies = fbank(signal, samplerate=target_sample_rate, nfilt=64, winlen=0.025)
+    delta_1 = delta(filter_banks, N=1)
+    delta_2 = delta(delta_1, N=1)
+
+    filter_banks = normalize_frames(filter_banks)
+    delta_1 = normalize_frames(delta_1)
+    delta_2 = normalize_frames(delta_2)
+
+    frames_features = np.hstack([filter_banks, delta_1, delta_2])
+    num_frames = len(frames_features)
+    network_inputs = []
+    for j in range(8, num_frames - 8):
+        frames_slice = frames_features[j - 8:j + 8]
+        network_inputs.append(np.reshape(frames_slice, (32, 32, 3)))
+    return np.array(network_inputs)
 
 
 class MiniBatch:
@@ -74,8 +98,13 @@ class MiniBatch:
             self.load_wav()
 
         x = self.libri_batch['raw_audio'].values
-        x = np.array([a.flatten() for a in x])
+        new_x = []
+        for sig in x:
+            new_x.append(pre_process_inputs(sig, target_sample_rate=SAMPLE_RATE))
+        x = np.array(new_x)
+        print('x.shape = {}'.format(x.shape))
         y = self.libri_batch['speaker_id'].values
+        print('y.shape = {}'.format(y.shape))
         return x, y
 
 

@@ -74,6 +74,8 @@ def convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1),
 
     # used to share all the layers across the inputs
 
+    # num_frames = K.shape() - do it dynamically after.
+
     def conv_and_res_block(inp, filters, stage):
         conv_name = 'conv{}-s'.format(filters)
         o = get(Conv2D(filters,
