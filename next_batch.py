@@ -50,7 +50,7 @@ class MiniBatch:
         # [sp1, sp2, sp3, sp1, sp2, sp3, sp4, sp5, sp6]
 
         unique_speakers = list(libri['speaker_id'].unique())
-        num_triplets = batch_size // 3
+        num_triplets = batch_size
 
         anchor_batch = None
         positive_batch = None
@@ -119,11 +119,11 @@ def stochastic_mini_batch(libri, batch_size):
     return mini_batch
 
 
-def test():
+def main():
     from librispeech_wav_reader import read_librispeech_structure
     libri = read_librispeech_structure('/Volumes/Transcend/data-set/LibriSpeech')
-    stochastic_mini_batch(libri, 32)
+    stochastic_mini_batch(libri, 3)
 
 
 if __name__ == '__main__':
-    test()
+    main()

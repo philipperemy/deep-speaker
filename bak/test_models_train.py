@@ -1,6 +1,6 @@
 import numpy as np
 
-from constants import BATCH_SIZE, NUM_FRAMES
+from constants import BATCH_NUM_TRIPLETS, NUM_FRAMES
 from models import convolutional_model
 
 
@@ -9,9 +9,9 @@ def normalize_frames(m):
 
 
 if __name__ == '__main__':
-    network_inputs = np.random.uniform(size=(BATCH_SIZE, NUM_FRAMES, 16, 16, 1))
+    network_inputs = np.random.uniform(size=(BATCH_NUM_TRIPLETS, NUM_FRAMES, 16, 16, 1))
 
-    model = convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1))
+    model = convolutional_model(batch_input_shape=(BATCH_NUM_TRIPLETS * NUM_FRAMES, 16, 16, 1))
 
     from triplet_loss import deep_speaker_loss
     model.compile(optimizer='adam',
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     output = model.predict(network_inputs)
 
     # stub_targets = np.expand_dims([0] * BATCH_SIZE * NUM_FRAMES, axis=1)
-    stub_targets = np.random.uniform(size=(BATCH_SIZE * NUM_FRAMES, 512))
+    stub_targets = np.random.uniform(size=(BATCH_NUM_TRIPLETS * NUM_FRAMES, 512))
     print(model.train_on_batch(network_inputs, stub_targets))
 
     # from triplet_loss import deep_speaker_loss

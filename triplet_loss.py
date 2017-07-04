@@ -1,9 +1,14 @@
 import keras.backend as K
-from keras import losses
 
 from constants import *
 
 alpha = 0.1
+
+
+def cosine_proximity(y_true, y_pred):
+    y_true = K.l2_normalize(y_true, axis=-1)
+    y_pred = K.l2_normalize(y_pred, axis=-1)
+    return y_true * y_pred
 
 
 def deep_speaker_loss(x1, x2):
@@ -12,7 +17,7 @@ def deep_speaker_loss(x1, x2):
     # CONVENTION: Input is:
     # concat(BATCH_SIZE * [ANCHOR, POSITIVE_EX, NEGATIVE_EX] * NUM_FRAMES)
     # EXAMPLE:
-    # BATCH_SIZE = 3, NUM_FRAMES = 2
+    # BATCH_NUM_TRIPLETS = 3, NUM_FRAMES = 2
     # _____________________________________________________
     # ANCHOR 1 (512,)
     # ANCHOR 2 (512,)
@@ -36,15 +41,14 @@ def deep_speaker_loss(x1, x2):
 
     # WE UPSCALE with K.tile() so we have to remove the garbage. It's redundant.
 
-    x1 = x1[0:BATCH_SIZE]
-    #
-    one_third_of_batch_size = BATCH_SIZE // 3
-    anchor = x1[0:one_third_of_batch_size]
-    positive_ex = x1[one_third_of_batch_size:2 * one_third_of_batch_size]
-    negative_ex = x1[2 * one_third_of_batch_size:]
+    x1 = x1[0:BATCH_NUM_TRIPLETS * 3]
 
-    sap = losses.cosine_proximity(anchor, positive_ex)
-    san = losses.cosine_proximity(anchor, negative_ex)
+    anchor = x1[0:BATCH_NUM_TRIPLETS]
+    positive_ex = x1[BATCH_NUM_TRIPLETS:2 * BATCH_NUM_TRIPLETS]
+    negative_ex = x1[2 * BATCH_NUM_TRIPLETS:]
+
+    sap = cosine_proximity(anchor, positive_ex)
+    san = cosine_proximity(anchor, negative_ex)
     loss = K.mean(K.abs(san - sap + alpha))
 
     # we multiply x2 by 0 to have its gradient to be 0.

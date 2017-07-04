@@ -58,8 +58,8 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     return x
 
 
-def convolutional_model(batch_input_shape=(BATCH_SIZE * NUM_FRAMES, 16, 16, 1),
-                        batch_size=BATCH_SIZE, num_frames=NUM_FRAMES):
+def convolutional_model(batch_input_shape=(BATCH_NUM_TRIPLETS * NUM_FRAMES, 16, 16, 1),
+                        batch_size=BATCH_NUM_TRIPLETS, num_frames=NUM_FRAMES):
     # http://cs231n.github.io/convolutional-networks/
     # conv weights
     # #params = ks * ks * nb_filters * num_channels_input
