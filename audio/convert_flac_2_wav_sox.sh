@@ -10,6 +10,6 @@ do
     sox "$file" "$dir"/"$name".wav
 done
 
-find . -name "*.flac" -exec rm -f {} \;
+find $folder -name "*.flac" -exec rm -f {} \;
 
 # https://unix.stackexchange.com/questions/341436/a-script-to-convert-flac-files-to-wav-is-not-working/341441

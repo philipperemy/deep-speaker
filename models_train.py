@@ -1,3 +1,4 @@
+import sys
 from time import time
 
 import numpy as np
@@ -8,8 +9,9 @@ from models import convolutional_model
 from next_batch import stochastic_mini_batch
 from triplet_loss import deep_speaker_loss
 
-if __name__ == '__main__':
-    libri = read_librispeech_structure('/Volumes/Transcend/data-set/LibriSpeech')
+
+def main(libri_dir):
+    libri = read_librispeech_structure(libri_dir)
     batch = stochastic_mini_batch(libri, batch_size=BATCH_SIZE)
     x, y = batch.to_inputs()
     b = x[0]
@@ -38,3 +40,9 @@ if __name__ == '__main__':
         print('batch #{0} processed in {1:.2f}s, training loss = {2}.'.format(grad_steps, time() - orig_time, loss))
         grad_steps += 1
         orig_time = time()
+
+
+if __name__ == '__main__':
+    arguments = sys.argv
+    assert len(arguments) == 2, 'Usage: python3 {} <libri_speech_wav_folder>'.format(arguments[0])
+    main(arguments[1])
