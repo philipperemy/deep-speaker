@@ -7,6 +7,7 @@ Deep Speaker: an End-to-End Neural Speaker Embedding System https://arxiv.org/pd
 
 Work accomplished so far:
 - [x] Triplet loss
+- [x] Triplet loss test
 - [x] Model implementation
 - [x] Data pipeline implementation. We're going to use the [LibriSpeech dataset](http://www.openslr.org/12/) with 5000+ different speakers.
 - [ ] Train the models 
