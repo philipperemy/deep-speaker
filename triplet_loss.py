@@ -5,10 +5,15 @@ from constants import *
 alpha = 0.1
 
 
-def cosine_proximity(y_true, y_pred):
-    y_true = K.l2_normalize(y_true, axis=-1)
-    y_pred = K.l2_normalize(y_pred, axis=-1)
-    return y_true * y_pred
+# K.sum(anchor * positive_ex, axis=1).eval() == K.batch_dot(anchor, positive_ex, axes=1)
+
+def batch_norm(x):
+    return K.sqrt(K.sum(K.square(x), axis=1))
+
+
+def cosine_similarity(x1, x2):
+    # https://en.wikipedia.org/wiki/Cosine_similarity
+    return K.squeeze(K.batch_dot(x1, x2, axes=1), axis=1) / (batch_norm(x1) * batch_norm(x2))
 
 
 def deep_speaker_loss(x1, x2):
@@ -47,9 +52,9 @@ def deep_speaker_loss(x1, x2):
     positive_ex = x1[BATCH_NUM_TRIPLETS:2 * BATCH_NUM_TRIPLETS]
     negative_ex = x1[2 * BATCH_NUM_TRIPLETS:]
 
-    sap = cosine_proximity(anchor, positive_ex)
-    san = cosine_proximity(anchor, negative_ex)
-    loss = K.mean(K.abs(san - sap + alpha))
+    sap = cosine_similarity(anchor, positive_ex)
+    san = cosine_similarity(anchor, negative_ex)
+    loss = K.mean(K.maximum(san - sap + alpha, 0.0))
 
     # we multiply x2 by 0 to have its gradient to be 0.
     # if we don't x2, its gradient is equal to None and it raises an error.
