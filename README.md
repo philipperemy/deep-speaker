@@ -9,7 +9,7 @@ Work accomplished so far:
 - [x] Triplet loss
 - [x] Triplet loss test
 - [x] Model implementation
-- [x] Data pipeline implementation. We're going to use the [LibriSpeech dataset](http://www.openslr.org/12/) with 5000+ different speakers.
+- [x] Data pipeline implementation. We're going to use the [LibriSpeech dataset](http://www.openslr.org/12/) with 2300+ different speakers.
 - [ ] Train the models 
 
 <p align="center">
@@ -28,6 +28,8 @@ Please message me if you want to contribute. I'll be happy to hear your ideas. T
 ## LibriSpeech Dataset
 
 Available here: http://www.openslr.org/12/
+
+List of possible other datasets: http://kaldi-asr.org/doc/examples.html
 
 Extract of this dataset:
 
