@@ -47,20 +47,9 @@ Extract of this dataset:
 9  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0009.wav     128104       1272  dev-clean
 ```
 
-## Training example on CPU
+## Training example on GPU
 
-```
-batch #0 processed in 233.63s, training loss = 0.7363479137420654.
-batch #1 processed in 176.31s, training loss = 0.6804276704788208.
-batch #2 processed in 178.94s, training loss = 0.6266987919807434.
-batch #3 processed in 172.45s, training loss = 0.5761439204216003.
-batch #4 processed in 164.76s, training loss = 0.52906334400177.
-batch #5 processed in 165.07s, training loss = 0.4855523407459259.
-batch #6 processed in 156.74s, training loss = 0.4455888271331787.
-batch #7 processed in 145.81s, training loss = 0.40904250741004944.
-batch #8 processed in 141.85s, training loss = 0.3757786452770233.
-batch #9 processed in 142.46s, training loss = 0.34564515948295593.
-batch #10 processed in 157.34s, training loss = 0.3184462785720825.
-batch #11 processed in 183.19s, training loss = 0.29400110244750977.
-batch #12 processed in 151.84s, training loss = 0.27212029695510864.
-```
+<p align="center">
+  <img src="assets/run_gpu_1.png">
+  <br><i>Training on the GPU.</i>
+</p>
