@@ -7,6 +7,8 @@ nohup.out
 .DS_Store
 .idea/
 
+*.wav
+
 # C extensions
 *.so
 
