@@ -1,16 +1,15 @@
-import sys
 from time import time
 
 import numpy as np
 
-from constants import BATCH_NUM_TRIPLETS
+from constants import BATCH_NUM_TRIPLETS, DATASET_DIR
 from librispeech_wav_reader import read_librispeech_structure
 from models import convolutional_model
 from next_batch import stochastic_mini_batch
 from triplet_loss import deep_speaker_loss
 
 
-def main(libri_dir):
+def main(libri_dir=DATASET_DIR):
     libri = read_librispeech_structure(libri_dir)
     batch = stochastic_mini_batch(libri, batch_size=BATCH_NUM_TRIPLETS)
     batch_size = BATCH_NUM_TRIPLETS * 3  # A triplet has 3 parts.
@@ -49,6 +48,4 @@ def main(libri_dir):
 
 
 if __name__ == '__main__':
-    arguments = sys.argv
-    assert len(arguments) == 2, 'Usage: python3 {} <libri_speech_wav_folder>'.format(arguments[0])
-    main(arguments[1])
+    main()
