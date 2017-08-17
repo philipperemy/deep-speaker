@@ -121,7 +121,7 @@ def stochastic_mini_batch(libri, batch_size):
 
 def main():
     from librispeech_wav_reader import read_librispeech_structure
-    libri = read_librispeech_structure('/Volumes/Transcend/data-set/LibriSpeech')
+    libri = read_librispeech_structure(c.DATASET_DIR)
     stochastic_mini_batch(libri, 3)
 
 

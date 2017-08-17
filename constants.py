@@ -1,4 +1,4 @@
-DATASET_DIR = '/Volumes/Transcend/data-set/LibriSpeech'
+DATASET_DIR = 'audio/LibriSpeechSamples/'
 
 BATCH_NUM_TRIPLETS = 6  # should be a multiple of 3
 
