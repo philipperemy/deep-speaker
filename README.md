@@ -17,6 +17,21 @@ Work accomplished so far:
   <br><i>Visualization of a possible triplet (Anchor, Positive, Negative) in the cosine similarity space</i>
 </p>
 
+## Get started!
+
+Simply run those commands:
+
+```
+git clone https://github.com/philipperemy/deep-speaker.git
+cd deep-speaker
+pip3 install -r requirements.txt
+cd audio/
+./convert_flac_2_wav.sh # make sure ffmpeg is installed!
+cd ..
+python3 models_train.py
+```
+
+
 ## Contributing
 
 Please message me if you want to contribute. I'll be happy to hear your ideas. There are a lot of undisclosed things in the paper, such as:
