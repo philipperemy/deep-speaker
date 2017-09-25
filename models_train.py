@@ -11,7 +11,12 @@ from utils import get_last_checkpoint_if_any, create_dir_and_delete_content
 
 
 def main(libri_dir=DATASET_DIR):
+    print('Looking for audio [wav] files in {}.'.format(libri_dir))
     libri = read_librispeech_structure(libri_dir)
+
+    if len(libri) == 0:
+        print('Have you converted flac files to wav? If not, run audio/convert_flac_2_wav.sh')
+
     batch = stochastic_mini_batch(libri, batch_size=BATCH_NUM_TRIPLETS)
     batch_size = BATCH_NUM_TRIPLETS * 3  # A triplet has 3 parts.
     x, y = batch.to_inputs()
