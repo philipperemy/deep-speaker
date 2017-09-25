@@ -12,11 +12,6 @@ Work accomplished so far:
 - [x] Data pipeline implementation. We're going to use the [LibriSpeech dataset](http://www.openslr.org/12/) with 2300+ different speakers.
 - [ ] Train the models 
 
-<p align="center">
-  <img src="assets/1.png" width="400">
-  <br><i>Visualization of a possible triplet (Anchor, Positive, Negative) in the cosine similarity space</i>
-</p>
-
 ## Get started!
 
 Simply run those commands:
@@ -67,4 +62,11 @@ Extract of this dataset:
 <p align="center">
   <img src="assets/run_gpu_1.png">
   <br><i>Training on the GPU.</i>
+</p>
+
+## Vizualization of anchors
+
+<p align="center">
+  <img src="assets/1.png" width="400">
+  <br><i>Visualization of a possible triplet (Anchor, Positive, Negative) in the cosine similarity space</i>
 </p>
