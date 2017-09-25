@@ -2,11 +2,12 @@ from time import time
 
 import numpy as np
 
-from constants import BATCH_NUM_TRIPLETS, DATASET_DIR
+from constants import BATCH_NUM_TRIPLETS, DATASET_DIR, CHECKPOINT_FOLDER
 from librispeech_wav_reader import read_librispeech_structure
 from models import convolutional_model
 from next_batch import stochastic_mini_batch
 from triplet_loss import deep_speaker_loss
+from utils import get_last_checkpoint_if_any, create_dir_and_delete_content
 
 
 def main(libri_dir=DATASET_DIR):
@@ -20,9 +21,19 @@ def main(libri_dir=DATASET_DIR):
 
     model = convolutional_model(batch_input_shape=[batch_size * num_frames] + list(b.shape[1:]),
                                 batch_size=batch_size, num_frames=num_frames)
-    model.compile(optimizer='adam', loss=deep_speaker_loss)
-
     print(model.summary())
+
+    print('Compiling the model...', end=' ')
+    model.compile(optimizer='adam', loss=deep_speaker_loss)
+    print('[DONE]')
+
+    last_checkpoint = get_last_checkpoint_if_any(CHECKPOINT_FOLDER)
+    if last_checkpoint is not None:
+        print('Found checkpoint [{}]. Resume from here...'.format(last_checkpoint), end=' ')
+        model.load_weights(last_checkpoint)
+        print('[DONE]')
+
+    print('Starting training...')
     grad_steps = 0
     orig_time = time()
     while True:
@@ -41,10 +52,18 @@ def main(libri_dir=DATASET_DIR):
         # print(result.shape)
         # np.set_printoptions(precision=2)
         # print(result[0:20, 0:5])
+
+        print('-' * 80)
+        print('== Presenting batch #{0}'.format(grad_steps))
+        print(batch.libri_batch)
         loss = model.train_on_batch(x, stub_targets)
-        print('batch #{0} processed in {1:.2f}s, training loss = {2}.'.format(grad_steps, time() - orig_time, loss))
+        print('== Processed in {0:.2f}s by the network, training loss = {1}.'.format(time() - orig_time, loss))
         grad_steps += 1
         orig_time = time()
+
+        # checkpoints are really heavy so let's just keep the last one.
+        create_dir_and_delete_content(CHECKPOINT_FOLDER)
+        model.save_weights('{0}/model_{1}_{2:.3f}.h5'.format(CHECKPOINT_FOLDER, grad_steps, loss))
 
 
 if __name__ == '__main__':
