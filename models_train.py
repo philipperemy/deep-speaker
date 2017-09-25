@@ -16,6 +16,7 @@ def main(libri_dir=DATASET_DIR):
 
     if len(libri) == 0:
         print('Have you converted flac files to wav? If not, run audio/convert_flac_2_wav.sh')
+        exit(1)
 
     batch = stochastic_mini_batch(libri, batch_size=BATCH_NUM_TRIPLETS)
     batch_size = BATCH_NUM_TRIPLETS * 3  # A triplet has 3 parts.
