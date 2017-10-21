@@ -5,6 +5,10 @@
 
 Deep Speaker: an End-to-End Neural Speaker Embedding System https://arxiv.org/pdf/1705.02304.pdf
 
+## Call for contributors
+
+This code is not functional yet! I'm making a call for contributors to help make a great implementation! The basics stuffs are already there. Thanks!
+
 Work accomplished so far:
 - [x] Triplet loss
 - [x] Triplet loss test
