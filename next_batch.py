@@ -21,9 +21,10 @@ from constants import SAMPLE_RATE
 from librispeech_wav_reader import read_audio
 
 
-def normalize_frames(m):
-    return [(v - np.mean(v)) / np.std(v) for v in m]
-
+#def normalize_frames(m):
+#    return [(v - np.mean(v)) / np.std(v) for v in m]
+def normalize_frames(m,epsilon=1e-12):
+    return [(v - np.mean(v)) / max(np.std(v),epsilon) for v in m]
 
 def pre_process_inputs(signal=np.random.uniform(size=32000), target_sample_rate=8000):
     filter_banks, energies = fbank(signal, samplerate=target_sample_rate, nfilt=64, winlen=0.025)
