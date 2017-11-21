@@ -30,6 +30,10 @@ cd ..
 python3 models_train.py
 ```
 
+Preconditions:
+* Installed tensorflow: https://www.tensorflow.org/install/install_linux
+* `sudo apt-get install python3-tk ffmpeg`
+* ~ 6 GB memory
 
 ## Contributing
 
