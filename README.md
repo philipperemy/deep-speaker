@@ -35,6 +35,12 @@ Preconditions:
 * `sudo apt-get install python3-tk ffmpeg`
 * ~ 6 GB memory
 
+## Setup Windows
+
+* install [ffmpeg](http://ffmpeg.zeranoe.com/builds/) (and add to PATH)
+* use git bash for: `cd audio; ./convert_flac_2_wav.sh`
+* other steps analogous to above
+
 ## Contributing
 
 Please message me if you want to contribute. I'll be happy to hear your ideas. There are a lot of undisclosed things in the paper, such as:

@@ -210,6 +210,7 @@ def read_audio(filename, sample_rate=SAMPLE_RATE):
 def read_librispeech_structure(directory):
     libri = pd.DataFrame()
     libri['filename'] = find_files(directory)
+    libri['filename'] = libri['filename'].apply(lambda x: x.replace('\\', '/')) # normalize windows paths
     libri['chapter_id'] = libri['filename'].apply(lambda x: x.split('/')[-2])
     libri['speaker_id'] = libri['filename'].apply(lambda x: x.split('/')[-3])
     libri['dataset_id'] = libri['filename'].apply(lambda x: x.split('/')[-4])

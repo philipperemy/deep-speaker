@@ -19,7 +19,7 @@ def get_last_checkpoint_if_any(checkpoint_folder):
 
 def create_dir_and_delete_content(directory):
     try:
-        shutil.rmtree(directory)
+        shutil.rmtree(directory, ignore_errors=True)
     except:
         pass
-    os.makedirs(directory)
+    os.makedirs(directory, exist_ok=True)
