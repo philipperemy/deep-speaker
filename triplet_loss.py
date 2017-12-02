@@ -1,6 +1,6 @@
-import keras.backend as K
+import logging
 
-from constants import *
+import keras.backend as K
 
 alpha = 0.1
 
@@ -8,7 +8,7 @@ alpha = 0.1
 # K.sum(anchor * positive_ex, axis=1).eval() == K.batch_dot(anchor, positive_ex, axes=1)
 
 def batch_norm(x):
-    return K.sqrt(K.sum(K.square(x), axis=1))
+    return K.square(K.sum(K.squeeze(K.batch_dot(x, x, axes=1), 1)))
 
 
 def cosine_similarity(x1, x2):
@@ -16,9 +16,11 @@ def cosine_similarity(x1, x2):
     return K.squeeze(K.batch_dot(x1, x2, axes=1), axis=1) / (batch_norm(x1) * batch_norm(x2))
 
 
-def deep_speaker_loss(x1, x2):
-    # x1.shape = (batch_size, embedding_size)
-    # x2.shape = (batch_size, embedding_size)
+def deep_speaker_loss(y_true, y_pred):
+    logging.info('y_true={}'.format(y_true))
+    logging.info('y_pred={}'.format(y_pred))
+    # y_true.shape = (batch_size, embedding_size)
+    # y_pred.shape = (batch_size, embedding_size)
     # CONVENTION: Input is:
     # concat(BATCH_SIZE * [ANCHOR, POSITIVE_EX, NEGATIVE_EX] * NUM_FRAMES)
     # EXAMPLE:
@@ -44,20 +46,21 @@ def deep_speaker_loss(x1, x2):
     # NEG EX 3 (512,)
     # _____________________________________________________
 
-    # WE UPSCALE with K.tile() so we have to remove the garbage. It's redundant.
+    elements = int(K.int_shape(y_pred)[0] / 3)
+    logging.info('elements={}'.format(elements))
 
-    x1 = x1[0:BATCH_NUM_TRIPLETS * 3]
-
-    anchor = x1[0:BATCH_NUM_TRIPLETS]
-    positive_ex = x1[BATCH_NUM_TRIPLETS:2 * BATCH_NUM_TRIPLETS]
-    negative_ex = x1[2 * BATCH_NUM_TRIPLETS:]
+    anchor = y_pred[0:elements]
+    positive_ex = y_pred[elements:2 * elements]
+    negative_ex = y_pred[2 * elements:]
+    logging.info('anchor={}'.format(anchor))
+    logging.info('positive_ex={}'.format(positive_ex))
+    logging.info('negative_ex={}'.format(negative_ex))
 
     sap = cosine_similarity(anchor, positive_ex)
+    logging.info('sap={}'.format(sap))
     san = cosine_similarity(anchor, negative_ex)
-    loss = K.mean(K.maximum(san - sap + alpha, 0.0))
+    logging.info('san={}'.format(san))
+    loss = K.sum(K.maximum(san - sap + alpha, 0.0))
+    logging.info('loss={}'.format(loss))
 
-    # we multiply x2 by 0 to have its gradient to be 0.
-    # if we don't x2, its gradient is equal to None and it raises an error.
-    # with our convention, we focus solely on x1 because the targets are given by the structure described above
-    # with (anchor, positive examples, negative examples)
-    return loss + 0 * x2
+    return loss
