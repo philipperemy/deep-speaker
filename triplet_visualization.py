@@ -1,3 +1,5 @@
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -36,7 +38,7 @@ def newline(p1, p2, color):
     x_max = p1[1]
     y_min = p2[0]
     y_max = p2[1]
-    print([x_min, x_max], [y_min, y_max])
+    logging.info('{} {}'.format([x_min, x_max], [y_min, y_max]))
     l = mlines.Line2D([x_min, x_max], [y_min, y_max], color=color, linestyle='dashdot', linewidth=3)
     ax.add_line(l)
     return l

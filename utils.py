@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from glob import glob
@@ -22,5 +23,5 @@ def create_dir_and_delete_content(directory):
                    key=os.path.getmtime)
     # delete all but most current file to assure the latest model is availabel even if process is killed
     for file in files[:-1]:
-        print("removing old model: {}".format(file))
+        logging.info("removing old model: {}".format(file))
         os.remove(file)
