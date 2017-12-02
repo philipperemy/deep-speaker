@@ -1,6 +1,5 @@
 import os
 import re
-import shutil
 from glob import glob
 
 
@@ -18,8 +17,10 @@ def get_last_checkpoint_if_any(checkpoint_folder):
 
 
 def create_dir_and_delete_content(directory):
-    try:
-        shutil.rmtree(directory, ignore_errors=True)
-    except:
-        pass
     os.makedirs(directory, exist_ok=True)
+    files = sorted(filter(os.path.isfile, map(lambda f: os.path.join(directory, f), os.listdir(directory))),
+                   key=os.path.getmtime)
+    # delete all but most current file to assure the latest model is availabel even if process is killed
+    for file in files[:-1]:
+        print("removing old model: {}".format(file))
+        os.remove(file)
