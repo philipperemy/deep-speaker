@@ -1,3 +1,5 @@
+import logging
+
 import keras.backend as K
 from keras import layers
 from keras import regularizers
@@ -16,11 +18,11 @@ layers_dict = dict()
 def get(obj):
     layer_name = obj.name
     if layer_name not in layers_dict:
-        print('-> Creating layer [{}]'.format(layer_name))
+        logging.info('-> Creating layer [{}]'.format(layer_name))
         # create it
         layers_dict[layer_name] = obj
     else:
-        print('-> Using layer [{}]'.format(layer_name))
+        logging.info('-> Using layer [{}]'.format(layer_name))
     return layers_dict[layer_name]
 
 

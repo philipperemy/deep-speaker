@@ -1,6 +1,8 @@
+import logging
 from time import time
 
 import numpy as np
+import sys
 
 from constants import BATCH_NUM_TRIPLETS, DATASET_DIR, CHECKPOINT_FOLDER
 from librispeech_wav_reader import read_librispeech_structure
@@ -11,11 +13,11 @@ from utils import get_last_checkpoint_if_any, create_dir_and_delete_content
 
 
 def main(libri_dir=DATASET_DIR):
-    print('Looking for audio [wav] files in {}.'.format(libri_dir))
+    logging.info('Looking for audio [wav] files in {}.'.format(libri_dir))
     libri = read_librispeech_structure(libri_dir)
 
     if len(libri) == 0:
-        print('Have you converted flac files to wav? If not, run audio/convert_flac_2_wav.sh')
+        logging.warning('Have you converted flac files to wav? If not, run audio/convert_flac_2_wav.sh')
         exit(1)
 
     batch = stochastic_mini_batch(libri, batch_size=BATCH_NUM_TRIPLETS)
@@ -23,23 +25,26 @@ def main(libri_dir=DATASET_DIR):
     x, y = batch.to_inputs()
     b = x[0]
     num_frames = b.shape[0]
-    print('num_frames = ', num_frames)
+    logging.info('num_frames = {}'.format(num_frames))
 
-    model = convolutional_model(batch_input_shape=[batch_size * num_frames] + list(b.shape[1:]),
+    batch_shape = [batch_size * num_frames] + list(b.shape[1:])
+    logging.info('batch shape: {}'.format(batch_shape))
+    logging.info('batch size: {}'.format(batch_size))
+    model = convolutional_model(batch_input_shape=batch_shape,
                                 batch_size=batch_size, num_frames=num_frames)
-    print(model.summary())
+    logging.info(model.summary())
 
-    print('Compiling the model...', end=' ')
+    logging.info('Compiling the model...')
     model.compile(optimizer='adam', loss=deep_speaker_loss)
-    print('[DONE]')
+    logging.info('[DONE]')
 
     last_checkpoint = get_last_checkpoint_if_any(CHECKPOINT_FOLDER)
     if last_checkpoint is not None:
-        print('Found checkpoint [{}]. Resume from here...'.format(last_checkpoint), end=' ')
+        logging.info('Found checkpoint [{}]. Resume from here...'.format(last_checkpoint))
         model.load_weights(last_checkpoint)
-        print('[DONE]')
+        logging.info('[DONE]')
 
-    print('Starting training...')
+    logging.info('Starting training...')
     grad_steps = 0
     orig_time = time()
     while True:
@@ -48,22 +53,24 @@ def main(libri_dir=DATASET_DIR):
 
         # output.shape = (3, 383, 32, 32, 3) something like this
         # explanation  = (batch_size, num_frames, width, height, channels)
+        logging.info('x.shape before reshape: {}'.format(x.shape))
         x = np.reshape(x, (batch_size * num_frames, b.shape[2], b.shape[2], b.shape[3]))
+        logging.info('x.shape after  reshape: {}'.format(x.shape))
 
         # we don't need to use the targets y, because we know by the convention that:
         # we have [anchors, positive examples, negative examples]. The loss only uses x and
         # can determine if a sample is an anchor, positive or negative sample.
         stub_targets = np.random.uniform(size=(x.shape[0], 1))
         # result = model.predict(x, batch_size=x.shape[0])
-        # print(result.shape)
+        # logging.info(result.shape)
         # np.set_printoptions(precision=2)
-        # print(result[0:20, 0:5])
+        # logging.info(result[0:20, 0:5])
 
-        print('-' * 80)
-        print('== Presenting batch #{0}'.format(grad_steps))
-        print(batch.libri_batch)
+        logging.info('-' * 80)
+        logging.info('== Presenting batch #{0}'.format(grad_steps))
+        logging.info(batch.libri_batch)
         loss = model.train_on_batch(x, stub_targets)
-        print('== Processed in {0:.2f}s by the network, training loss = {1}.'.format(time() - orig_time, loss))
+        logging.info('== Processed in {0:.2f}s by the network, training loss = {1}.'.format(time() - orig_time, loss))
         grad_steps += 1
         orig_time = time()
 
@@ -73,4 +80,6 @@ def main(libri_dir=DATASET_DIR):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(handlers=[logging.StreamHandler(stream=sys.stdout)], level=logging.INFO,
+                        format='%(asctime)-15s [%(levelname)s] %(filename)s/%(funcName)s | %(message)s')
     main()

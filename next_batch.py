@@ -11,6 +11,7 @@
 8  1272/128104/1272-128104-0008.wav     128104       1272  dev-clean
 9  1272/128104/1272-128104-0009.wav     128104       1272  dev-clean
 """
+import logging
 
 import numpy as np
 import pandas as pd
@@ -105,9 +106,8 @@ class MiniBatch:
             new_x.append(pre_process_inputs(sig, target_sample_rate=SAMPLE_RATE))
         x = np.array(new_x)
         y = self.libri_batch['speaker_id'].values
-
-        # print('x.shape = {}'.format(x.shape))
-        # print('y.shape = {}'.format(y.shape))
+        logging.info('x.shape = {}'.format(x.shape))
+        logging.info('y.shape = {}'.format(y.shape))
 
         # anchor examples [speakers] == positive examples [speakers]
         np.testing.assert_array_equal(y[0:self.num_triplets], y[self.num_triplets:2 * self.num_triplets])
