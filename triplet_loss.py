@@ -2,18 +2,15 @@ import logging
 
 import keras.backend as K
 
-alpha = 0.1
+alpha = 0.2  # used in FaceNet https://arxiv.org/pdf/1503.03832.pdf
 
 
-# K.sum(anchor * positive_ex, axis=1).eval() == K.batch_dot(anchor, positive_ex, axes=1)
-
-def batch_norm(x):
-    return K.square(K.sum(K.squeeze(K.batch_dot(x, x, axes=1), 1)))
-
-
-def cosine_similarity(x1, x2):
+def batch_cosine_similarity(x1, x2):
     # https://en.wikipedia.org/wiki/Cosine_similarity
-    return K.squeeze(K.batch_dot(x1, x2, axes=1), axis=1) / (batch_norm(x1) * batch_norm(x2))
+    dot = K.squeeze(K.batch_dot(x1, x2, axes=1), axis=1)
+    logging.info('dot: {}'.format(dot))
+    # as values have have length 1, we don't need to divide by norm (as it is 1)
+    return dot
 
 
 def deep_speaker_loss(y_true, y_pred):
@@ -35,15 +32,6 @@ def deep_speaker_loss(y_true, y_pred):
     # NEG EX 1 (512,)
     # NEG EX 2 (512,)
     # NEG EX 3 (512,)
-    # ANCHOR 1 # FROM HERE (INCLUDED), THIS IS THE SAME BLOCK AS ABOVE.
-    # ANCHOR 2 # WE ADD IT BECAUSE WE WANT TO MATCH THE SIZE FOR KERAS.
-    # ANCHOR 3 # BATCH_SIZE * NUM_FRAMES => BATCH_SIZE => BATCH_SIZE * NUM_FRAMES
-    # POS EX 1 (512,)
-    # POS EX 2 (512,)
-    # POS EX 3 (512,)
-    # NEG EX 1 (512,)
-    # NEG EX 2 (512,)
-    # NEG EX 3 (512,)
     # _____________________________________________________
 
     elements = int(K.int_shape(y_pred)[0] / 3)
@@ -56,11 +44,12 @@ def deep_speaker_loss(y_true, y_pred):
     logging.info('positive_ex={}'.format(positive_ex))
     logging.info('negative_ex={}'.format(negative_ex))
 
-    sap = cosine_similarity(anchor, positive_ex)
+    sap = batch_cosine_similarity(anchor, positive_ex)
     logging.info('sap={}'.format(sap))
-    san = cosine_similarity(anchor, negative_ex)
+    san = batch_cosine_similarity(anchor, negative_ex)
     logging.info('san={}'.format(san))
-    loss = K.sum(K.maximum(san - sap + alpha, 0.0))
+    loss = K.maximum(sap - san + alpha, 0.0)  # deep speaker paper is wrong here, see e.g. face net paper
     logging.info('loss={}'.format(loss))
-
-    return loss
+    total_loss = K.sum(loss)
+    logging.info('total_loss={}'.format(total_loss))
+    return total_loss
