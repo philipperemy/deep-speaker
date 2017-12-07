@@ -7,6 +7,7 @@ alpha = 0.2  # used in FaceNet https://arxiv.org/pdf/1503.03832.pdf
 
 def batch_cosine_similarity(x1, x2):
     # https://en.wikipedia.org/wiki/Cosine_similarity
+    # 1 = equal direction ; -1 = opposite direction
     dot = K.squeeze(K.batch_dot(x1, x2, axes=1), axis=1)
     logging.info('dot: {}'.format(dot))
     # as values have have length 1, we don't need to divide by norm (as it is 1)
@@ -48,7 +49,7 @@ def deep_speaker_loss(y_true, y_pred):
     logging.info('sap={}'.format(sap))
     san = batch_cosine_similarity(anchor, negative_ex)
     logging.info('san={}'.format(san))
-    loss = K.maximum(sap - san + alpha, 0.0)  # deep speaker paper is wrong here, see e.g. face net paper
+    loss = K.maximum(san - sap + alpha, 0.0)
     logging.info('loss={}'.format(loss))
     total_loss = K.sum(loss)
     logging.info('total_loss={}'.format(total_loss))
