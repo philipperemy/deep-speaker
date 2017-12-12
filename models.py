@@ -98,15 +98,12 @@ def convolutional_model(batch_input_shape=(BATCH_NUM_TRIPLETS * NUM_FRAMES, 16, 
         x_ = conv_and_res_block(x_, 512, stage=4)
         return x_
 
-    inputs = Input(batch_shape=batch_input_shape)
+    inputs = Input(batch_shape=batch_input_shape)  # TODO the network should be definable without explicit batch shape
     x = cnn_component(inputs)
     x = Reshape((2048,))(x)
-    x = Lambda(lambda y: K.reshape(y, (batch_size, num_frames, 2048)))(x)
+    x = Lambda(lambda y: K.reshape(y, (batch_size, num_frames, 2048)), name='reshape')(x)
     x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
     x = Dense(512, name='affine')(x)  # .shape = (BATCH_SIZE * NUM_FRAMES, 512)
-    x = Lambda(lambda y: y / K.squeeze(RepeatVector(512)(K.reshape(K.max(y, axis=1), (-1, 1))), axis=2), name='ln')(
-        x)
-    # up scaling to keep the same size as the input. Easier to compute the gradients.
-    x = Lambda(lambda y: K.tile(y, (num_frames, 1)))(x)
+    x = Lambda(lambda y: K.l2_normalize(y, axis=1), name='ln')(x)
     m = Model(inputs, x, name='convolutional')
     return m
