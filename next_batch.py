@@ -91,8 +91,10 @@ class MiniBatch:
     def load_wav(self):
         self.libri_batch['raw_audio'] = self.libri_batch['filename'].apply(lambda x: read_audio(x))
         min_existing_frames = min(self.libri_batch['raw_audio'].apply(lambda x: len(x)).values)
-        max_frames = min(c.TRUNCATE_SOUND_FIRST_SECONDS * c.SAMPLE_RATE, min_existing_frames)
-        self.libri_batch['raw_audio'] = self.libri_batch['raw_audio'].apply(lambda x: x[0:max_frames])
+        start_sec, end_sec = c.TRUNCATE_SOUND_SECONDS
+        start_frame = int(start_sec * c.SAMPLE_RATE)
+        end_frame = min(int(end_sec * c.SAMPLE_RATE), min_existing_frames)
+        self.libri_batch['raw_audio'] = self.libri_batch['raw_audio'].apply(lambda x: x[start_frame:end_frame])
         self.audio_loaded = True
 
     def to_inputs(self):
