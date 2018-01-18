@@ -86,6 +86,7 @@ def convolutional_model(batch_input_shape=(BATCH_NUM_TRIPLETS * NUM_FRAMES, 16, 
                        padding='same',
                        kernel_initializer='glorot_uniform',
                        kernel_regularizer=regularizers.l2(l=0.0001), name=conv_name))(inp)
+        o = get(BatchNormalization(name=conv_name + '_bn'))(o)
         o = clipped_relu(o)
         for i in range(3):
             o = identity_block(o, kernel_size=3, filters=filters, stage=stage, block=i)

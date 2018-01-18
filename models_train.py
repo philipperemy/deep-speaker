@@ -4,7 +4,7 @@ from time import time
 import numpy as np
 import sys
 
-from constants import BATCH_NUM_TRIPLETS, DATASET_DIR, CHECKPOINT_FOLDER
+import constants as c
 from librispeech_wav_reader import read_librispeech_structure
 from models import convolutional_model
 from next_batch import stochastic_mini_batch
@@ -12,7 +12,7 @@ from triplet_loss import deep_speaker_loss
 from utils import get_last_checkpoint_if_any, create_dir_and_delete_content
 
 
-def main(libri_dir=DATASET_DIR):
+def main(libri_dir=c.DATASET_DIR):
     logging.info('Looking for audio [wav] files in {}.'.format(libri_dir))
     libri = read_librispeech_structure(libri_dir)
 
@@ -20,8 +20,8 @@ def main(libri_dir=DATASET_DIR):
         logging.warning('Have you converted flac files to wav? If not, run audio/convert_flac_2_wav.sh')
         exit(1)
 
-    batch = stochastic_mini_batch(libri, batch_size=BATCH_NUM_TRIPLETS)
-    batch_size = BATCH_NUM_TRIPLETS * 3  # A triplet has 3 parts.
+    batch = stochastic_mini_batch(libri, batch_size=c.BATCH_NUM_TRIPLETS)
+    batch_size = c.BATCH_NUM_TRIPLETS * 3  # A triplet has 3 parts.
     x, y = batch.to_inputs()
     b = x[0]
     num_frames = b.shape[0]
@@ -38,17 +38,20 @@ def main(libri_dir=DATASET_DIR):
     model.compile(optimizer='adam', loss=deep_speaker_loss)
     logging.info('[DONE]')
 
-    last_checkpoint = get_last_checkpoint_if_any(CHECKPOINT_FOLDER)
+    grad_steps = 0
+    last_checkpoint = get_last_checkpoint_if_any(c.CHECKPOINT_FOLDER)
     if last_checkpoint is not None:
         logging.info('Found checkpoint [{}]. Resume from here...'.format(last_checkpoint))
         model.load_weights(last_checkpoint)
+        grad_steps = int(last_checkpoint.split('_')[-2])
         logging.info('[DONE]')
 
     logging.info('Starting training...')
-    grad_steps = 0
     orig_time = time()
+
     while True:
-        batch = stochastic_mini_batch(libri, batch_size=BATCH_NUM_TRIPLETS)
+        grad_steps += 1
+        batch = stochastic_mini_batch(libri, batch_size=c.BATCH_NUM_TRIPLETS)
         x, _ = batch.to_inputs()
 
         # output.shape = (3, 383, 32, 32, 3) something like this
@@ -71,12 +74,16 @@ def main(libri_dir=DATASET_DIR):
         logging.info(batch.libri_batch)
         loss = model.train_on_batch(x, stub_targets)
         logging.info('== Processed in {0:.2f}s by the network, training loss = {1}.'.format(time() - orig_time, loss))
-        grad_steps += 1
         orig_time = time()
 
+        # record training loss
+        with open(c.LOSS_FILE, "a") as f:
+            f.write("{0},{1}\n".format(grad_steps, loss))
+
         # checkpoints are really heavy so let's just keep the last one.
-        create_dir_and_delete_content(CHECKPOINT_FOLDER)
-        model.save_weights('{0}/model_{1}_{2:.3f}.h5'.format(CHECKPOINT_FOLDER, grad_steps, loss))
+        create_dir_and_delete_content(c.CHECKPOINT_FOLDER)
+        model.save_weights('{0}/model_{1}_{2:.5f}.h5'.format(c.CHECKPOINT_FOLDER, grad_steps, loss))
+
 
 
 if __name__ == '__main__':
