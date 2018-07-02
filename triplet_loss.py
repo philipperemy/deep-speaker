@@ -1,6 +1,5 @@
-import logging
-
 import keras.backend as K
+import logging
 
 alpha = 0.2  # used in FaceNet https://arxiv.org/pdf/1503.03832.pdf
 

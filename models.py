@@ -1,11 +1,10 @@
-import logging
-
 import keras.backend as K
+import logging
 from keras import layers
 from keras import regularizers
 from keras.layers import Input
 from keras.layers.convolutional import Conv2D
-from keras.layers.core import Lambda, Dense, RepeatVector
+from keras.layers.core import Lambda, Dense
 from keras.layers.core import Reshape
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model

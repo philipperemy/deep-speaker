@@ -1,8 +1,8 @@
-import logging
+import sys
 from time import time
 
+import logging
 import numpy as np
-import sys
 
 import constants as c
 from librispeech_wav_reader import read_librispeech_structure
@@ -83,7 +83,6 @@ def main(libri_dir=c.DATASET_DIR):
         # checkpoints are really heavy so let's just keep the last one.
         create_dir_and_delete_content(c.CHECKPOINT_FOLDER)
         model.save_weights('{0}/model_{1}_{2:.5f}.h5'.format(c.CHECKPOINT_FOLDER, grad_steps, loss))
-
 
 
 if __name__ == '__main__':

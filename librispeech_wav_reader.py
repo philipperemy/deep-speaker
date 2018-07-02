@@ -178,13 +178,12 @@ the LibriSpeech's example scripts in Kaldi.
 Vassil Panayotov,
 Oct. 2, 2014
 """
-import logging
-import os
-from glob import glob
-
 import librosa
+import logging
 import numpy as np
+import os
 import pandas as pd
+from glob import glob
 
 from constants import SAMPLE_RATE
 
@@ -209,12 +208,13 @@ def read_audio(filename, sample_rate=SAMPLE_RATE):
 def read_librispeech_structure(directory):
     libri = pd.DataFrame()
     libri['filename'] = find_files(directory)
-    libri['filename'] = libri['filename'].apply(lambda x: x.replace('\\', '/')) # normalize windows paths
+    libri['filename'] = libri['filename'].apply(lambda x: x.replace('\\', '/'))  # normalize windows paths
     libri['chapter_id'] = libri['filename'].apply(lambda x: x.split('/')[-2])
     libri['speaker_id'] = libri['filename'].apply(lambda x: x.split('/')[-3])
     libri['dataset_id'] = libri['filename'].apply(lambda x: x.split('/')[-4])
     num_speakers = len(libri['speaker_id'].unique())
-    logging.info('Found {} files with {} different speakers.'.format(str(len(libri)).zfill(7), str(num_speakers).zfill(5)))
+    logging.info(
+        'Found {} files with {} different speakers.'.format(str(len(libri)).zfill(7), str(num_speakers).zfill(5)))
     logging.info(libri.head(10))
     return libri
 

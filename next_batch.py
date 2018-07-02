@@ -12,7 +12,6 @@
 9  1272/128104/1272-128104-0009.wav     128104       1272  dev-clean
 """
 import logging
-
 import numpy as np
 import pandas as pd
 from python_speech_features import fbank, delta
@@ -22,10 +21,11 @@ from constants import SAMPLE_RATE
 from librispeech_wav_reader import read_audio
 
 
-#def normalize_frames(m):
+# def normalize_frames(m):
 #    return [(v - np.mean(v)) / np.std(v) for v in m]
-def normalize_frames(m,epsilon=1e-12):
-    return [(v - np.mean(v)) / max(np.std(v),epsilon) for v in m]
+def normalize_frames(m, epsilon=1e-12):
+    return [(v - np.mean(v)) / max(np.std(v), epsilon) for v in m]
+
 
 def pre_process_inputs(signal=np.random.uniform(size=32000), target_sample_rate=8000):
     filter_banks, energies = fbank(signal, samplerate=target_sample_rate, nfilt=64, winlen=0.025)
