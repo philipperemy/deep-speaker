@@ -1,8 +1,8 @@
 import logging
+import sys
 from time import time
 
 import numpy as np
-import sys
 
 import constants as c
 from librispeech_wav_reader import read_librispeech_structure
@@ -14,7 +14,7 @@ from utils import get_last_checkpoint_if_any, create_dir_and_delete_content
 
 def main(libri_dir=c.DATASET_DIR):
     logging.info('Looking for audio [wav] files in {}.'.format(libri_dir))
-    libri = read_librispeech_structure(libri_dir)
+    libri = read_librispeech_structure(libri_dir)  # @premy: correct.
 
     if len(libri) == 0:
         logging.warning('Have you converted flac files to wav? If not, run audio/convert_flac_2_wav.sh')
@@ -30,7 +30,7 @@ def main(libri_dir=c.DATASET_DIR):
     batch_shape = [batch_size * num_frames] + list(b.shape[1:])
     logging.info('batch shape: {}'.format(batch_shape))
     logging.info('batch size: {}'.format(batch_size))
-    model = convolutional_model(batch_input_shape=batch_shape,
+    model = convolutional_model(batch_input_shape=batch_shape, # TODO: see that later.
                                 batch_size=batch_size, num_frames=num_frames)
     logging.info(model.summary())
 
@@ -83,7 +83,6 @@ def main(libri_dir=c.DATASET_DIR):
         # checkpoints are really heavy so let's just keep the last one.
         create_dir_and_delete_content(c.CHECKPOINT_FOLDER)
         model.save_weights('{0}/model_{1}_{2:.5f}.h5'.format(c.CHECKPOINT_FOLDER, grad_steps, loss))
-
 
 
 if __name__ == '__main__':

@@ -19,9 +19,9 @@ def get_last_checkpoint_if_any(checkpoint_folder):
 
 def create_dir_and_delete_content(directory):
     os.makedirs(directory, exist_ok=True)
-    files = sorted(filter(lambda f: os.path.isfile(f) and f.endswith(".h5"), 
-        map(lambda f: os.path.join(directory, f), os.listdir(directory))),
-        key=os.path.getmtime)
+    files = sorted(filter(lambda f: os.path.isfile(f) and f.endswith(".h5"),
+                          map(lambda f: os.path.join(directory, f), os.listdir(directory))),
+                   key=os.path.getmtime)
     # delete all but most current file to assure the latest model is availabel even if process is killed
     for file in files[:-1]:
         logging.info("removing old model: {}".format(file))
