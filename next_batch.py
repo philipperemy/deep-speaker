@@ -12,6 +12,7 @@
 9  1272/128104/1272-128104-0009.wav     128104       1272  dev-clean
 """
 import logging
+
 import numpy as np
 import pandas as pd
 from python_speech_features import fbank, delta
@@ -32,7 +33,7 @@ def pre_process_inputs(signal=np.random.uniform(size=32000), target_sample_rate=
     delta_1 = delta(filter_banks, N=1)
     delta_2 = delta(delta_1, N=1)
 
-    filter_banks = normalize_frames(filter_banks)
+    filter_banks = normalize_frames(filter_banks) # TODO: not sure about that.
     delta_1 = normalize_frames(delta_1)
     delta_2 = normalize_frames(delta_2)
 
@@ -57,14 +58,16 @@ class MiniBatch:
         anchor_batch = None
         positive_batch = None
         negative_batch = None
+        two_different_speakers = np.random.choice(unique_speakers, size=2, replace=False)
+        anchor_positive_speaker = two_different_speakers[0]
+        negative_speaker = two_different_speakers[1]
+        assert negative_speaker != anchor_positive_speaker
         for ii in range(num_triplets):
-            two_different_speakers = np.random.choice(unique_speakers, size=2, replace=False)
-            anchor_positive_speaker = two_different_speakers[0]
-            negative_speaker = two_different_speakers[1]
             anchor_positive_file = libri[libri['speaker_id'] == anchor_positive_speaker].sample(n=2, replace=False)
-            anchor_df = pd.DataFrame(anchor_positive_file[0:1])
+            assert len(anchor_positive_file) == 2
+            anchor_df = pd.DataFrame(anchor_positive_file.head(1))
             anchor_df['training_type'] = 'anchor'
-            positive_df = pd.DataFrame(anchor_positive_file[1:2])
+            positive_df = pd.DataFrame(anchor_positive_file.tail(1))
             positive_df['training_type'] = 'positive'
             negative_df = libri[libri['speaker_id'] == negative_speaker].sample(n=1)
             negative_df['training_type'] = 'negative'
@@ -90,10 +93,10 @@ class MiniBatch:
 
     def load_wav(self):
         self.libri_batch['raw_audio'] = self.libri_batch['filename'].apply(lambda x: read_audio(x))
-        min_existing_frames = min(self.libri_batch['raw_audio'].apply(lambda x: len(x)).values)
+        min_existing_frames = min(self.libri_batch['raw_audio'].apply(len).values)
         start_sec, end_sec = c.TRUNCATE_SOUND_SECONDS
-        start_frame = int(start_sec * c.SAMPLE_RATE)
-        end_frame = min(int(end_sec * c.SAMPLE_RATE), min_existing_frames)
+        start_frame = int(start_sec * c.SAMPLE_RATE)  # TODO: this will not work!
+        end_frame = min(int(end_sec * c.SAMPLE_RATE), min_existing_frames) # TODO: this will not work!
         self.libri_batch['raw_audio'] = self.libri_batch['raw_audio'].apply(lambda x: x[start_frame:end_frame])
         self.audio_loaded = True
 
@@ -107,7 +110,7 @@ class MiniBatch:
         for sig in x:
             new_x.append(pre_process_inputs(sig, target_sample_rate=SAMPLE_RATE))
         x = np.array(new_x)
-        y = self.libri_batch['speaker_id'].values
+        y = self.libri_batch['speaker_id'].values # @premy correct.
         logging.info('x.shape = {}'.format(x.shape))
         logging.info('y.shape = {}'.format(y.shape))
 
@@ -118,7 +121,7 @@ class MiniBatch:
 
 
 def stochastic_mini_batch(libri, batch_size):
-    mini_batch = MiniBatch(libri, batch_size)
+    mini_batch = MiniBatch(libri, batch_size)  # @premy: correct.
     return mini_batch
 
 
