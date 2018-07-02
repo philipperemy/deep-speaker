@@ -178,12 +178,13 @@ the LibriSpeech's example scripts in Kaldi.
 Vassil Panayotov,
 Oct. 2, 2014
 """
-import librosa
 import logging
+from glob import glob
+
+import librosa
 import numpy as np
 import os
 import pandas as pd
-from glob import glob
 
 from constants import SAMPLE_RATE
 
@@ -192,6 +193,38 @@ pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 pd.set_option('max_colwidth', 100)
+
+
+def trim_blanks_at_start_and_end(audio):
+    silence_threshold = np.percentile(audio[:, 0], 90)  # 90 is arbitrary.
+    offsets = np.where(audio[:, 0] > silence_threshold)[0]
+    # divide // sample_rate to have frame_id to duration (ms).
+    # left_blank_duration_ms = (1000.0 * offsets[0]) // sample_rate  # frame_id to duration (ms)
+    # right_blank_duration_ms = (1000.0 * (len(audio) - offsets[-1])) // sample_rate
+    left_blank_offset = offsets[0]
+    right_blank_offset = offsets[-1]
+    return audio[left_blank_offset:right_blank_offset]
+
+
+def trim_silence(audio, silence_threshold=None):
+    """Removes silence at the beginning and end of a sample."""
+
+    if silence_threshold is None:
+        silence_threshold = np.percentile(audio[:, 0], 90)  # 90 is arbitrary.
+
+    energy = librosa.feature.rmse(audio)
+    frames = np.nonzero(np.array(energy > silence_threshold))
+    indices = librosa.core.frames_to_samples(frames)[1]
+
+    # Note: indices can be an empty array, if the whole audio was silence.
+    audio_trim = audio[0:0]
+    left_blank = audio[0:0]
+    right_blank = audio[0:0]
+    if indices.size:
+        audio_trim = audio[indices[0]:indices[-1]]
+        left_blank = audio[:indices[0]]  # slice before.
+        right_blank = audio[indices[-1]:]  # slice after.
+    return audio_trim, left_blank, right_blank
 
 
 def find_files(directory, pattern='**/*.wav'):
