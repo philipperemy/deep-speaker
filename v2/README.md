@@ -1,4 +1,4 @@
-# Deep Speaker V2
+# Deep Speaker V2 (on a smaller scale for now)
 
 - Using VCTK Corpus
 - Using the codebase from [speaker-change-detection](https://github.com/philipperemy/speaker-change-detection)
