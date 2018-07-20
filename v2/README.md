@@ -32,10 +32,3 @@ export PYTHONPATH=..:$PYTHONPATH; python 0_generate_inputs.py
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax # softmax pre-training
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_embeddings
 ```
-
-To regenerate only the VCTK cache, run:
-
-```
-cd audio/
-export PYTHONPATH=..:$PYTHONPATH; python generate_all_cache.py
-```
