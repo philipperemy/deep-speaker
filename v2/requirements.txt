@@ -1,0 +1,11 @@
+dill
+keras
+librosa
+matplotlib
+namedtupled
+natsort
+numpy
+python_speech_features
+scikit_learn
+tqdm
+h5py
