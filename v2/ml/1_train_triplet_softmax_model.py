@@ -1,14 +1,15 @@
-import argparse
-import pickle
-from argparse import ArgumentParser
 from collections import deque
-from glob import glob
 
+import argparse
+import keras.backend as K
 import numpy as np
 import os
+import pickle
+from argparse import ArgumentParser
+from glob import glob
 from keras import Input, Model
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint, Callback
-from keras.layers import Dense
+from keras.layers import Dense, Lambda
 from keras.optimizers import Adam
 from natsort import natsorted
 
@@ -34,15 +35,21 @@ def get_script_arguments():
     parser.add_argument('--loss_on_softmax', action='store_true')
     parser.add_argument('--loss_on_embeddings', action='store_true')
     parser.add_argument('--freeze_embedding_weights', action='store_true')
+    parser.add_argument('--normalize_embeddings', action='store_true')
     args = get_arguments(parser)
     return args
 
 
 # - Triplet Loss for embeddings
 # - Softmax for pre-training
-def triplet_softmax_model(num_speakers_softmax, batch_size=BATCH_SIZE, emb_trainable=True):
+def triplet_softmax_model(num_speakers_softmax, batch_size=BATCH_SIZE,
+                          emb_trainable=True, normalize_embeddings=False):
     inp = Input(batch_shape=[batch_size, 39 * 10])
-    embeddings = Dense(200, activation='sigmoid', name='embeddings', trainable=emb_trainable)(inp)
+    embeddings = Dense(200, activation='sigmoid', trainable=emb_trainable)(inp)
+    if normalize_embeddings:
+        print('Embeddings will be normalized.')
+        embeddings = Lambda(lambda y: K.l2_normalize(y, axis=1))(embeddings)
+    embeddings = Lambda(lambda y: y, name='embeddings')(embeddings)  # just a trick to name a layer after if-else.
     softmax = Dense(num_speakers_softmax, activation='softmax', name='softmax')(embeddings)
     return Model(inputs=[inp], outputs=[embeddings, softmax])
 
