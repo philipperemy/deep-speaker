@@ -1,24 +1,25 @@
 # Deep Speaker V2
 
+- Using VCTK Corpus
+- Using the codebase from [speaker-change-detection](https://github.com/philipperemy/speaker-change-detection)
+
+We start on a smaller dataset (109 speakers) and on much smaller models (~100k parameters).
+
 ## Get Started
 
-Because it takes a very long time to generate cache and inputs, I packaged them and uploaded them here:
+We're going to use pre-processed files for the training and the inference. Because it takes a very long time to generate cache and inputs, I packaged them and uploaded them here:
 
 - Cache uploaded at [cache-speaker-change-detection.zip](https://drive.google.com/open?id=1NRBBE7S1ecpbXQBfIyhY9O1DDNsBc0my)  (unzip it in `/tmp/`)
 - [speaker-change-detection-data.pkl](https://drive.google.com/open?id=12gMYaV-ymQOtkYHCf9HxPurb9vB6dADK) (place it in `/tmp/`)
 - [speaker-change-detection-norm.pkl](https://drive.google.com/open?id=1vykyS3bxKbkuhGtk36eTWfW9ZkqwJi6e) (place it in `/tmp/`)
 
-You should have this:
+After doing this, those commands should work:
 
-- `/tmp/speaker-change-detection-data.pkl`
-- `/tmp/speaker-change-detection-norm.pkl`
-- `/tmp/speaker-change-detection/*.pkl`
+- `ls -l /tmp/speaker-change-detection-data.pkl`
+- `ls -l /tmp/speaker-change-detection-norm.pkl`
+- `ls -l /tmp/speaker-change-detection/*.pkl`
 
-The final plots are generated as `/tmp/distance_test_ID.png` where ID is the id of the plot.
-
-Be careful you have enough space in `/tmp/` because you might run out of disk space there. If it's the case, you can modify all the `/tmp/` references inside the codebase to any folder of your choice.
-
-Now run those commands to reproduce the results.
+Now let's clone the repository, create a virtual environment, install the dependencies, run the softmax pre-training and start the training of the deep speaker embeddings.
 
 ```
 git clone git@github.com:philipperemy/deep-speaker.git
