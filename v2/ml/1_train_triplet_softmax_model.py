@@ -45,10 +45,10 @@ def get_script_arguments():
 def triplet_softmax_model(num_speakers_softmax, batch_size=BATCH_SIZE,
                           emb_trainable=True, normalize_embeddings=False):
     inp = Input(batch_shape=[batch_size, 39 * 10])
-    embeddings = Dense(200, activation='sigmoid', trainable=emb_trainable)(inp)
+    embeddings = Dense(200, activation='sigmoid', name='fc1', trainable=emb_trainable)(inp)
     if normalize_embeddings:
         print('Embeddings will be normalized.')
-        embeddings = Lambda(lambda y: K.l2_normalize(y, axis=1))(embeddings)
+        embeddings = Lambda(lambda y: K.l2_normalize(y, axis=1), name='normalization')(embeddings)
     embeddings = Lambda(lambda y: y, name='embeddings')(embeddings)  # just a trick to name a layer after if-else.
     softmax = Dense(num_speakers_softmax, activation='softmax', name='softmax')(embeddings)
     return Model(inputs=[inp], outputs=[embeddings, softmax])
@@ -221,7 +221,8 @@ def start_training():
         emb_trainable = False
 
     m = triplet_softmax_model(num_speakers_softmax=len(categorical_speakers.speaker_ids),
-                              emb_trainable=emb_trainable)
+                              emb_trainable=emb_trainable,
+                              normalize_embeddings=args.normalize_embeddings)
 
     checkpoints = natsorted(glob('checkpoints/*.h5'))
 
