@@ -7,7 +7,7 @@ We start on a smaller dataset (109 speakers) and on much smaller models (~100k p
 
 ## Get Started
 
-First of all, be sure to have at least 16GB of memory before running those steps. At the moment, everything is loaded in memory at the beginning for faster training speed.
+First of all, be sure to have at least 16GB of memory before running those steps. At the moment, everything is loaded in memory at the beginning for faster training speed. For now a GPU is not required because the models are pretty small. It will actually run faster on a CPU I guess.
 
 We're going to use pre-processed files for the training and the inference. Because it takes a very long time to generate cache and inputs (~2 hours), I packaged them and uploaded them here:
 
