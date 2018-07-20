@@ -33,3 +33,8 @@ export PYTHONPATH=..:$PYTHONPATH; python 0_generate_inputs.py
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax # softmax pre-training
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_embeddings
 ```
+
+## Comments
+
+- After the softmax pre-training, the speaker classification accuracy should be around 95%.
+- Training the embeddings with the triplet loss (specific to deep speaker) takes time and should be around 0.01~0.02 after 150k steps.
