@@ -7,7 +7,7 @@ We start on a smaller dataset (109 speakers) and on much smaller models (~100k p
 
 ## Get Started
 
-We're going to use pre-processed files for the training and the inference. Because it takes a very long time to generate cache and inputs, I packaged them and uploaded them here:
+We're going to use pre-processed files for the training and the inference. Because it takes a very long time to generate cache and inputs (~2 hours), I packaged them and uploaded them here:
 
 - Cache uploaded at [cache-speaker-change-detection.zip](https://drive.google.com/open?id=1NRBBE7S1ecpbXQBfIyhY9O1DDNsBc0my)  (unzip it in `/tmp/`)
 - [speaker-change-detection-data.pkl](https://drive.google.com/open?id=12gMYaV-ymQOtkYHCf9HxPurb9vB6dADK) (place it in `/tmp/`)
@@ -27,7 +27,7 @@ cd deep-speaker/v2
 virtualenv -p python3.6 venv # probably will work on every python3 impl.
 source venv/bin/activate
 pip install -r requirements.txt
-# download the cache and all the files specified above (you can re-generate them yourself if you wish).
+# download the cache and all the files specified above (you can re-generate them yourself if you wish, it just takes ~2 hours).
 cd ml/
 export PYTHONPATH=..:$PYTHONPATH; python 0_generate_inputs.py
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax # softmax pre-training
