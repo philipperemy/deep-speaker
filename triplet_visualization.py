@@ -1,5 +1,8 @@
 import logging
 
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -71,4 +74,6 @@ plt.legend(('', 'AnchorEx', 'PositiveEx', 'NegativeEx'), loc='lower right')
 #     plt.pause(0.0001)
 
 remove_values_along_axes()
-plt.show()
+print('Save to anchor.png')
+plt.savefig('anchor.png')
+plt.close(fig)

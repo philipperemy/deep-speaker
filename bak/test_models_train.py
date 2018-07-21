@@ -1,6 +1,6 @@
 import numpy as np
 
-from constants import BATCH_NUM_TRIPLETS, NUM_FRAMES
+from ds_constants import BATCH_NUM_TRIPLETS, NUM_FRAMES
 from models import convolutional_model
 
 

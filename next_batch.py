@@ -17,8 +17,8 @@ import numpy as np
 import pandas as pd
 from python_speech_features import fbank, delta
 
-import constants as c
-from constants import SAMPLE_RATE
+import ds_constants as c
+from ds_constants import SAMPLE_RATE
 from librispeech_wav_reader import read_audio
 
 

@@ -10,7 +10,7 @@ from keras.layers.core import Reshape
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 
-from constants import *
+from ds_constants import *
 
 layers_dict = dict()
 

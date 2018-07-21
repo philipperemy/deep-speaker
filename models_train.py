@@ -4,7 +4,7 @@ from time import time
 import numpy as np
 import sys
 
-import constants as c
+import ds_constants as c
 from librispeech_wav_reader import read_librispeech_structure
 from models import convolutional_model
 from next_batch import stochastic_mini_batch

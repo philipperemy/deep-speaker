@@ -2,7 +2,7 @@ import keras.backend as K
 import numpy as np
 import tensorflow as tf
 
-from constants import *
+from ds_constants import *
 from triplet_loss import deep_speaker_loss
 
 

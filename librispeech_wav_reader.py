@@ -186,7 +186,7 @@ import librosa
 import numpy as np
 import pandas as pd
 
-from constants import SAMPLE_RATE
+from ds_constants import SAMPLE_RATE
 
 np.set_printoptions(threshold=np.nan)
 pd.set_option('display.max_rows', 500)
