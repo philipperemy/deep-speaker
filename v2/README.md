@@ -36,7 +36,7 @@ export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_embeddings --normalize_embeddings
 ```
 
-Once the model is trained, we can freeze the weights and re-train your softmax to see if the embeddings we got make sense.
+Once the model is trained, we can freeze the weights and re-train your softmax to see if the embeddings we got make sense. Accuracy is around 71%. Not bad!
 
 ```
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
