@@ -33,8 +33,26 @@ pip install -r requirements.txt
 cd ml/
 export PYTHONPATH=..:$PYTHONPATH; python 0_generate_inputs.py
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax # softmax pre-training
-export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_embeddings
+export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_embeddings --normalize_embeddings
 ```
+
+Once the model is trained, we can freeze the weights and re-train your softmax to see if the embeddings we got make sense.
+
+```
+export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
+```
+
+Then let's pick up two speakers from the out sample set (never seen from the training steps).
+
+- We first check that the embeddings are L2-normalized
+- We then check that the SAP is much lower compared to SAN.
+
+```
+SAP = 0.016340159318026376 (cosine distance p363 to p363 - same speaker)
+SAN = 0.7578228781188744 (cosine distance p363 to p362 - different speaker)
+```
+
+It works!
 
 ## Comments
 
