@@ -33,11 +33,29 @@ pip install -r requirements.txt
 cd ml/
 export PYTHONPATH=..:$PYTHONPATH; python 0_generate_inputs.py
 export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax # softmax pre-training
-export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_embeddings
+export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_embeddings --normalize_embeddings
 ```
+
+Once the model is trained, we can freeze the weights and re-train your softmax to see if the embeddings we got make sense. Accuracy is around 71%. Not bad!
+
+```
+export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
+```
+
+Then let's pick up two speakers from the out sample set (never seen from the training steps).
+
+- We first check that the embeddings are L2-normalized
+- We then check that the SAP is much lower compared to SAN.
+
+```
+SAP = 0.016340159318026376 (cosine distance p363 to p363 - same speaker)
+SAN = 0.7578228781188744 (cosine distance p363 to p362 - different speaker)
+```
+
+It works!
 
 ## Comments
 
 - After the softmax pre-training, the speaker classification accuracy should be around 95%.
 - Training the embeddings with the triplet loss (specific to deep speaker) takes time and the loss should go around 0.01-0.02 after ~5k steps (on un-normalized embeddings). After only 2k steps, I had 0.04-0.05. I noticed that the softmax pre-training really helped the convergence be faster. The case where (anchor speaker == positive speaker == negative speaker) yields a loss of 0.20. This optimizer gets stuck and cannot do much. This is expected. We can clearly see that the model is learning something. I recall that we train with (anchor speaker == positive speaker != negative speaker).
-- Then we re-train again the softmax layer with the new embeddings. We freeze them and we look at the new classification accuracy. It's now around 65%. We expect it to be less than 95% of course. Because the embeddings are not trained to maximize the classification accuracy but to reduce the triplet loss (maximize cosine similarity between different speakers).
+- Then we re-train again the softmax layer with the new embeddings. We freeze them and we look at the new classification accuracy. It's now around 71%. We expect it to be less than 95% of course, because the embeddings are not trained to maximize the classification accuracy but to reduce the triplet loss (maximize cosine similarity between different speakers).
