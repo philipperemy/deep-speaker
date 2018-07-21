@@ -31,15 +31,15 @@ source venv/bin/activate
 pip install -r requirements.txt
 # download the cache and all the files specified above (you can re-generate them yourself if you wish, it just takes ~2 hours).
 cd ml/
-export PYTHONPATH=..:$PYTHONPATH; python 0_generate_inputs.py
-export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax # softmax pre-training
-export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_embeddings --normalize_embeddings
+export PYTHONPATH=..:$PYTHONPATH; python generate_inputs.py
+export PYTHONPATH=..:$PYTHONPATH; python train_triplet_softmax_model.py --loss_on_softmax # softmax pre-training
+export PYTHONPATH=..:$PYTHONPATH; python train_triplet_softmax_model.py --loss_on_embeddings --normalize_embeddings
 ```
 
 Once the model is trained, we can freeze the weights and re-train your softmax to see if the embeddings we got make sense. Accuracy is around 71%. Not bad!
 
 ```
-export PYTHONPATH=..:$PYTHONPATH; python 1_train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
+export PYTHONPATH=..:$PYTHONPATH; python train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
 ```
 
 Then let's pick up two speakers from the out sample set (never seen from the training steps).
