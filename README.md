@@ -8,7 +8,7 @@ Deep Speaker: an End-to-End Neural Speaker Embedding System https://arxiv.org/pd
 
 ## Announcement
 
-Due to the difficulty of the task (very big models and very large datasets) and the lack of information from Baidu, I've re-started another approach for the deep speaker project. I put it in the folder [v2](https://github.com/philipperemy/deep-speaker/tree/master/v2) of this repository. Once I have something fully working, I'll resume on this bigger implementation.
+**Due to the difficulty of the task (very big models and very large datasets) and the lack of information from Baidu, I've re-started another approach for the deep speaker project. I put it in the folder [v2](https://github.com/philipperemy/deep-speaker/tree/master/v2) of this repository. Once I have something fully working, I'll resume on this bigger implementation.**
 
 ## Call for contributors
 
