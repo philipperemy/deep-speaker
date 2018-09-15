@@ -14,8 +14,8 @@ from keras.optimizers import Adam
 from natsort import natsorted
 
 from constants import c
-from ml.triplet_loss import deep_speaker_loss
-from ml.utils import data_to_keras
+from triplet_loss import deep_speaker_loss
+from utils import data_to_keras
 
 BATCH_SIZE = 900
 

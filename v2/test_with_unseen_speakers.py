@@ -5,11 +5,11 @@ from glob import glob
 import numpy as np
 from natsort import natsorted
 
-from audio.audio_reader import AudioReader
-from audio.speech_features import get_mfcc_features_390
+from audio_reader import AudioReader
 from constants import c
-from ml.utils import generate_features, normalize
-from ml.train_triplet_softmax_model import triplet_softmax_model
+from speech_features import get_mfcc_features_390
+from train_triplet_softmax_model import triplet_softmax_model
+from utils import generate_features, normalize
 
 audio = AudioReader(audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
                     sample_rate=c.AUDIO.SAMPLE_RATE,
@@ -28,7 +28,7 @@ def generate_features_for_unseen_speakers(norm_data, target_speaker='p363'):
     # audio.cache = dict()  # big cache <filename, data:audio librosa, blanks.>
     audio_filename = list(audio.metadata[target_speaker].values())[0]['filename']
     audio_entity = audio.cache[audio_filename]
-    feat = generate_features([audio_entity], 10, 'generate_features')
+    feat = generate_features([audio_entity], 10)
     feat = normalize(feat, norm_data[target_speaker]['mean_train'], norm_data[target_speaker]['std_train'])
     return feat
 

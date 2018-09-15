@@ -11,21 +11,13 @@ import librosa
 import numpy as np
 from tqdm import tqdm
 
+from utils import parallel_function
+
 logger = logging.getLogger(__name__)
 
 SENTENCE_ID = 'sentence_id'
 SPEAKER_ID = 'speaker_id'
 FILENAME = 'filename'
-
-
-def parallel_function(f, sequence, num_threads=None):
-    from multiprocessing import Pool
-    pool = Pool(processes=num_threads)
-    result = pool.map(f, sequence)
-    cleaned = [x for x in result if x is not None]
-    pool.close()
-    pool.join()
-    return cleaned
 
 
 class PreMergeProcessor:
@@ -186,11 +178,23 @@ class AudioReader(object):
         logger.info('Using the generated files at {}. Using them to load the cache. '
                     'Be sure to have enough memory.'.format(cache_dir))
         self.metadata = json.load(fp=open(metadata_file, 'r'))
+
+        all_speakers = sorted(self.metadata)
+        if speakers_sub_list is not None:
+            for s in all_speakers:
+                if s not in speakers_sub_list:
+                    del self.metadata[s]
+            assert sorted(self.metadata) == sorted(speakers_sub_list)
+
         for pkl_file in tqdm(find_pkl_files, desc='reading cache'):
             if 'metadata' not in pkl_file:
-                with open(pkl_file, 'rb') as f:
-                    obj = pickle.load(f)
-                    self.cache[obj[FILENAME]] = obj
+                speaker_id_from_pkl_file = os.path.basename(pkl_file).split('_')[0]  # faster but less safe.
+                if speakers_sub_list is None or speakers_sub_list is not None and speaker_id_from_pkl_file in speakers_sub_list:
+                    with open(pkl_file, 'rb') as f:
+                        obj = pickle.load(f)
+                        if FILENAME in obj:
+                            self.cache[obj[FILENAME]] = obj
+
         logger.info('Cache took {0:.2f} seconds to load. {1} keys.'.format(time() - st, len(self.cache)))
 
     def dump_audio_to_pkl_cache(self, filename):
