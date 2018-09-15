@@ -1,25 +1,32 @@
+import json
+import os
+import re
+from glob import glob
+from random import shuffle, randint, choice
 from time import time
 
 import dill
 import librosa
 import numpy as np
-import os
-import re
-from glob import glob
-from random import shuffle, randint, choice
 from tqdm import tqdm
 
 from helpers.logger import Logger
 
 logger = Logger.instance()
 
-TMP_DIR = '/tmp/speaker-change-detection/'
-if not os.path.exists(TMP_DIR):
-    os.makedirs(TMP_DIR)
-
 SENTENCE_ID = 'sentence_id'
 SPEAKER_ID = 'speaker_id'
 FILENAME = 'filename'
+
+
+def parallel_function(f, sequence, num_threads=None):
+    from multiprocessing import Pool
+    pool = Pool(processes=num_threads)
+    result = pool.map(f, sequence)
+    cleaned = [x for x in result if x is not None]
+    pool.close()
+    pool.join()
+    return cleaned
 
 
 class PreMergeProcessor:
@@ -131,83 +138,98 @@ class AudioReader(object):
     def __init__(self,
                  audio_dir,
                  sample_rate,
+                 cache_output_dir,
+                 multi_threading_cache_generation=False,
                  speakers_sub_list=None):
         self.audio_dir = os.path.expanduser(audio_dir)  # for the ~/
         self.sample_rate = sample_rate
         self.metadata = dict()  # small cache <SPEAKER_ID -> SENTENCE_ID, filename>
         self.cache = dict()  # big cache <filename, data:audio librosa, blanks.>
 
-        logger.debug('Initializing AudioReader()')
-        logger.debug('audio_dir = {}'.format(self.audio_dir))
-        logger.debug('sample_rate = {}'.format(sample_rate))
-        logger.debug('speakers_sub_list = {}'.format(speakers_sub_list))
+        logger.info('Initializing AudioReader()')
+        logger.info('audio_dir = {}'.format(self.audio_dir))
+        logger.info('sample_rate = {}'.format(sample_rate))
+        logger.info('speakers_sub_list = {}'.format(speakers_sub_list))
 
-        st = time()
-        if len(find_files(TMP_DIR, pattern='*.pkl')) == 0:  # generate all the pickle files.
-            logger.debug('Nothing found at {}. Generating all the caches now.'.format(TMP_DIR))
+        metadata_file = os.path.join(cache_output_dir, 'metadata.json')
+        self.cache_pkl_dir = os.path.join(cache_output_dir, 'audio_cache_pkl')
+        if not os.path.exists(self.cache_pkl_dir):
+            os.makedirs(self.cache_pkl_dir)
+        if len(find_files(cache_output_dir, pattern='*.pkl')) == 0:  # generate all the pickle files.
+            logger.info('Nothing found at {}. Generating all the cache now.'.format(cache_output_dir))
+            logger.info('Looking for the audio dataset in {}.'.format(self.audio_dir))
+            logger.info('If necessary, please update conf.json to point it to your local VCTK-Corpus folder.')
             files = find_files(self.audio_dir)
             assert len(files) != 0, 'Generate your cache please.'
-            logger.debug('Found {} files in total in {}.'.format(len(files), self.audio_dir))
+            logger.info('Found {} files in total in {}.'.format(len(files), self.audio_dir))
             if speakers_sub_list is not None:
                 files = list(
                     filter(lambda x: any(word in extract_speaker_id(x) for word in speakers_sub_list), files))
-                logger.debug('{} files correspond to the speaker list {}.'.format(len(files), speakers_sub_list))
+                logger.info('{} files correspond to the speaker list {}.'.format(len(files), speakers_sub_list))
             assert len(files) != 0
 
-            bar = tqdm(files)
-            for filename in bar:
-                bar.set_description(filename)
-                try:
-                    speaker_id = extract_speaker_id(filename)
-                    audio, _ = read_audio_from_filename(filename, self.sample_rate)
-                    energy = np.abs(audio[:, 0])
-                    silence_threshold = np.percentile(energy, 95)
-                    offsets = np.where(energy > silence_threshold)[0]
-                    left_blank_duration_ms = (1000.0 * offsets[0]) // self.sample_rate  # frame_id to duration (ms)
-                    right_blank_duration_ms = (1000.0 * (len(audio) - offsets[-1])) // self.sample_rate
-                    # _, left_blank, right_blank = trim_silence(audio[:, 0], silence_threshold)
-                    logger.info('_' * 100)
-                    logger.info('left_blank_duration_ms = {}, right_blank_duration_ms = {}, '
-                                'audio_length = {} frames, silence_threshold = {}'.format(left_blank_duration_ms,
-                                                                                          right_blank_duration_ms,
-                                                                                          len(audio),
-                                                                                          silence_threshold))
-                    obj = {'audio': audio,
-                           'audio_voice_only': audio[offsets[0]:offsets[-1]],
-                           'left_blank_duration_ms': left_blank_duration_ms,
-                           'right_blank_duration_ms': right_blank_duration_ms,
-                           FILENAME: filename}
-                    cache_filename = filename.split('/')[-1].split('.')[0] + '_cache'
-                    tmp_filename = os.path.join(TMP_DIR, cache_filename) + '.pkl'
-                    with open(tmp_filename, 'wb') as f:
-                        dill.dump(obj, f)
-                        logger.debug('[DUMP AUDIO] {}'.format(tmp_filename))
-                    # commit to metadata dictionary when you're sure no errors occurred during processing.
-                    if speaker_id not in self.metadata:
-                        self.metadata[speaker_id] = {}
-                    sentence_id = extract_sentence_id(filename)
-                    if sentence_id not in self.metadata[speaker_id]:
-                        self.metadata[speaker_id][sentence_id] = []
-                    self.metadata[speaker_id][sentence_id] = {SPEAKER_ID: speaker_id,
-                                                              SENTENCE_ID: sentence_id,
-                                                              FILENAME: filename}
-                except librosa.util.exceptions.ParameterError as e:
-                    logger.error(e)
-                    logger.error('[DUMP AUDIO ERROR SKIPPING FILENAME] {}'.format(filename))
-            dill.dump(self.metadata, open(os.path.join(TMP_DIR, 'metadata.pkl'), 'wb'))
+            if multi_threading_cache_generation:
+                num_threads = os.cpu_count() // 2
+                parallel_function(self.dump_audio_to_pkl_cache, files, num_threads)
+            else:
+                bar = tqdm(files)
+                for filename in bar:
+                    bar.set_description(filename)
+                    self.dump_audio_to_pkl_cache(filename)
+            json.dump(obj=self.metadata, fp=open(metadata_file, 'w'), indent=4)
+            logger.info('Dumped metadata to {}.'.format(metadata_file))
 
-        logger.debug(
-            'Using the generated files at {}. Using them to load the cache. Be sure to have enough memory.'.format(
-                TMP_DIR))
-        self.metadata = dill.load(open(os.path.join(TMP_DIR, 'metadata.pkl'), 'rb'))
-
-        pickle_files = find_files(TMP_DIR, pattern='*.pkl')
+        st = time()
+        logger.info('Using the generated files at {}. Using them to load the cache. '
+                    'Be sure to have enough memory.'.format(cache_output_dir))
+        self.metadata = json.load(fp=open(metadata_file, 'r'))
+        pickle_files = find_files(self.cache_pkl_dir, pattern='*.pkl')
         for pkl_file in tqdm(pickle_files, desc='reading cache'):
             if 'metadata' not in pkl_file:
                 with open(pkl_file, 'rb') as f:
                     obj = dill.load(f)
                     self.cache[obj[FILENAME]] = obj
-        logger.debug('Cache took {0:.2f} seconds to load. {1:} keys.'.format(time() - st, len(self.cache)))
+        logger.info('Cache took {0:.2f} seconds to load. {1} keys.'.format(time() - st, len(self.cache)))
+
+    def dump_audio_to_pkl_cache(self, filename):
+        try:
+            speaker_id = extract_speaker_id(filename)
+            audio, _ = read_audio_from_filename(filename, self.sample_rate)
+            energy = np.abs(audio[:, 0])
+            silence_threshold = np.percentile(energy, 95)
+            offsets = np.where(energy > silence_threshold)[0]
+            left_blank_duration_ms = (1000.0 * offsets[0]) // self.sample_rate  # frame_id to duration (ms)
+            right_blank_duration_ms = (1000.0 * (len(audio) - offsets[-1])) // self.sample_rate
+            # _, left_blank, right_blank = trim_silence(audio[:, 0], silence_threshold)
+            logger.info('_' * 100)
+            logger.info('left_blank_duration_ms = {}, right_blank_duration_ms = {}, '
+                        'audio_length = {} frames, silence_threshold = {}'.format(left_blank_duration_ms,
+                                                                                  right_blank_duration_ms,
+                                                                                  len(audio),
+                                                                                  silence_threshold))
+            obj = {'audio': audio,
+                   'audio_voice_only': audio[offsets[0]:offsets[-1]],
+                   'left_blank_duration_ms': left_blank_duration_ms,
+                   'right_blank_duration_ms': right_blank_duration_ms,
+                   FILENAME: filename}
+            cache_filename = filename.split('/')[-1].split('.')[0] + '_cache'
+            tmp_filename = os.path.join(self.cache_pkl_dir, cache_filename) + '.pkl'
+            with open(tmp_filename, 'wb') as f:
+                dill.dump(obj, f)
+                logger.info('[DUMP AUDIO] {}'.format(tmp_filename))
+
+            # commit to metadata dictionary when you're sure no errors occurred during processing.
+            if speaker_id not in self.metadata:
+                self.metadata[speaker_id] = {}
+            sentence_id = extract_sentence_id(filename)
+            if sentence_id not in self.metadata[speaker_id]:
+                self.metadata[speaker_id][sentence_id] = []
+            self.metadata[speaker_id][sentence_id] = {SPEAKER_ID: speaker_id,
+                                                      SENTENCE_ID: sentence_id,
+                                                      FILENAME: filename}
+        except librosa.util.exceptions.ParameterError as e:
+            logger.error(e)
+            logger.error('[DUMP AUDIO ERROR SKIPPING FILENAME] {}'.format(filename))
 
     def get_speaker_list(self):
         return sorted(list(self.metadata.keys()))
