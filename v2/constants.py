@@ -1,10 +1,10 @@
 import json
-import namedtupled
+import logging
 import os
 
-from helpers.logger import Logger
+import namedtupled
 
-logger = Logger.instance()
+logger = logging.getLogger(__name__)
 
 CONFIGURATION_FILENAME = 'conf.json'
 
