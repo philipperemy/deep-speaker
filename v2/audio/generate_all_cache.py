@@ -19,7 +19,7 @@ def main():
     AudioReader(audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
                 sample_rate=c.AUDIO.SAMPLE_RATE,
                 cache_output_dir=cache_output_dir,
-                multi_threading_cache_generation=False,
+                multi_threading_cache_generation=True,  # tested and both yield same result (single vs multi threads)
                 speakers_sub_list=None)
 
 
