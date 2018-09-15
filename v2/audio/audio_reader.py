@@ -1,18 +1,17 @@
 import json
+import logging
 import os
+import pickle
 import re
 from glob import glob
 from random import shuffle, randint, choice
 from time import time
 
-import dill
 import librosa
 import numpy as np
 from tqdm import tqdm
 
-from helpers.logger import Logger
-
-logger = Logger.instance()
+logger = logging.getLogger(__name__)
 
 SENTENCE_ID = 'sentence_id'
 SPEAKER_ID = 'speaker_id'
@@ -54,7 +53,7 @@ class SoundMerger:
 
 def find_files(directory, pattern='**/*.wav'):
     """Recursively finds all files matching the pattern."""
-    return sorted(glob(os.path.join(directory, pattern), recursive=True))
+    return sorted(glob(directory + pattern, recursive=True))
 
 
 def read_audio_from_filename(filename, sample_rate):
@@ -138,7 +137,7 @@ class AudioReader(object):
     def __init__(self,
                  audio_dir,
                  sample_rate,
-                 cache_output_dir,
+                 cache_dir,
                  multi_threading_cache_generation=False,
                  speakers_sub_list=None):
         self.audio_dir = os.path.expanduser(audio_dir)  # for the ~/
@@ -151,12 +150,15 @@ class AudioReader(object):
         logger.info('sample_rate = {}'.format(sample_rate))
         logger.info('speakers_sub_list = {}'.format(speakers_sub_list))
 
-        metadata_file = os.path.join(cache_output_dir, 'metadata.json')
-        self.cache_pkl_dir = os.path.join(cache_output_dir, 'audio_cache_pkl')
+        cache_dir = os.path.expanduser(cache_dir)
+        metadata_file = os.path.join(cache_dir, 'metadata.json')
+        self.cache_pkl_dir = os.path.join(cache_dir, 'audio_cache_pkl')
         if not os.path.exists(self.cache_pkl_dir):
             os.makedirs(self.cache_pkl_dir)
-        if len(find_files(cache_output_dir, pattern='*.pkl')) == 0:  # generate all the pickle files.
-            logger.info('Nothing found at {}. Generating all the cache now.'.format(cache_output_dir))
+
+        find_pkl_files = find_files(cache_dir, pattern='/**/*.pkl')
+        if len(find_pkl_files) == 0:  # generate all the pickle files.
+            logger.info('Nothing found at {}. Generating all the cache now.'.format(cache_dir))
             logger.info('Looking for the audio dataset in {}.'.format(self.audio_dir))
             logger.info('If necessary, please update conf.json to point it to your local VCTK-Corpus folder.')
             files = find_files(self.audio_dir)
@@ -176,18 +178,18 @@ class AudioReader(object):
                 for filename in bar:
                     bar.set_description(filename)
                     self.dump_audio_to_pkl_cache(filename)
+                bar.close()
             json.dump(obj=self.metadata, fp=open(metadata_file, 'w'), indent=4)
             logger.info('Dumped metadata to {}.'.format(metadata_file))
 
         st = time()
         logger.info('Using the generated files at {}. Using them to load the cache. '
-                    'Be sure to have enough memory.'.format(cache_output_dir))
+                    'Be sure to have enough memory.'.format(cache_dir))
         self.metadata = json.load(fp=open(metadata_file, 'r'))
-        pickle_files = find_files(self.cache_pkl_dir, pattern='*.pkl')
-        for pkl_file in tqdm(pickle_files, desc='reading cache'):
+        for pkl_file in tqdm(find_pkl_files, desc='reading cache'):
             if 'metadata' not in pkl_file:
                 with open(pkl_file, 'rb') as f:
-                    obj = dill.load(f)
+                    obj = pickle.load(f)
                     self.cache[obj[FILENAME]] = obj
         logger.info('Cache took {0:.2f} seconds to load. {1} keys.'.format(time() - st, len(self.cache)))
 
@@ -215,7 +217,7 @@ class AudioReader(object):
             cache_filename = filename.split('/')[-1].split('.')[0] + '_cache'
             tmp_filename = os.path.join(self.cache_pkl_dir, cache_filename) + '.pkl'
             with open(tmp_filename, 'wb') as f:
-                dill.dump(obj, f)
+                pickle.dump(obj, f)
                 logger.info('[DUMP AUDIO] {}'.format(tmp_filename))
 
             # commit to metadata dictionary when you're sure no errors occurred during processing.

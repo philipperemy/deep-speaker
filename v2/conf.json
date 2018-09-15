@@ -2,9 +2,9 @@
   "AUDIO": {
     "SAMPLE_RATE": 8000,
     "NUM_SPEAKERS_CLASSIFICATION_TASK": 80,
-    "CACHE_OUTPUT_PATH": "~/deep-speaker-data/cache/",
+    "CACHE_PATH": "~/deep-speaker-data/cache/",
     "VCTK_CORPUS_PATH": "~/deep-speaker-data/VCTK-Corpus/",
-    "SPEAKER_FOR_CLASSIFICATION_TASK": [
+    "SPEAKERS_TRAINING_SET": [
       "p225",
       "p226",
       "p227",

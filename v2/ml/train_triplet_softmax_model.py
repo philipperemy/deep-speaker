@@ -212,7 +212,7 @@ def start_training():
     #                       sample_rate=c.AUDIO.SAMPLE_RATE,
     #                       speakers_sub_list=None).metadata))
 
-    assert c.AUDIO.SPEAKER_FOR_CLASSIFICATION_TASK == categorical_speakers.speaker_ids
+    assert c.AUDIO.SPEAKERS_TRAINING_SET == categorical_speakers.speaker_ids
     assert len(categorical_speakers.speaker_ids) == 80
 
     emb_trainable = True

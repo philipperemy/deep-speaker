@@ -1,3 +1,4 @@
+import json
 import pickle
 from glob import glob
 
@@ -7,12 +8,12 @@ from natsort import natsorted
 from audio.audio_reader import AudioReader
 from audio.speech_features import get_mfcc_features_390
 from constants import c
-from ml.classifier_data_generation import normalize, generate_features
+from ml.utils import generate_features, normalize
 from ml.train_triplet_softmax_model import triplet_softmax_model
 
 audio = AudioReader(audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
                     sample_rate=c.AUDIO.SAMPLE_RATE,
-                    speakers_sub_list=None)
+                    cache_dir=c.AUDIO.CACHE_PATH)
 
 
 def get_feat_from_audio(audio, sr, norm_data, speaker):
@@ -33,18 +34,8 @@ def generate_features_for_unseen_speakers(norm_data, target_speaker='p363'):
 
 
 def test_on_unseen_speakers():
-    # change that later.
-    # import os
-    # data_filename = '/tmp/speaker-change-detection-data.pkl'
-    # assert os.path.exists(data_filename), 'Data does not exist.'
-    # print('Loading the inputs in memory. It might take a while...')
-    # data = pickle.load(open(data_filename, 'rb'))
-    # kx_train, ky_train, kx_test, ky_test, categorical_speakers = data_to_keras(data)
-    # print('Dumping info about categorical speakers for the next phase (train distance classifier..')
-    # pickle.dump(categorical_speakers, open('/tmp/speaker-change-detection-categorical_speakers.pkl', 'wb'))
-
     categorical_speakers = pickle.load(open('/tmp/speaker-change-detection-categorical_speakers.pkl', 'rb'))
-    norm_data = pickle.load(open('/tmp/speaker-change-detection-norm.pkl', 'rb'))
+    norm_data = json.load(open('/tmp/speaker-change-detection-norm.json', 'r'))
 
     p363_feat = generate_features_for_unseen_speakers(norm_data, target_speaker='p363')
     p362_feat = generate_features_for_unseen_speakers(norm_data, target_speaker='p362')
@@ -75,7 +66,6 @@ def test_on_unseen_speakers():
     print(np.mean(np.linalg.norm(emb_p362, axis=1)))
 
     from scipy.spatial.distance import cosine
-    from sklearn.metrics.pairwise import cosine_similarity
 
     # note to myself:
     # embeddings are sigmoid-ed.
