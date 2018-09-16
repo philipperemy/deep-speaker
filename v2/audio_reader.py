@@ -131,7 +131,7 @@ class AudioReader:
         self.cache_dir = os.path.expanduser(output_cache_dir)
         self.sample_rate = sample_rate
         self.multi_threading = multi_threading
-        self.cache_pkl_dir = os.path.join(output_cache_dir, 'audio_cache_pkl')
+        self.cache_pkl_dir = os.path.join(self.cache_dir, 'audio_cache_pkl')
         self.pkl_filenames = find_files(self.cache_pkl_dir, pattern='/**/*.pkl')
 
         if len(self.pkl_filenames) == 0:
@@ -186,7 +186,7 @@ class AudioReader:
     def build_cache(self):
         if not os.path.exists(self.cache_pkl_dir):
             os.makedirs(self.cache_pkl_dir)
-        logger.info('Nothing found at {}. Generating all the cache now.'.format(self.cache_dir))
+        logger.info('Nothing found at {}. Generating all the cache now.'.format(self.cache_pkl_dir))
         logger.info('Looking for the audio dataset in {}.'.format(self.audio_dir))
         logger.info('If necessary, please update conf.json to point it to your local VCTK-Corpus folder.')
         audio_files = find_files(self.audio_dir)

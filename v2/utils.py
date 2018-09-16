@@ -68,10 +68,13 @@ class InputsGenerator:
         self.speaker_ids = self.audio_reader.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
 
     def start_generation(self):
+        logger.info('Starting the inputs generation...')
         if self.multi_threading:
             num_threads = os.cpu_count() // 2
+            logger.info('Using {} threads.'.format(num_threads))
             parallel_function(self._generate_inputs, sorted(self.speaker_ids), num_threads)
         else:
+            logger.info('Using only 1 thread.')
             for s in self.speaker_ids:
                 self._generate_inputs(s)
 
@@ -99,9 +102,9 @@ class InputsGenerator:
 
         train = generate_features(audio_entities_train, self.max_count_per_class)
         test = generate_features(audio_entities_test, self.max_count_per_class)
-        logger.info('Generated {}/{} inputs for train/test of speaker {}.'.format(self.max_count_per_class,
-                                                                                  self.max_count_per_class,
-                                                                                  speaker_id))
+        logger.info('Generated {}/{} inputs for train/test for speaker {}.'.format(self.max_count_per_class,
+                                                                                   self.max_count_per_class,
+                                                                                   speaker_id))
 
         mean_train = np.mean([np.mean(t) for t in train])
         std_train = np.mean([np.std(t) for t in train])
@@ -114,6 +117,7 @@ class InputsGenerator:
                   'mean_train': mean_train, 'std_train': std_train}
         with open(output_filename, 'wb') as w:
             pickle.dump(obj=inputs, file=w)
+        logger.info('[DUMP INPUTS] {}'.format(output_filename))
 
 
 class SpeakersToCategorical:
