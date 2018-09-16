@@ -209,10 +209,6 @@ def start_training():
     print(categorical_speakers.speaker_ids)
     print(len(categorical_speakers.speaker_ids))
 
-    # print(len(AudioReader(audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
-    #                       sample_rate=c.AUDIO.SAMPLE_RATE,
-    #                       speakers_sub_list=None).metadata))
-
     assert c.AUDIO.SPEAKERS_TRAINING_SET == categorical_speakers.speaker_ids
     assert len(categorical_speakers.speaker_ids) == 80
 
