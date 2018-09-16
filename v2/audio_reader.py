@@ -134,11 +134,8 @@ class AudioReader:
         self.cache_pkl_dir = os.path.join(self.cache_dir, 'audio_cache_pkl')
         self.pkl_filenames = find_files(self.cache_pkl_dir, pattern='/**/*.pkl')
 
-        if len(self.pkl_filenames) == 0:
-            self.build_cache()
-
-        logger.info('Initializing AudioReader()')
         logger.info('audio_dir = {}'.format(self.audio_dir))
+        logger.info('cache_dir = {}'.format(self.cache_dir))
         logger.info('sample_rate = {}'.format(sample_rate))
 
         speakers = set()
@@ -221,12 +218,12 @@ class AudioReader:
             left_blank_duration_ms = (1000.0 * offsets[0]) // self.sample_rate  # frame_id to duration (ms)
             right_blank_duration_ms = (1000.0 * (len(audio) - offsets[-1])) // self.sample_rate
             # _, left_blank, right_blank = trim_silence(audio[:, 0], silence_threshold)
-            logger.info('_' * 100)
-            logger.info('left_blank_duration_ms = {}, right_blank_duration_ms = {}, '
-                        'audio_length = {} frames, silence_threshold = {}'.format(left_blank_duration_ms,
-                                                                                  right_blank_duration_ms,
-                                                                                  len(audio),
-                                                                                  silence_threshold))
+            # logger.info('_' * 100)
+            # logger.info('left_blank_duration_ms = {}, right_blank_duration_ms = {}, '
+            #             'audio_length = {} frames, silence_threshold = {}'.format(left_blank_duration_ms,
+            #                                                                       right_blank_duration_ms,
+            #                                                                       len(audio),
+            #                                                                       silence_threshold))
             obj = {'audio': audio,
                    'audio_voice_only': audio[offsets[0]:offsets[-1]],
                    'left_blank_duration_ms': left_blank_duration_ms,
