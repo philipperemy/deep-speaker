@@ -1,12 +1,12 @@
-from collections import deque
-
 import argparse
-import keras.backend as K
-import numpy as np
 import os
 import pickle
 from argparse import ArgumentParser
+from collections import deque
 from glob import glob
+
+import keras.backend as K
+import numpy as np
 from keras import Input, Model
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint, Callback
 from keras.layers import Dense, Lambda
@@ -32,6 +32,8 @@ def get_arguments(parser: ArgumentParser):
 
 def get_script_arguments():
     parser = argparse.ArgumentParser()
+    # generated from: python cli.py --generate_training_inputs --multi_threading
+    parser.add_argument('--data_filename', type=str)
     parser.add_argument('--loss_on_softmax', action='store_true')
     parser.add_argument('--loss_on_embeddings', action='store_true')
     parser.add_argument('--freeze_embedding_weights', action='store_true')
@@ -199,7 +201,8 @@ def start_training():
         print('Please provide at least --loss_on_softmax or --loss_on_embeddings.')
         exit(1)
 
-    data_filename = '/tmp/speaker-change-detection-data.pkl'
+    # data_filename = '/tmp/speaker-change-detection-data.pkl'
+    data_filename = args.data_filename
     assert os.path.exists(data_filename), 'Data does not exist.'
     print('Loading the inputs in memory. It might take a while...')
     data = pickle.load(open(data_filename, 'rb'))
