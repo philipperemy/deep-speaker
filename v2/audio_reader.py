@@ -184,29 +184,26 @@ class AudioReader:
         return cache, metadata
 
     def build_cache(self):
-        if len(self.pkl_filenames) == 0:  # generate all the pickle files.
-            if not os.path.exists(self.cache_pkl_dir):
-                os.makedirs(self.cache_pkl_dir)
-            logger.info('Nothing found at {}. Generating all the cache now.'.format(self.cache_dir))
-            logger.info('Looking for the audio dataset in {}.'.format(self.audio_dir))
-            logger.info('If necessary, please update conf.json to point it to your local VCTK-Corpus folder.')
-            audio_files = find_files(self.audio_dir)
-            audio_files_count = len(audio_files)
-            assert audio_files_count != 0, 'Generate your cache please.'
-            logger.info('Found {} files in total in {}.'.format(audio_files_count, self.audio_dir))
-            assert len(audio_files) != 0
+        if not os.path.exists(self.cache_pkl_dir):
+            os.makedirs(self.cache_pkl_dir)
+        logger.info('Nothing found at {}. Generating all the cache now.'.format(self.cache_dir))
+        logger.info('Looking for the audio dataset in {}.'.format(self.audio_dir))
+        logger.info('If necessary, please update conf.json to point it to your local VCTK-Corpus folder.')
+        audio_files = find_files(self.audio_dir)
+        audio_files_count = len(audio_files)
+        assert audio_files_count != 0, 'Generate your cache please.'
+        logger.info('Found {} files in total in {}.'.format(audio_files_count, self.audio_dir))
+        assert len(audio_files) != 0
 
-            if self.multi_threading:
-                num_threads = os.cpu_count() // 2
-                parallel_function(self.dump_audio_to_pkl_cache, audio_files, num_threads)
-            else:
-                bar = tqdm(audio_files)
-                for filename in bar:
-                    bar.set_description(filename)
-                    self.dump_audio_to_pkl_cache(filename)
-                bar.close()
+        if self.multi_threading:
+            num_threads = os.cpu_count() // 2
+            parallel_function(self.dump_audio_to_pkl_cache, audio_files, num_threads)
         else:
-            logger.info('Cache was already built.')
+            bar = tqdm(audio_files)
+            for filename in bar:
+                bar.set_description(filename)
+                self.dump_audio_to_pkl_cache(filename)
+            bar.close()
 
     def dump_audio_to_pkl_cache(self, input_filename):
         try:

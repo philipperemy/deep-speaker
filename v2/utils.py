@@ -55,21 +55,17 @@ def normalize(list_matrices, mean, std):
 
 class InputsGenerator:
 
-    def __init__(self, cache_dir, max_count_per_class=500,
+    def __init__(self, cache_dir, audio_reader, max_count_per_class=500,
                  speakers_sub_list=None, multi_threading=False):
         self.cache_dir = cache_dir
+        self.audio_reader = audio_reader
         self.multi_threading = multi_threading
         self.inputs_dir = os.path.join(self.cache_dir, 'inputs')
         self.max_count_per_class = max_count_per_class
         if not os.path.exists(self.inputs_dir):
             os.makedirs(self.inputs_dir)
 
-        from audio_reader import AudioReader
-        self.audio = AudioReader(input_audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
-                                 output_cache_dir=c.AUDIO.CACHE_PATH,
-                                 sample_rate=c.AUDIO.SAMPLE_RATE,
-                                 multi_threading=multi_threading)
-        self.speaker_ids = self.audio.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
+        self.speaker_ids = self.audio_reader.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
 
     def start_generation(self):
         if self.multi_threading:
@@ -86,7 +82,7 @@ class InputsGenerator:
 
         from audio_reader import extract_speaker_id
         per_speaker_dict = {}
-        cache, metadata = self.audio.load_cache([speaker_id])
+        cache, metadata = self.audio_reader.load_cache([speaker_id])
 
         for filename, audio_entity in cache.items():
             speaker_id_2 = extract_speaker_id(audio_entity['filename'])
