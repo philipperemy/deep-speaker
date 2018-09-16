@@ -53,7 +53,7 @@ def normalize(list_matrices, mean, std):
     return [(m - mean) / std for m in list_matrices]
 
 
-class GenerateInputs:
+class InputsGenerator:
 
     def __init__(self, cache_dir, max_count_per_class=500,
                  speakers_sub_list=None, multi_threading=False):
@@ -63,38 +63,49 @@ class GenerateInputs:
         self.max_count_per_class = max_count_per_class
         if not os.path.exists(self.inputs_dir):
             os.makedirs(self.inputs_dir)
-        from audio_reader import AudioReader, extract_speaker_id
-        self.audio = AudioReader(audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
+
+        from audio_reader import AudioReader
+        self.audio = AudioReader(input_audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
+                                 output_cache_dir=c.AUDIO.CACHE_PATH,
                                  sample_rate=c.AUDIO.SAMPLE_RATE,
-                                 cache_dir=c.AUDIO.CACHE_PATH,
-                                 speakers_sub_list=speakers_sub_list)
+                                 multi_threading=multi_threading)
+        self.speaker_ids = self.audio.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
+
+    def start_generation(self):
+        if self.multi_threading:
+            num_threads = os.cpu_count() // 2
+            parallel_function(self._generate_inputs, sorted(self.speaker_ids), num_threads)
+        else:
+            for s in self.speaker_ids:
+                self._generate_inputs(s)
+
+    def _generate_inputs(self, speaker_id):
+
+        if speaker_id not in c.AUDIO.SPEAKERS_TRAINING_SET:
+            logger.info('Discarding speaker for the training dataset (cf. conf.json): {}'.format(speaker_id))
+
+        from audio_reader import extract_speaker_id
         per_speaker_dict = {}
-        for filename, audio_entity in self.audio.cache.items():
-            speaker_id = extract_speaker_id(audio_entity['filename'])
+        cache, metadata = self.audio.load_cache([speaker_id])
+
+        for filename, audio_entity in cache.items():
+            speaker_id_2 = extract_speaker_id(audio_entity['filename'])
+            assert speaker_id_2 == speaker_id
             if speaker_id not in per_speaker_dict:
                 per_speaker_dict[speaker_id] = []
             per_speaker_dict[speaker_id].append(audio_entity)
-        self.per_speaker_dict = per_speaker_dict
+        per_speaker_dict = per_speaker_dict
 
-    def start(self):
-        if self.multi_threading:
-            num_threads = os.cpu_count() // 2
-            parallel_function(self.generate_inputs, sorted(self.per_speaker_dict), num_threads)
-        else:
-            for s in self.per_speaker_dict:
-                self.generate_inputs(s)
-
-    def generate_inputs(self, speaker_id):
-        audio_entities = self.per_speaker_dict[speaker_id]
-        logger.info('Processing speaker id = {}.'.format(speaker_id))
+        audio_entities = per_speaker_dict[speaker_id]
         cutoff = int(len(audio_entities) * 0.8)
         audio_entities_train = audio_entities[0:cutoff]
         audio_entities_test = audio_entities[cutoff:]
 
         train = generate_features(audio_entities_train, self.max_count_per_class)
-        logger.info('Generated {} inputs for train/'.format(self.max_count_per_class))
         test = generate_features(audio_entities_test, self.max_count_per_class)
-        logger.info('Generated {} inputs for test/'.format(self.max_count_per_class))
+        logger.info('Generated {}/{} inputs for train/test of speaker {}.'.format(self.max_count_per_class,
+                                                                                  self.max_count_per_class,
+                                                                                  speaker_id))
 
         mean_train = np.mean([np.mean(t) for t in train])
         std_train = np.mean([np.std(t) for t in train])
@@ -102,15 +113,11 @@ class GenerateInputs:
         train = normalize(train, mean_train, std_train)
         test = normalize(test, mean_train, std_train)
 
-        if speaker_id in c.AUDIO.SPEAKERS_TRAINING_SET:
-            output_filename = os.path.join(self.inputs_dir, speaker_id + '.pkl')
-            inputs = {'train': train, 'test': test, 'speaker_id': speaker_id,
-                      'mean_train': mean_train, 'std_train': std_train}
-            with open(output_filename, 'wb') as w:
-                pickle.dump(obj=inputs, file=w)
-            logger.info('Adding speaker to the training dataset: {}'.format(speaker_id))
-        else:
-            logger.info('Discarding speaker for the training dataset: {}'.format(speaker_id))
+        output_filename = os.path.join(self.inputs_dir, speaker_id + '.pkl')
+        inputs = {'train': train, 'test': test, 'speaker_id': speaker_id,
+                  'mean_train': mean_train, 'std_train': std_train}
+        with open(output_filename, 'wb') as w:
+            pickle.dump(obj=inputs, file=w)
 
 
 class SpeakersToCategorical:

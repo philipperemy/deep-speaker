@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 
 from audio_reader import AudioReader
 from constants import c
-from utils import GenerateInputs
+from utils import InputsGenerator
 
 DEBUG_SPEAKERS_TRAINING = ['p225', 'p226']
 
@@ -16,6 +16,7 @@ def arg_parse():
     arg_p.add_argument('--generate_audio_cache', action='store_true')
     arg_p.add_argument('--generate_training_inputs', action='store_true')
     arg_p.add_argument('--debug', action='store_true')
+    arg_p.add_argument('--multi_threading', action='store_true')
     return arg_p
 
 
@@ -29,16 +30,11 @@ def generate_cache_from_audio_files(args):
     except:
         pass
     os.makedirs(cache_output_dir)
-
-    speakers_sub_list = None
-    if args.debug:
-        speakers_sub_list = DEBUG_SPEAKERS_TRAINING
-
-    AudioReader(audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
-                sample_rate=c.AUDIO.SAMPLE_RATE,
-                cache_dir=cache_output_dir,
-                multi_threading_cache_generation=True,
-                speakers_sub_list=speakers_sub_list)
+    audio_reader = AudioReader(input_audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
+                               output_cache_dir=cache_output_dir,
+                               sample_rate=c.AUDIO.SAMPLE_RATE,
+                               multi_threading=args.multi_threading)
+    audio_reader.build_cache()
 
 
 def generate_cache_from_training_inputs(args):
@@ -46,7 +42,11 @@ def generate_cache_from_training_inputs(args):
     speakers_sub_list = None
     if args.debug:
         speakers_sub_list = DEBUG_SPEAKERS_TRAINING
-    GenerateInputs(cache_dir, max_count_per_class=1000, speakers_sub_list=speakers_sub_list).start()
+    inputs_generator = InputsGenerator(cache_dir,
+                                       max_count_per_class=1000,
+                                       speakers_sub_list=speakers_sub_list,
+                                       multi_threading=args.multi_threading)
+    inputs_generator.start_generation()
 
 
 def main():

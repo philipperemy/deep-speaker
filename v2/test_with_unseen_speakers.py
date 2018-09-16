@@ -11,9 +11,9 @@ from speech_features import get_mfcc_features_390
 from train_triplet_softmax_model import triplet_softmax_model
 from utils import generate_features, normalize
 
-audio = AudioReader(audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
-                    sample_rate=c.AUDIO.SAMPLE_RATE,
-                    cache_dir=c.AUDIO.CACHE_PATH)
+audio = AudioReader(input_audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
+                    output_cache_dir=c.AUDIO.CACHE_PATH,
+                    sample_rate=c.AUDIO.SAMPLE_RATE)
 
 
 def get_feat_from_audio(audio, sr, norm_data, speaker):
