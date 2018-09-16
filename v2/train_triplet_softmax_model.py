@@ -104,6 +104,7 @@ def fit_model(m, kx_train, ky_train, kx_test, ky_test,
     test_overall_loss_emb = deque(maxlen=deque_size)
     train_overall_loss_softmax = deque(maxlen=deque_size)
     test_overall_loss_softmax = deque(maxlen=deque_size)
+    # TODO: not very much epoch here.
     for epoch in range(initial_epoch, max_grad_steps):
         two_different_speakers = np.random.choice(range(num_different_speakers), size=2, replace=False)
         anchor_positive_speaker = two_different_speakers[0]
@@ -139,14 +140,11 @@ def fit_model(m, kx_train, ky_train, kx_test, ky_test,
         test_overall_loss_softmax.append(test_loss['softmax_loss'])
 
         if epoch % 10 == 0:
-            format_str = '{0}, train(emb, soft, last {3}) = {1:.5f} {4:.5f}, ' \
-                         'test(emb, soft, last {3}) = {2:.5f} {4:.5f}.'
+            format_str = '{0}, train(emb, last {3}) = {1:.5f} test(emb, last {3}) = {2:.5f}.'
             print(format_str.format(str(epoch).zfill(6),
                                     np.mean(train_overall_loss_emb),
                                     np.mean(test_overall_loss_emb),
-                                    deque_size,
-                                    np.mean(train_overall_loss_softmax),
-                                    np.mean(train_overall_loss_softmax), ))
+                                    deque_size))
 
         if epoch % 100 == 0:
             print('train metrics =', train_loss)
