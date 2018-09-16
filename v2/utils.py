@@ -77,11 +77,27 @@ class InputsGenerator:
             logger.info('Using only 1 thread.')
             for s in self.speaker_ids:
                 self._generate_inputs(s)
+        from glob import glob
+
+        full_inputs = {}
+        for inputs_filename in glob(self.inputs_dir + '/*.pkl', recursive=True):
+            inputs = pickle.load(inputs_filename)
+            full_inputs[inputs['speaker_id']] = inputs
+        full_inputs_output_filename = os.path.join(self.inputs_dir, 'full_inputs.pkl')
+        with open(full_inputs_output_filename, 'wb') as w:
+            pickle.dump(obj=full_inputs, file=w)
+        logger.info('[DUMP INPUTS] {}'.format(full_inputs_output_filename))
 
     def _generate_inputs(self, speaker_id):
 
         if speaker_id not in c.AUDIO.SPEAKERS_TRAINING_SET:
-            logger.info('Discarding speaker for the training dataset (cf. conf.json): {}'.format(speaker_id))
+            logger.info('Discarding speaker for the training dataset (cf. conf.json): {}.'.format(speaker_id))
+            return
+
+        output_filename = os.path.join(self.inputs_dir, speaker_id + '.pkl')
+        if os.path.isfile(output_filename):
+            logger.info('Inputs file already exists: {}.'.format(output_filename))
+            return
 
         from audio_reader import extract_speaker_id
         per_speaker_dict = {}
@@ -112,7 +128,6 @@ class InputsGenerator:
         train = normalize(train, mean_train, std_train)
         test = normalize(test, mean_train, std_train)
 
-        output_filename = os.path.join(self.inputs_dir, speaker_id + '.pkl')
         inputs = {'train': train, 'test': test, 'speaker_id': speaker_id,
                   'mean_train': mean_train, 'std_train': std_train}
         with open(output_filename, 'wb') as w:

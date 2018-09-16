@@ -13,15 +13,15 @@ DEBUG_SPEAKERS_TRAINING = ['p225', 'p226']
 
 def arg_parse():
     arg_p = ArgumentParser()
-    arg_p.add_argument('--force_complete_audio_cache_regeneration', action='store_true')
-    arg_p.add_argument('--generate_audio_cache', action='store_true')
+    arg_p.add_argument('--regenerate_full_cache', action='store_true')
+    arg_p.add_argument('--update_cache', action='store_true')
     arg_p.add_argument('--generate_training_inputs', action='store_true')
     arg_p.add_argument('--debug', action='store_true')
     arg_p.add_argument('--multi_threading', action='store_true')
     return arg_p
 
 
-def force_complete_audio_cache_regeneration(audio_reader, args):
+def regenerate_full_cache(audio_reader, args):
     cache_output_dir = os.path.expanduser(c.AUDIO.CACHE_PATH)
     print('The directory containing the cache is {}.'.format(cache_output_dir))
     print('Going to wipe out and regenerate the cache in 5 seconds. Ctrl+C to kill this script.')
@@ -55,11 +55,11 @@ def main():
                                sample_rate=c.AUDIO.SAMPLE_RATE,
                                multi_threading=args.multi_threading)
 
-    if args.force_complete_audio_cache_regeneration:
-        force_complete_audio_cache_regeneration(audio_reader, args)
+    if args.regenerate_full_cache:
+        regenerate_full_cache(audio_reader, args)
         exit(1)
 
-    if args.generate_audio_cache:
+    if args.update_cache:
         audio_reader.build_cache()
         exit(1)
 
