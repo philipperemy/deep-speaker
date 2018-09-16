@@ -73,11 +73,11 @@ class InputsGenerator:
         if self.multi_threading:
             num_threads = os.cpu_count() // 2
             logger.info('Using {} threads.'.format(num_threads))
-            parallel_function(self._generate_inputs, sorted(self.speaker_ids), num_threads)
+            parallel_function(self.generate_and_dump_inputs_to_pkl, sorted(self.speaker_ids), num_threads)
         else:
             logger.info('Using only 1 thread.')
             for s in self.speaker_ids:
-                self._generate_inputs(s)
+                self.generate_and_dump_inputs_to_pkl(s)
         from glob import glob
 
         logger.info('Generating the unified inputs pkl file.')
@@ -93,7 +93,7 @@ class InputsGenerator:
             dill.dump(obj=full_inputs, file=w)
         logger.info('[DUMP UNIFIED INPUTS] {}'.format(full_inputs_output_filename))
 
-    def _generate_inputs(self, speaker_id):
+    def generate_and_dump_inputs_to_pkl(self, speaker_id):
 
         if speaker_id not in c.AUDIO.SPEAKERS_TRAINING_SET:
             logger.info('Discarding speaker for the training dataset (cf. conf.json): {}.'.format(speaker_id))
@@ -104,6 +104,12 @@ class InputsGenerator:
             logger.info('Inputs file already exists: {}.'.format(output_filename))
             return
 
+        inputs = self.generate_inputs(speaker_id)
+        with open(output_filename, 'wb') as w:
+            pickle.dump(obj=inputs, file=w)
+        logger.info('[DUMP INPUTS] {}'.format(output_filename))
+
+    def generate_inputs(self, speaker_id):
         from audio_reader import extract_speaker_id
         per_speaker_dict = {}
         cache, metadata = self.audio_reader.load_cache([speaker_id])
@@ -135,9 +141,7 @@ class InputsGenerator:
 
         inputs = {'train': train, 'test': test, 'speaker_id': speaker_id,
                   'mean_train': mean_train, 'std_train': std_train}
-        with open(output_filename, 'wb') as w:
-            pickle.dump(obj=inputs, file=w)
-        logger.info('[DUMP INPUTS] {}'.format(output_filename))
+        return inputs
 
 
 class SpeakersToCategorical:

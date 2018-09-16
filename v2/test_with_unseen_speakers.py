@@ -1,5 +1,3 @@
-import json
-import pickle
 from glob import glob
 
 import numpy as np
@@ -9,39 +7,42 @@ from audio_reader import AudioReader
 from constants import c
 from speech_features import get_mfcc_features_390
 from train_triplet_softmax_model import triplet_softmax_model
-from utils import generate_features, normalize
-
-audio = AudioReader(input_audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
-                    output_cache_dir=c.AUDIO.CACHE_PATH,
-                    sample_rate=c.AUDIO.SAMPLE_RATE)
+from utils import normalize, InputsGenerator
 
 
-def get_feat_from_audio(audio, sr, norm_data, speaker):
-    feat = get_mfcc_features_390(audio, sr, max_frames=None)
+def get_feat_from_audio(audio_reader, sr, norm_data, speaker):
+    feat = get_mfcc_features_390(audio_reader, sr, max_frames=None)
     feat = normalize(feat, norm_data[speaker]['mean_train'], norm_data[speaker]['std_train'])
     return feat
 
 
-def generate_features_for_unseen_speakers(norm_data, target_speaker='p363'):
-    assert target_speaker in audio.get_speaker_list()
+def generate_features_for_unseen_speakers(audio_reader, target_speaker='p363'):
+    assert target_speaker in audio_reader.all_speaker_ids
     # audio.metadata = dict()  # small cache <SPEAKER_ID -> SENTENCE_ID, filename>
     # audio.cache = dict()  # big cache <filename, data:audio librosa, blanks.>
-    audio_filename = list(audio.metadata[target_speaker].values())[0]['filename']
-    audio_entity = audio.cache[audio_filename]
-    feat = generate_features([audio_entity], 10)
-    feat = normalize(feat, norm_data[target_speaker]['mean_train'], norm_data[target_speaker]['std_train'])
-    return feat
+
+    inputs_generator = InputsGenerator(cache_dir=audio_reader.cache_dir,
+                                       audio_reader=audio_reader,
+                                       max_count_per_class=100)
+    inputs = inputs_generator.generate_inputs(target_speaker)
+
+    # audio_filename = list(audio_reader.metadata[target_speaker].values())[0]['filename']
+    # audio_entity = audio_reader.cache[audio_filename]
+    # feat = generate_features([audio_entity], 10)
+    # feat = normalize(feat, inputs['mean_train'], inputs['std_train'])
+    return inputs['test']
 
 
 def test_on_unseen_speakers():
-    categorical_speakers = pickle.load(open('/tmp/speaker-change-detection-categorical_speakers.pkl', 'rb'))
-    norm_data = json.load(open('/tmp/speaker-change-detection-norm.json', 'r'))
+    audio_reader = AudioReader(input_audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
+                               output_cache_dir=c.AUDIO.CACHE_PATH,
+                               sample_rate=c.AUDIO.SAMPLE_RATE)
 
-    p363_feat = generate_features_for_unseen_speakers(norm_data, target_speaker='p363')
-    p362_feat = generate_features_for_unseen_speakers(norm_data, target_speaker='p362')
+    p363_feat = generate_features_for_unseen_speakers(audio_reader, target_speaker='p363')
+    p362_feat = generate_features_for_unseen_speakers(audio_reader, target_speaker='p362')
 
     # batch_size => None (for inference).
-    m = triplet_softmax_model(num_speakers_softmax=len(categorical_speakers.speaker_ids),
+    m = triplet_softmax_model(num_speakers_softmax=len(c.AUDIO.SPEAKERS_TRAINING_SET),
                               emb_trainable=False,
                               normalize_embeddings=True,
                               batch_size=None)
