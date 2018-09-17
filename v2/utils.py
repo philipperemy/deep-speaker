@@ -71,7 +71,7 @@ class InputsGenerator:
     def start_generation(self):
         logger.info('Starting the inputs generation...')
         if self.multi_threading:
-            num_threads = os.cpu_count() // 2
+            num_threads = os.cpu_count()
             logger.info('Using {} threads.'.format(num_threads))
             parallel_function(self.generate_and_dump_inputs_to_pkl, sorted(self.speaker_ids), num_threads)
         else:
@@ -116,7 +116,7 @@ class InputsGenerator:
 
         for filename, audio_entity in cache.items():
             speaker_id_2 = extract_speaker_id(audio_entity['filename'])
-            assert speaker_id_2 == speaker_id
+            assert speaker_id_2 == speaker_id, '{} {}'.format(speaker_id_2, speaker_id)
             if speaker_id not in per_speaker_dict:
                 per_speaker_dict[speaker_id] = []
             per_speaker_dict[speaker_id].append(audio_entity)

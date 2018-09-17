@@ -210,7 +210,7 @@ def start_training():
     print(len(categorical_speakers.speaker_ids))
 
     assert c.AUDIO.SPEAKERS_TRAINING_SET == categorical_speakers.speaker_ids
-    assert len(categorical_speakers.speaker_ids) == 80
+    # assert len(categorical_speakers.speaker_ids) == 80
 
     emb_trainable = True
     if args.freeze_embedding_weights:
