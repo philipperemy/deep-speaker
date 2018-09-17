@@ -1,7 +1,6 @@
 {
   "AUDIO": {
     "SAMPLE_RATE": 8000,
-    "NUM_SPEAKERS_CLASSIFICATION_TASK": 80,
     "SPEAKERS_TRAINING_SET": [
       "p225",
       "p226",
