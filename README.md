@@ -35,19 +35,23 @@ pip install tensorflow # or tensorflow-gpu if you have a GPU at hand.
 
 ### Generate audio caches
 
+**Those steps are only required if you want to re-train the model. Instead, if you just want to perform an inference with a pre-trained network, you can skip and go to the generation section.**
+
 The first step generates the cache for the audio files. Caching usually involves sampling the WAV files at 8KHz and trimming the silences. The task took roughly 10min on my server (i7 8770K).
 
 ```
 python cli.py --regenerate_full_cache --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
-The second step generates the inputs used in the softmax pre-training and the embeddings training. Everything is cached to make the training smoother and faster. In a nutshell, MFCC windows randomly sampled from the audio cached files and put in a unified pickle file.
+The second step generates the inputs used in the softmax pre-training and the embeddings training. Everything is cached to make the training smoother and faster. In a nutshell, MFCC windows randomly sampled from the audio cached files and put in a unified pickle file. The task took roughly 15min on my server (i7 8770K).
 
 ```
 python cli.py --generate_training_inputs --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
 ### Run softmax pre-training and embeddings training with triplet loss
+
+**Likewise, those steps are only required if you want to re-train the model.**
 
 We perform softmax pre-training to avoid getting stuck in a local minimum. After the softmax pre-training, the speaker classification accuracy should be around 95%.
 
@@ -65,9 +69,9 @@ Training the embeddings with the triplet loss (specific to deep speaker) takes t
 
 ### Generate embeddings with a pre-trained network
 
-#### From speakers in the dataset
+#### From speakers in the VCTK dataset
 
-We didn't train on the following speakers: p363, p364, p374, p376. However, we already generated the cache for them, because they were part of the dataset.
+We didn't train on the following speakers: p363, p364, p374, p376. However, we generated the cache for them (because they were part of the initial dataset). So we can just run the inference with a single command.
 
 This command will:
 - check that the embeddings are L2-normalized (L2-norm should be 1).
@@ -85,14 +89,15 @@ SAN = 0.7578228781188744 (cosine distance p363 to p364 - different speaker)
 
 #### From any WAV files
 
-There's an extra step here. We need to generate the cache for those new audio files. Let's divide the WAV files per speaker (one folder per speaker). The name of the folder is the attributed name of the speaker:
+There's an extra step here. We need to generate the cache for those new audio files. Let's divide the WAV files per speaker, with one folder per speaker. The name of the folder must match with the name of the speaker.
 
 ```
-./samples/PhilippeRemy/
-├── PhilippeRemy_001.wav
-├── PhilippeRemy_002.wav
-├── PhilippeRemy_003.wav
-├── PhilippeRemy_004.wav
+samples
+└── PhilippeRemy
+    ├── PhilippeRemy_001.wav
+    ├── PhilippeRemy_002.wav
+    ├── PhilippeRemy_003.wav
+    ├── PhilippeRemy_004.wav
 ```
 
 Once it's done, we can run a cache update:
