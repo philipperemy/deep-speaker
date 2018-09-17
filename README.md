@@ -107,13 +107,19 @@ NEW_AUDIO_DIR=./samples/PhilippeRemy/
 python cli.py --update_cache --multi_threading --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
 
-
-We can now get the embeddings of the speaker `PhilippeRemy` by:
+We can check the SAN and SAP of our new speaker `PhilippeRemy` related to any other speaker by:
 
 ```
-python cli.py --unseen_speakers PhilippeRemy,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 python cli.py --unseen_speakers p225,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
+python cli.py --unseen_speakers PhilippeRemy,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
+
+This command will compute and display the embedding vector:
+
+```
+python cli.py --get_embeddings PhilippeRemy --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
+```
+
 
 ### Miscellaneous
 

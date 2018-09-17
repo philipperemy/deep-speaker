@@ -18,6 +18,7 @@ def arg_parse():
     arg_p.add_argument('--generate_training_inputs', action='store_true')
     arg_p.add_argument('--multi_threading', action='store_true')
     arg_p.add_argument('--unseen_speakers')  # p225,p226 example.
+    arg_p.add_argument('--get_embeddings')  # p225 example.
     return arg_p
 
 
@@ -68,6 +69,13 @@ def main():
         unseen_speakers = [x.strip() for x in args.unseen_speakers.split(',')]
         from unseen_speakers import inference_unseen_speakers
         inference_unseen_speakers(audio_reader, unseen_speakers[0], unseen_speakers[1])
+        exit(1)
+
+    if args.get_embeddings is not None:
+        speaker_id = args.get_embeddings.strip()
+        from unseen_speakers import inference_embeddings
+        inference_embeddings(audio_reader, speaker_id)
+        exit(1)
 
 
 if __name__ == '__main__':
