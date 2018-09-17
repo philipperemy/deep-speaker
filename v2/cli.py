@@ -8,8 +8,6 @@ from audio_reader import AudioReader
 from constants import c
 from utils import InputsGenerator
 
-DEBUG_SPEAKERS_TRAINING = ['p225', 'p226']
-
 
 def arg_parse():
     arg_p = ArgumentParser()
@@ -18,7 +16,6 @@ def arg_parse():
     arg_p.add_argument('--regenerate_full_cache', action='store_true')
     arg_p.add_argument('--update_cache', action='store_true')
     arg_p.add_argument('--generate_training_inputs', action='store_true')
-    arg_p.add_argument('--debug', action='store_true')
     arg_p.add_argument('--multi_threading', action='store_true')
     arg_p.add_argument('--unseen_speakers')  # p225,p226 example.
     return arg_p
@@ -39,13 +36,10 @@ def regenerate_full_cache(audio_reader, args):
 
 def generate_cache_from_training_inputs(audio_reader, args):
     cache_dir = os.path.expanduser(args.cache_output_dir)
-    speakers_sub_list = None
-    if args.debug:
-        speakers_sub_list = DEBUG_SPEAKERS_TRAINING
     inputs_generator = InputsGenerator(cache_dir=cache_dir,
                                        audio_reader=audio_reader,
                                        max_count_per_class=1000,
-                                       speakers_sub_list=speakers_sub_list,
+                                       speakers_sub_list=None,
                                        multi_threading=args.multi_threading)
     inputs_generator.start_generation()
 

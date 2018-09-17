@@ -1,7 +1,6 @@
 import logging
 import os
 import pickle
-import re
 from glob import glob
 
 import librosa
@@ -17,29 +16,6 @@ SPEAKER_ID = 'speaker_id'
 FILENAME = 'filename'
 
 
-class PreMergeProcessor:
-    @staticmethod
-    def ramp(sound_1, sound_2):
-        mask_1 = np.linspace(1, 0, len(sound_1))
-        mask_2 = np.linspace(0, 1, len(sound_2))
-        return np.expand_dims(np.multiply(mask_1, sound_1.flatten()), axis=1), \
-               np.expand_dims(np.multiply(mask_2, sound_2.flatten()), axis=1)
-
-
-class SoundMerger:
-    @staticmethod
-    def default_merger(sound_1, sound_2):
-        return 0.5 * sound_1 + 0.5 * sound_2
-
-    @staticmethod
-    def clip_merger(sound_1, sound_2):
-        return np.clip(sound_1 + sound_2, -1, 1)
-
-    @staticmethod
-    def add_merger(sound_1, sound_2):
-        return sound_1 + sound_2
-
-
 def find_files(directory, pattern='**/*.wav'):
     """Recursively finds all files matching the pattern."""
     return sorted(glob(directory + pattern, recursive=True))
@@ -49,52 +25,6 @@ def read_audio_from_filename(filename, sample_rate):
     audio, _ = librosa.load(filename, sr=sample_rate, mono=True)
     audio = audio.reshape(-1, 1)
     return audio, filename
-
-
-def load_generic_audio(files, sample_rate):
-    for filename in files:
-        audio, filename = read_audio_from_filename(filename, sample_rate)
-        yield audio, filename
-
-
-def load_vctk_audio(directory, sample_rate):
-    """Generator that yields audio waveforms from the VCTK dataset, and
-    additionally the ID of the corresponding speaker."""
-    files = find_files(directory)
-    speaker_re = re.compile(r'p([0-9]+)_([0-9]+)\.wav')
-    for filename in files:
-        audio, _ = librosa.load(filename, sr=sample_rate, mono=True)
-        audio = audio.reshape(-1, 1)
-        matches = speaker_re.findall(filename)[0]
-        speaker_id, recording_id = [int(id_) for id_ in matches]
-        yield audio, speaker_id
-
-
-def overlap(sound1, sound2, overlap_length,
-            merge=SoundMerger.add_merger,
-            pre_merge_processor=PreMergeProcessor.ramp):
-    tmp = np.array(sound1)
-    l1 = len(sound1)
-    l2 = len(sound2)
-    # print('-> l1 = {}, l2 = {}'.format(l1, l2))
-    if overlap_length >= l1 and overlap_length >= l2:
-        overlap_length = min(l1, l2)
-    elif overlap_length >= l2:
-        overlap_length = l2
-    elif overlap_length >= l1:
-        overlap_length = l1
-    overlap_1, overlap_2 = pre_merge_processor(tmp[-overlap_length:], sound2[:overlap_length])
-    overlap_part = merge(overlap_1, overlap_2)
-    assert len(overlap_part) == overlap_length
-    assert np.max(overlap_part) <= 1.0
-    assert np.min(overlap_part) >= -1.0
-    tmp[-overlap_length:] = overlap_part
-    out = np.concatenate((tmp, sound2[overlap_length:]))
-    assert len(out) == l1 + l2 - overlap_length
-    out = np.clip(out, -1, 1)
-    mid_overlap_point_offset = int(l1)
-    # mid_overlap_point_offset = int(l1 - overlap_length * 0.5)
-    return out, mid_overlap_point_offset
 
 
 def trim_silence(audio, threshold):
