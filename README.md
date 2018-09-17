@@ -1,6 +1,8 @@
 # Deep Speaker
 *On VCTK Corpus with ~110 speakers*
 
+Deep Speaker: an End-to-End Neural Speaker Embedding System https://arxiv.org/pdf/1705.02304.pdf
+
 This is the first version (v1) that works correctly with a dataset of ~110 speakers and a smaller model (~100k parameters).
 
 ## Get Started
