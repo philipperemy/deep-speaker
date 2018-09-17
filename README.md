@@ -120,6 +120,7 @@ This command will compute and display the embedding vector:
 python cli.py --get_embeddings PhilippeRemy --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
+For now, it's insanely slow. It takes ~4min on my laptop.
 
 ### Miscellaneous
 
