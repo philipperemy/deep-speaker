@@ -1,12 +1,12 @@
-from collections import deque
-
 import argparse
-import keras.backend as K
-import numpy as np
 import os
 import pickle
 from argparse import ArgumentParser
+from collections import deque
 from glob import glob
+
+import keras.backend as K
+import numpy as np
 from keras import Input, Model
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint, Callback
 from keras.layers import Dense, Lambda
@@ -14,8 +14,8 @@ from keras.optimizers import Adam
 from natsort import natsorted
 
 from constants import c
-from ml.triplet_loss import deep_speaker_loss
-from ml.utils import data_to_keras
+from triplet_loss import deep_speaker_loss
+from utils import data_to_keras
 
 BATCH_SIZE = 900
 
@@ -32,6 +32,8 @@ def get_arguments(parser: ArgumentParser):
 
 def get_script_arguments():
     parser = argparse.ArgumentParser()
+    # generated from: python cli.py --generate_training_inputs --multi_threading
+    parser.add_argument('--data_filename', type=str, required=True)
     parser.add_argument('--loss_on_softmax', action='store_true')
     parser.add_argument('--loss_on_embeddings', action='store_true')
     parser.add_argument('--freeze_embedding_weights', action='store_true')
@@ -102,6 +104,7 @@ def fit_model(m, kx_train, ky_train, kx_test, ky_test,
     test_overall_loss_emb = deque(maxlen=deque_size)
     train_overall_loss_softmax = deque(maxlen=deque_size)
     test_overall_loss_softmax = deque(maxlen=deque_size)
+    # TODO: not very much epoch here.
     for epoch in range(initial_epoch, max_grad_steps):
         two_different_speakers = np.random.choice(range(num_different_speakers), size=2, replace=False)
         anchor_positive_speaker = two_different_speakers[0]
@@ -137,14 +140,11 @@ def fit_model(m, kx_train, ky_train, kx_test, ky_test,
         test_overall_loss_softmax.append(test_loss['softmax_loss'])
 
         if epoch % 10 == 0:
-            format_str = '{0}, train(emb, soft, last {3}) = {1:.5f} {4:.5f}, ' \
-                         'test(emb, soft, last {3}) = {2:.5f} {4:.5f}.'
+            format_str = '{0}, train(emb, last {3}) = {1:.5f} test(emb, last {3}) = {2:.5f}.'
             print(format_str.format(str(epoch).zfill(6),
                                     np.mean(train_overall_loss_emb),
                                     np.mean(test_overall_loss_emb),
-                                    deque_size,
-                                    np.mean(train_overall_loss_softmax),
-                                    np.mean(train_overall_loss_softmax), ))
+                                    deque_size))
 
         if epoch % 100 == 0:
             print('train metrics =', train_loss)
@@ -199,7 +199,8 @@ def start_training():
         print('Please provide at least --loss_on_softmax or --loss_on_embeddings.')
         exit(1)
 
-    data_filename = '/tmp/speaker-change-detection-data.pkl'
+    # data_filename = '/tmp/speaker-change-detection-data.pkl'
+    data_filename = os.path.expanduser(args.data_filename)
     assert os.path.exists(data_filename), 'Data does not exist.'
     print('Loading the inputs in memory. It might take a while...')
     data = pickle.load(open(data_filename, 'rb'))
@@ -208,12 +209,8 @@ def start_training():
     print(categorical_speakers.speaker_ids)
     print(len(categorical_speakers.speaker_ids))
 
-    # print(len(AudioReader(audio_dir=c.AUDIO.VCTK_CORPUS_PATH,
-    #                       sample_rate=c.AUDIO.SAMPLE_RATE,
-    #                       speakers_sub_list=None).metadata))
-
-    assert c.AUDIO.SPEAKER_FOR_CLASSIFICATION_TASK == categorical_speakers.speaker_ids
-    assert len(categorical_speakers.speaker_ids) == 80
+    assert c.AUDIO.SPEAKERS_TRAINING_SET == categorical_speakers.speaker_ids
+    # assert len(categorical_speakers.speaker_ids) == 80
 
     emb_trainable = True
     if args.freeze_embedding_weights:

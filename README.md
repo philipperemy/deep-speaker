@@ -1,90 +1,139 @@
-# Deep Speaker from Baidu Research
-[![license](https://img.shields.io/badge/License-Apache_2.0-brightgreen.svg)](https://github.com/philipperemy/keras-attention-mechanism/blob/master/LICENSE) 
-[![dep2](https://img.shields.io/badge/Keras-2.0+-brightgreen.svg)](https://keras.io/) 
-[![Gitter](https://img.shields.io/badge/chat-on%20gitter-blue.svg)](https://gitter.im/deep-speaker/General)
+# Deep Speaker
+*On VCTK Corpus with ~110 speakers*
 
 Deep Speaker: an End-to-End Neural Speaker Embedding System https://arxiv.org/pdf/1705.02304.pdf
 
-## Announcement
+This is the first version (v1) that works correctly with a dataset of ~110 speakers and a smaller model (~100k parameters).
 
-**Due to the difficulty of the task (very big models and very large datasets) and the lack of information from Baidu, I've re-started another approach for the deep speaker project. I put it in the folder [v2](https://github.com/philipperemy/deep-speaker/tree/master/v2) of this repository. Once I have something fully working, I'll resume on this bigger implementation.**
+## Get Started
 
-## Call for contributors
+First of all, be sure to have at least 16GB of memory before running those steps. At the moment, everything is loaded in memory at the beginning for faster training speed. For now a GPU is not required because the models are pretty small. It will actually run faster on a CPU I guess.
+I could run everything on my MacBookPro 2017.
 
-This code is not functional yet! I'm making a call for contributors to help make a great implementation! The basics stuffs are already there. Thanks!
 
-Work accomplished so far:
-- [x] Triplet loss
-- [x] Triplet loss test
-- [x] Model implementation
-- [x] Data pipeline implementation. We're going to use the [LibriSpeech dataset](http://www.openslr.org/12/) with 2300+ different speakers.
-- [ ] Train the models 
+Now let's clone the repository, create a virtual environment, install the dependencies, build the audio and inputs caches, run the softmax pre-training and start the training of the deep speaker embeddings.
 
-## Get started!
-
-Simply run those commands:
+### Installation
 
 ```
-git clone https://github.com/philipperemy/deep-speaker.git
-cd deep-speaker
-pip3 install -r requirements.txt
-cd audio/
-./convert_flac_2_wav.sh # make sure ffmpeg is installed!
-cd ..
-python3 models_train.py
+git clone git@github.com:philipperemy/deep-speaker.git && cd deep-speaker
+
+DS_DIR=~/deep-speaker-data
+AUDIO_DIR=$DS_DIR/VCTK-Corpus/
+CACHE_DIR=$DS_DIR/cache/
+
+mkdir -p $DS_DIR
+
+./download_vctk.sh
+mv ~/VCTK-Corpus $DS_DIR
+
+# will probably work on every python3 impl (e.g. 3.5).
+virtualenv -p python3.6 $DS_DIR/venv-speaker
+source $DS_DIR/venv-speaker/bin/activate
+
+pip install -r requirements.txt
+pip install tensorflow # or tensorflow-gpu if you have a GPU at hand.
 ```
 
-Preconditions:
-* Installed tensorflow: https://www.tensorflow.org/install/install_linux
-* `sudo apt-get install python3-tk ffmpeg`
-* ~ 6 GB memory
+### Generate audio caches
 
-## Setup Windows
+**Those steps are only required if you want to re-train the model. Instead, if you just want to perform an inference with a pre-trained network, you can skip and go to the generation section.**
 
-* install [ffmpeg](http://ffmpeg.zeranoe.com/builds/) (and add to PATH)
-* use git bash for: `cd audio; ./convert_flac_2_wav.sh`
-* other steps analogous to above
-
-## Contributing
-
-Please message me if you want to contribute. I'll be happy to hear your ideas. There are a lot of undisclosed things in the paper, such as:
-
-- Input size to the network? Which inputs exactly?
-- How many filter banks do we use?
-- Sample Rate?
-
-## LibriSpeech Dataset
-
-Available here: http://www.openslr.org/12/
-
-List of possible other datasets: http://kaldi-asr.org/doc/examples.html
-
-Extract of this dataset:
+The first step generates the cache for the audio files. Caching usually involves sampling the WAV files at 8KHz and trimming the silences. The task took roughly 10min on my server (i7 8770K).
 
 ```
-                                                                            filenames chapter_id speaker_id dataset_id
-0  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0000.wav     128104       1272  dev-clean
-1  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0001.wav     128104       1272  dev-clean
-2  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0002.wav     128104       1272  dev-clean
-3  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0003.wav     128104       1272  dev-clean
-4  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0004.wav     128104       1272  dev-clean
-5  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0005.wav     128104       1272  dev-clean
-6  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0006.wav     128104       1272  dev-clean
-7  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0007.wav     128104       1272  dev-clean
-8  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0008.wav     128104       1272  dev-clean
-9  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0009.wav     128104       1272  dev-clean
+python cli.py --regenerate_full_cache --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
-## Training example on GPU
+The second step generates the inputs used in the softmax pre-training and the embeddings training. Everything is cached to make the training smoother and faster. In a nutshell, MFCC windows randomly sampled from the audio cached files and put in a unified pickle file. The task took roughly 15min on my server (i7 8770K).
 
-<p align="center">
-  <img src="assets/run_gpu_1.png">
-  <br><i>Training on the GPU.</i>
-</p>
+```
+python cli.py --generate_training_inputs --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
+```
 
-## Vizualization of anchors
+### Run softmax pre-training and embeddings training with triplet loss
 
-<p align="center">
-  <img src="assets/1.png" width="400">
-  <br><i>Visualization of a possible triplet (Anchor, Positive, Negative) in the cosine similarity space</i>
-</p>
+**Likewise, those steps are only required if you want to re-train the model.**
+
+We perform softmax pre-training to avoid getting stuck in a local minimum. After the softmax pre-training, the speaker classification accuracy should be around 95%.
+
+```
+python train_cli.py --loss_on_softmax --data_filename $CACHE_DIR/full_inputs.pkl
+```
+
+Next phase is to train the network with the triplet loss.
+
+```
+python train_cli.py --loss_on_embeddings --normalize_embeddings --data_filename $CACHE_DIR/full_inputs.pkl
+```
+
+Training the embeddings with the triplet loss (specific to deep speaker) takes time and the loss should go around 0.01-0.02 after ~5k steps (on un-normalized embeddings). After only 2k steps, I had 0.04-0.05. I noticed that the softmax pre-training really helped the convergence be faster. The case where (anchor speaker == positive speaker == negative speaker) yields a loss of 0.20. This optimizer gets stuck and cannot do much. This is expected. We can clearly see that the model is learning something. I recall that we train with (anchor speaker == positive speaker != negative speaker).
+
+### Generate embeddings with a pre-trained network
+
+#### From speakers in the VCTK dataset
+
+We didn't train on the following speakers: p363, p364, p374, p376. However, we generated the cache for them (because they were part of the initial dataset). So we can just run the inference with a single command.
+
+This command will:
+- check that the embeddings are L2-normalized (L2-norm should be 1).
+- check that the SAP is much lower than the SAN.
+
+```
+python cli.py --unseen_speakers p363,p364 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
+```
+
+```
+SAP = 0.016340159318026376 (cosine distance p363 to p363 - same speaker)
+SAN = 0.7578228781188744 (cosine distance p363 to p364 - different speaker)
+```
+
+
+#### From any WAV files
+
+There's an extra step here. We need to generate the cache for those new audio files. Let's divide the WAV files per speaker, with one folder per speaker. The name of the folder must match with the name of the speaker.
+
+```
+samples
+└── PhilippeRemy
+    ├── PhilippeRemy_001.wav
+    ├── PhilippeRemy_002.wav
+    ├── PhilippeRemy_003.wav
+    ├── PhilippeRemy_004.wav
+```
+
+Once it's done, we can run a cache update:
+
+```
+NEW_AUDIO_DIR=./samples/PhilippeRemy/
+python cli.py --update_cache --multi_threading --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
+```
+
+We can check the SAN and SAP of our new speaker `PhilippeRemy` related to any other speaker by:
+
+```
+python cli.py --unseen_speakers p225,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
+python cli.py --unseen_speakers PhilippeRemy,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
+```
+
+This command will compute and display the embedding vector:
+
+```
+python cli.py --get_embeddings PhilippeRemy --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
+```
+
+For now, it's insanely slow. It takes ~4min on my laptop.
+
+### Miscellaneous
+
+Once the embeddings are correctly trained, we can freeze the weights and only re-train the softmax layer with the new embeddings.
+
+```
+python train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
+```
+
+After a while, we get an accuracy around 71%. Not bad! We expect it to be less than 95% of course, because the embeddings are not trained to maximize the classification accuracy but to reduce the triplet loss (maximize cosine distance between different speakers).
+
+### Important comments
+
+- At the moment, I'm using a sigmoid for the embeddings. Meaning that the embeddings are defined on [0, 1]^n. Using tanh will project them on [-1, 1]^n.
