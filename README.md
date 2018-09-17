@@ -1,90 +1,62 @@
-# Deep Speaker from Baidu Research
-[![license](https://img.shields.io/badge/License-Apache_2.0-brightgreen.svg)](https://github.com/philipperemy/keras-attention-mechanism/blob/master/LICENSE) 
-[![dep2](https://img.shields.io/badge/Keras-2.0+-brightgreen.svg)](https://keras.io/) 
-[![Gitter](https://img.shields.io/badge/chat-on%20gitter-blue.svg)](https://gitter.im/deep-speaker/General)
+# Deep Speaker V2 (on a smaller scale for now)
 
-Deep Speaker: an End-to-End Neural Speaker Embedding System https://arxiv.org/pdf/1705.02304.pdf
+- Using VCTK Corpus
+- Using the codebase from [speaker-change-detection](https://github.com/philipperemy/speaker-change-detection)
 
-## Announcement
+We start on a smaller dataset (109 speakers) and on much smaller models (~100k parameters).
 
-**Due to the difficulty of the task (very big models and very large datasets) and the lack of information from Baidu, I've re-started another approach for the deep speaker project. I put it in the folder [v2](https://github.com/philipperemy/deep-speaker/tree/master/v2) of this repository. Once I have something fully working, I'll resume on this bigger implementation.**
+## Get Started
 
-## Call for contributors
+First of all, be sure to have at least 16GB of memory before running those steps. At the moment, everything is loaded in memory at the beginning for faster training speed. For now a GPU is not required because the models are pretty small. It will actually run faster on a CPU I guess.
 
-This code is not functional yet! I'm making a call for contributors to help make a great implementation! The basics stuffs are already there. Thanks!
+We're going to use pre-processed files for the training and the inference. Because it takes a very long time to generate cache and inputs (~2 hours), I packaged them and uploaded them here:
 
-Work accomplished so far:
-- [x] Triplet loss
-- [x] Triplet loss test
-- [x] Model implementation
-- [x] Data pipeline implementation. We're going to use the [LibriSpeech dataset](http://www.openslr.org/12/) with 2300+ different speakers.
-- [ ] Train the models 
+- Cache uploaded at [cache-speaker-change-detection.zip](https://drive.google.com/open?id=1NRBBE7S1ecpbXQBfIyhY9O1DDNsBc0my)  (unzip it in `/tmp/`)
+- [speaker-change-detection-data.pkl](https://drive.google.com/open?id=12gMYaV-ymQOtkYHCf9HxPurb9vB6dADK) (place it in `/tmp/`)
+- [speaker-change-detection-norm.pkl](https://drive.google.com/open?id=1vykyS3bxKbkuhGtk36eTWfW9ZkqwJi6e) (place it in `/tmp/`)
 
-## Get started!
+After doing this, those commands should work:
 
-Simply run those commands:
+- `ls -l /tmp/speaker-change-detection-data.pkl`
+- `ls -l /tmp/speaker-change-detection-norm.pkl`
+- `ls -l /tmp/speaker-change-detection/*.pkl`
 
-```
-git clone https://github.com/philipperemy/deep-speaker.git
-cd deep-speaker
-pip3 install -r requirements.txt
-cd audio/
-./convert_flac_2_wav.sh # make sure ffmpeg is installed!
-cd ..
-python3 models_train.py
-```
-
-Preconditions:
-* Installed tensorflow: https://www.tensorflow.org/install/install_linux
-* `sudo apt-get install python3-tk ffmpeg`
-* ~ 6 GB memory
-
-## Setup Windows
-
-* install [ffmpeg](http://ffmpeg.zeranoe.com/builds/) (and add to PATH)
-* use git bash for: `cd audio; ./convert_flac_2_wav.sh`
-* other steps analogous to above
-
-## Contributing
-
-Please message me if you want to contribute. I'll be happy to hear your ideas. There are a lot of undisclosed things in the paper, such as:
-
-- Input size to the network? Which inputs exactly?
-- How many filter banks do we use?
-- Sample Rate?
-
-## LibriSpeech Dataset
-
-Available here: http://www.openslr.org/12/
-
-List of possible other datasets: http://kaldi-asr.org/doc/examples.html
-
-Extract of this dataset:
+Now let's clone the repository, create a virtual environment, install the dependencies, run the softmax pre-training and start the training of the deep speaker embeddings.
 
 ```
-                                                                            filenames chapter_id speaker_id dataset_id
-0  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0000.wav     128104       1272  dev-clean
-1  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0001.wav     128104       1272  dev-clean
-2  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0002.wav     128104       1272  dev-clean
-3  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0003.wav     128104       1272  dev-clean
-4  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0004.wav     128104       1272  dev-clean
-5  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0005.wav     128104       1272  dev-clean
-6  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0006.wav     128104       1272  dev-clean
-7  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0007.wav     128104       1272  dev-clean
-8  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0008.wav     128104       1272  dev-clean
-9  /Volumes/Transcend/data-set/LibriSpeech/dev-clean/1272/128104/1272-128104-0009.wav     128104       1272  dev-clean
+git clone git@github.com:philipperemy/deep-speaker.git
+cd deep-speaker/v2
+virtualenv -p python3.6 venv # probably will work on every python3 impl.
+source venv/bin/activate
+pip install -r requirements.txt
+# download the cache and all the files specified above (you can re-generate them yourself if you wish, it just takes ~2 hours).
+cd ml/
+export PYTHONPATH=..:$PYTHONPATH; python generate_inputs.py
+export PYTHONPATH=..:$PYTHONPATH; python train_triplet_softmax_model.py --loss_on_softmax # softmax pre-training
+export PYTHONPATH=..:$PYTHONPATH; python train_triplet_softmax_model.py --loss_on_embeddings --normalize_embeddings
 ```
 
-## Training example on GPU
+Once the model is trained, we can freeze the weights and re-train your softmax to see if the embeddings we got make sense. Accuracy is around 71%. Not bad!
 
-<p align="center">
-  <img src="assets/run_gpu_1.png">
-  <br><i>Training on the GPU.</i>
-</p>
+```
+export PYTHONPATH=..:$PYTHONPATH; python train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
+```
 
-## Vizualization of anchors
+Then let's pick up two speakers from the out sample set (never seen from the training steps).
 
-<p align="center">
-  <img src="assets/1.png" width="400">
-  <br><i>Visualization of a possible triplet (Anchor, Positive, Negative) in the cosine similarity space</i>
-</p>
+- We first check that the embeddings are L2-normalized
+- We then check that the SAP is much lower compared to SAN.
+
+```
+SAP = 0.016340159318026376 (cosine distance p363 to p363 - same speaker)
+SAN = 0.7578228781188744 (cosine distance p363 to p362 - different speaker)
+```
+
+It works!
+
+## Comments
+
+- After the softmax pre-training, the speaker classification accuracy should be around 95%.
+- Training the embeddings with the triplet loss (specific to deep speaker) takes time and the loss should go around 0.01-0.02 after ~5k steps (on un-normalized embeddings). After only 2k steps, I had 0.04-0.05. I noticed that the softmax pre-training really helped the convergence be faster. The case where (anchor speaker == positive speaker == negative speaker) yields a loss of 0.20. This optimizer gets stuck and cannot do much. This is expected. We can clearly see that the model is learning something. I recall that we train with (anchor speaker == positive speaker != negative speaker).
+- Then we re-train again the softmax layer with the new embeddings. We freeze them and we look at the new classification accuracy. It's now around 71%. We expect it to be less than 95% of course, because the embeddings are not trained to maximize the classification accuracy but to reduce the triplet loss (maximize cosine similarity between different speakers).
+- At the moment, I'm using a sigmoid for the embeddings. Meaning that the embeddings are defined on [0, 1]^n. Using tanh will project them on [-1, 1]^n.

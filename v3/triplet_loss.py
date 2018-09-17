@@ -51,7 +51,6 @@ def deep_speaker_loss(y_true, y_pred):
     logging.info('san={}'.format(san))
     loss = K.maximum(san - sap + alpha, 0.0)
     logging.info('loss={}'.format(loss))
-    # total_loss = K.sum(loss)
-    total_loss = K.mean(loss)
+    total_loss = K.sum(loss)
     logging.info('total_loss={}'.format(total_loss))
     return total_loss
