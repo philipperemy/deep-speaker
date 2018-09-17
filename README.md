@@ -3,7 +3,9 @@
 
 Deep Speaker: an End-to-End Neural Speaker Embedding System https://arxiv.org/pdf/1705.02304.pdf
 
-This is the first version (v1) that works correctly with a dataset of ~110 speakers and a smaller model (~100k parameters).
+This is the current version that works correctly with a dataset of ~110 speakers and a smaller model (~100k parameters).
+
+The bigger dataset and model impl can be found here: [/v3](v3). It's still a work in progress (not stable).
 
 ## Get Started
 
