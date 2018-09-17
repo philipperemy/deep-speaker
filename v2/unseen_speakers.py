@@ -6,7 +6,7 @@ from natsort import natsorted
 
 from constants import c
 from speech_features import get_mfcc_features_390
-from train_triplet_softmax_model import triplet_softmax_model
+from train_cli import triplet_softmax_model
 from utils import normalize, InputsGenerator
 
 logger = logging.getLogger(__name__)
