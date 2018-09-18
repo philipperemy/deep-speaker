@@ -83,13 +83,9 @@ This command will:
 
 ```
 python cli.py --unseen_speakers p363,p364 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
+python cli.py --unseen_speakers p363,p363 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
-
-```
-SAP = 0.016340159318026376 (cosine distance p363 to p363 - same speaker)
-SAN = 0.7578228781188744 (cosine distance p363 to p364 - different speaker)
-```
-
+The first cosine value is the SAN and the second the SAP. I could get cosine values of ~0.56 and ~0.0008.
 
 #### From any WAV files
 
