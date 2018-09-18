@@ -107,12 +107,14 @@ NEW_AUDIO_DIR=./samples/PhilippeRemy/
 python cli.py --update_cache --multi_threading --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
 
-We can check the SAN and SAP of our new speaker `PhilippeRemy` related to any other speaker by:
+We can check the SAN and SAP of our new speaker `PhilippeRemy` by running:
 
 ```
 python cli.py --unseen_speakers p225,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 python cli.py --unseen_speakers PhilippeRemy,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
+
+I had a cosine dist value of ~0.41 for the first command (different speakers) and ~0.01 for the second command (same speaker). Again, it's expected. The choice of p225 is completely arbitrary, as long as it's a different speaker.
 
 This command will compute and display the embedding vector:
 
@@ -120,7 +122,7 @@ This command will compute and display the embedding vector:
 python cli.py --get_embeddings PhilippeRemy --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
-For now, it's insanely slow. It takes ~4min on my laptop.
+For now, it's insanely slow. It took ~2min on my MacBook and ~1min on my server.
 
 ### Miscellaneous
 
