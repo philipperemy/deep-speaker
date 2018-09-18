@@ -85,7 +85,7 @@ This command will:
 python cli.py --unseen_speakers p363,p364 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
 python cli.py --unseen_speakers p363,p363 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
-The first cosine value is the SAN and the second the SAP. I could get cosine values of ~0.56 and ~0.0008.
+The first cosine value is the SAN and the second the SAP. I could get cosine values of ~0.56 and ~0.0008. The audio slices are randomly chosen so it's very likely you get different results than me. However you should always see SAN >> SAP.
 
 #### From any WAV files
 
