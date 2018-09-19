@@ -25,8 +25,8 @@ def generate_features_for_unseen_speakers(audio_reader, target_speaker='p363'):
     inputs_generator = InputsGenerator(cache_dir=audio_reader.cache_dir,
                                        audio_reader=audio_reader,
                                        max_count_per_class=1000)
-    inputs = inputs_generator.generate_inputs(target_speaker)
-    return inputs['test']
+    inputs = inputs_generator.generate_inputs_for_inference(target_speaker)
+    return inputs
 
 
 def inference_unseen_speakers(audio_reader, sp1, sp2):

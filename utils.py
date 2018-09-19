@@ -1,9 +1,8 @@
+import dill
 import logging
+import numpy as np
 import os
 import pickle
-
-import dill
-import numpy as np
 
 from constants import c
 from speech_features import get_mfcc_features_390
@@ -37,9 +36,13 @@ def data_to_keras(data):
     return kx_train, ky_train, kx_test, ky_test, categorical_speakers
 
 
-def generate_features(audio_entities, max_count):
+def generate_features(audio_entities, max_count, progress_bar=False):
     features = []
-    for _ in range(max_count):
+    count_range = range(max_count)
+    if progress_bar:
+        from tqdm import tqdm
+        count_range = tqdm(count_range)
+    for _ in count_range:
         audio_entity = np.random.choice(audio_entities)
         voice_only_signal = audio_entity['audio_voice_only']
         cuts = np.random.uniform(low=1, high=len(voice_only_signal), size=2)
@@ -108,6 +111,17 @@ class InputsGenerator:
         with open(output_filename, 'wb') as w:
             pickle.dump(obj=inputs, file=w)
         logger.info('[DUMP INPUTS] {}'.format(output_filename))
+
+    def generate_inputs_for_inference(self, speaker_id):
+        speaker_cache, metadata = self.audio_reader.load_cache([speaker_id])
+        audio_entities = list(speaker_cache.values())
+        logger.info('Generating the inputs necessary for the inference (speaker is {})...'.format(speaker_id))
+        logger.info('This might take a couple of minutes to complete.')
+        feat = generate_features(audio_entities, self.max_count_per_class, progress_bar=False)
+        mean = np.mean([np.mean(t) for t in feat])
+        std = np.mean([np.std(t) for t in feat])
+        feat = normalize(feat, mean, std)
+        return feat
 
     def generate_inputs(self, speaker_id):
         from audio_reader import extract_speaker_id
