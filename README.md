@@ -17,7 +17,7 @@ Now let's clone the repository, create a virtual environment, install the depend
 
 ### Installation
 
-```
+```bash
 git clone git@github.com:philipperemy/deep-speaker.git && cd deep-speaker
 
 DS_DIR=~/deep-speaker-data
@@ -43,13 +43,13 @@ pip install tensorflow # or tensorflow-gpu if you have a GPU at hand.
 
 The first step generates the cache for the audio files. Caching usually involves sampling the WAV files at 8KHz and trimming the silences. The task took roughly 10min on my server (i7 8770K).
 
-```
+```bash
 python cli.py --regenerate_full_cache --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
 The second step generates the inputs used in the softmax pre-training and the embeddings training. Everything is cached to make the training smoother and faster. In a nutshell, MFCC windows randomly sampled from the audio cached files and put in a unified pickle file. The task took roughly 15min on my server (i7 8770K).
 
-```
+```bash
 python cli.py --generate_training_inputs --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
@@ -59,13 +59,13 @@ python cli.py --generate_training_inputs --multi_threading --cache_output_dir $C
 
 We perform softmax pre-training to avoid getting stuck in a local minimum. After the softmax pre-training, the speaker classification accuracy should be around 95%.
 
-```
+```bash
 python train_cli.py --loss_on_softmax --data_filename $CACHE_DIR/full_inputs.pkl
 ```
 
 Next phase is to train the network with the triplet loss.
 
-```
+```bash
 python train_cli.py --loss_on_embeddings --normalize_embeddings --data_filename $CACHE_DIR/full_inputs.pkl
 ```
 
@@ -81,7 +81,7 @@ This command will:
 - check that the embeddings are L2-normalized (L2-norm should be 1).
 - check that the SAP is much lower than the SAN.
 
-```
+```bash
 python cli.py --unseen_speakers p363,p364 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
 python cli.py --unseen_speakers p363,p363 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
@@ -102,14 +102,14 @@ samples
 
 Once it's done, we can run a cache update:
 
-```
+```bash
 NEW_AUDIO_DIR=./samples/PhilippeRemy/
 python cli.py --update_cache --multi_threading --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
 
 We can check the SAN and SAP of our new speaker `PhilippeRemy` by running:
 
-```
+```bash
 python cli.py --unseen_speakers p225,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 python cli.py --unseen_speakers PhilippeRemy,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
 ```
@@ -118,7 +118,7 @@ I had a cosine dist value of ~0.41 for the first command (different speakers) an
 
 This command will compute and display the embedding vector:
 
-```
+```bash
 python cli.py --get_embeddings PhilippeRemy --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
@@ -128,7 +128,7 @@ For now, it's insanely slow. It took ~2min on my MacBook and ~1min on my server.
 
 Once the embeddings are correctly trained, we can freeze the weights and only re-train the softmax layer with the new embeddings.
 
-```
+```bash
 python train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
 ```
 
