@@ -9,7 +9,7 @@ from librispeech_wav_reader import read_librispeech_structure
 from models import convolutional_model
 from next_batch import stochastic_mini_batch
 from triplet_loss import deep_speaker_loss
-from utils import get_last_checkpoint_if_any, create_dir_and_delete_content
+from ds_utils import get_last_checkpoint_if_any, create_dir_and_delete_content
 
 
 def main(libri_dir=c.DATASET_DIR):
