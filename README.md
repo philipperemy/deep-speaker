@@ -26,7 +26,7 @@ CACHE_DIR=$DS_DIR/cache/
 
 mkdir -p $DS_DIR
 
-./download_vctk.sh
+./download_vctk.sh # if it's too long, consider using a download accelerator like: axel.
 mv ~/VCTK-Corpus $DS_DIR
 
 # will probably work on every python3 impl (e.g. 3.5).
