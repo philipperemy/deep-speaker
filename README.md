@@ -26,7 +26,7 @@ CACHE_DIR=$DS_DIR/cache/
 
 mkdir -p $DS_DIR
 
-./download_vctk.sh
+./download_vctk.sh # if it's too long, consider using a download accelerator like: axel.
 mv ~/VCTK-Corpus $DS_DIR
 
 # will probably work on every python3 impl (e.g. 3.5).
@@ -47,7 +47,7 @@ The first step generates the cache for the audio files. Caching usually involves
 python cli.py --regenerate_full_cache --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
 ```
 
-The second step generates the inputs used in the softmax pre-training and the embeddings training. Everything is cached to make the training smoother and faster. In a nutshell, MFCC windows randomly sampled from the audio cached files and put in a unified pickle file. The task took roughly 15min on my server (i7 8770K).
+The second step generates the inputs used in the softmax pre-training and the embeddings training. Everything is cached to make the training smoother and faster. In a nutshell, MFCC windows randomly sampled from the audio cached files and put in a unified pickle file. The task took roughly 18min on my server (i7 8770K).
 
 ```bash
 python cli.py --generate_training_inputs --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
