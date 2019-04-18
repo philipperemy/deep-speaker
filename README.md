@@ -138,7 +138,7 @@ For now, it's insanely slow. It took ~2min on my MacBook and ~1min on my server.
 Once the embeddings are correctly trained, we can freeze the weights and only re-train the softmax layer with the new embeddings.
 
 ```bash
-python train_triplet_softmax_model.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings
+python train_cli.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings --data_filename $CACHE_DIR/full_inputs.pkl
 ```
 
 After a while, we get an accuracy around 71%. Not bad! We expect it to be less than 95% of course, because the embeddings are not trained to maximize the classification accuracy but to reduce the triplet loss (maximize cosine distance between different speakers).
