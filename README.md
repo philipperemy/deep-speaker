@@ -80,6 +80,8 @@ Training the embeddings with the triplet loss (specific to deep speaker) takes t
   <img src="misc/fig2.png" width="400"><br/>
 </p>
 
+It took roughly 1~2 hour to train with a GTX1070 and 32GB of memory. The training code here is highly unoptimized for GPU.
+
 ### Generate embeddings with a pre-trained network
 
 #### From speakers in the VCTK dataset
