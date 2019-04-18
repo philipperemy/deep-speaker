@@ -7,7 +7,10 @@ This is the current version that works correctly with a dataset of ~110 speakers
 
 The bigger dataset and model impl can be found here: [/v3](v3). It's still a work in progress (not stable).
 
-## Get Started
+## Get Started (Only Linux/MacOS)
+
+**> I've never tested the code on Windows and it will probably need some adjustments to work. It should work fine on Linux/MacOS.**
+
 
 First of all, be sure to have at least 16GB of memory before running those steps. At the moment, everything is loaded in memory at the beginning for faster training speed. For now a GPU is not required because the models are pretty small. It will actually run faster on a CPU I guess.
 I could run everything on my MacBookPro 2017.
