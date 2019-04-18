@@ -67,7 +67,7 @@ python train_cli.py --loss_on_softmax --data_filename $CACHE_DIR/full_inputs.pkl
   <img src="misc/fig1.png" width="400"><br/>
 </p>
 
-Next phase is to train the network with the triplet loss.
+It took roughly 1 hour to train with a GTX1070 and 32GB of memory. Next phase is to train the network with the triplet loss.
 
 ```bash
 python train_cli.py --loss_on_embeddings --normalize_embeddings --data_filename $CACHE_DIR/full_inputs.pkl
