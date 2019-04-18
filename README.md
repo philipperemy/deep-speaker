@@ -59,6 +59,10 @@ python cli.py --generate_training_inputs --multi_threading --cache_output_dir $C
 
 We perform softmax pre-training to avoid getting stuck in a local minimum. After the softmax pre-training, the speaker classification accuracy should be around 95%.
 
+<p align="center">
+  <img src="misc/fig1.png" width="400"><br/>
+</p>
+
 ```bash
 python train_cli.py --loss_on_softmax --data_filename $CACHE_DIR/full_inputs.pkl
 ```
