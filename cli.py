@@ -67,6 +67,7 @@ def main():
 
     if args.unseen_speakers is not None:
         unseen_speakers = [x.strip() for x in args.unseen_speakers.split(',')]
+        audio_reader.build_cache()
         from unseen_speakers import inference_unseen_speakers
         inference_unseen_speakers(audio_reader, unseen_speakers[0], unseen_speakers[1])
         exit(1)
