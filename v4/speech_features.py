@@ -1,4 +1,9 @@
 import numpy as np
+from python_speech_features import fbank, delta
+
+
+def normalize_frames(m, epsilon=1e-12):
+    return [(v - np.mean(v)) / max(np.std(v), epsilon) for v in m]
 
 
 def get_mfcc_features_390(sig, rate, max_frames=None):
@@ -39,6 +44,24 @@ def mfcc_features(sig, rate, nb_features=13):
     delta_feat = delta(mfcc_feat, 2)
     double_delta_feat = delta(delta_feat, 2)
     return np.concatenate((mfcc_feat, delta_feat, double_delta_feat), axis=1)
+
+
+def pre_process_inputs(sig=np.random.uniform(size=32000), target_sample_rate=8000):
+    filter_banks, energies = fbank(sig, samplerate=target_sample_rate, nfilt=64, winlen=0.025)
+    delta_1 = delta(filter_banks, N=1)
+    delta_2 = delta(delta_1, N=1)
+
+    filter_banks = normalize_frames(filter_banks)
+    delta_1 = normalize_frames(delta_1)
+    delta_2 = normalize_frames(delta_2)
+
+    frames_features = np.hstack([filter_banks, delta_1, delta_2])
+    num_frames = len(frames_features)
+    network_inputs = []
+    for j in range(8, num_frames - 8):
+        frames_slice = frames_features[j - 8:j + 8]
+        network_inputs.append(np.reshape(frames_slice, (32, 32, 3)))
+    return np.array(network_inputs)
 
 
 if __name__ == '__main__':
