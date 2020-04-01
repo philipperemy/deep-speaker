@@ -78,10 +78,11 @@ def build_keras_inputs(data_filename, cache_dir):
 
 @cli.command('train-model', short_help='Train a Keras model.')
 @click.option('--cache_dir', required=True, type=Ct.input_dir())
-def build_keras_inputs(cache_dir):
+@click.option('--checkpoints_dir', default='checkpoints', show_default=True, type=Ct.output_dir())
+def build_keras_inputs(cache_dir, checkpoints_dir):
     kc = KerasConverter(cache_dir)
     kc.load_from_disk()
-    start_training()
+    start_training(checkpoints_dir, kc)
 
 
 if __name__ == '__main__':
