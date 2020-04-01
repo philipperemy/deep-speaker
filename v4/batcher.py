@@ -9,7 +9,7 @@ import pandas as pd
 
 from audio import extract_speaker_id
 from constants import SAMPLE_RATE
-from last.speech_features import get_mfcc_features_390
+from speech_features import get_mfcc_features_390
 from preprocess import pre_process_inputs, load_wav
 from utils import parallel_function, ensures_dir, find_files
 
@@ -88,30 +88,74 @@ def stochastic_mini_batch(libri, batch_size):
     return mini_batch
 
 
-def data_to_keras(data):
-    categorical_speakers = SpeakersToCategorical(data)
-    kx_train, ky_train, kx_test, ky_test = [], [], [], []
-    ky_test = []
-    for speaker_id in categorical_speakers.get_speaker_ids():
-        d = data[speaker_id]
-        y = categorical_speakers.get_one_hot_vector(d['speaker_id'])
-        for x_train_elt in data[speaker_id]['train']:
-            for x_train_sub_elt in x_train_elt:
-                kx_train.append(x_train_sub_elt)
-                ky_train.append(y)
+class KerasConverter:
 
-        for x_test_elt in data[speaker_id]['test']:
-            for x_test_sub_elt in x_test_elt:
-                kx_test.append(x_test_sub_elt)
-                ky_test.append(y)
+    def __init__(self, saved_dir):
+        """
+        @param data: data coming from full_inputs.pkl
+        """
+        self.saved_dir = saved_dir
+        self.output_dir = os.path.join(self.saved_dir, 'keras-converter')
+        ensures_dir(self.output_dir)
+        self.categorical_speakers = None
+        self.kx_train = None
+        self.kx_test = None
+        self.ky_train = None
+        self.ky_test = None
 
-    kx_train = np.array(kx_train)
-    kx_test = np.array(kx_test)
+    def load_from_disk(self):
 
-    ky_train = np.array(ky_train)
-    ky_test = np.array(ky_test)
+        def load(file):
+            if not os.path.exists(file):
+                return None
+            with open(file, 'rb') as r:
+                return pickle.load(r)
 
-    return kx_train, ky_train, kx_test, ky_test, categorical_speakers
+        self.categorical_speakers = load(os.path.join(self.output_dir, 'categorical_speakers.pkl'))
+        self.kx_train = load(os.path.join(self.output_dir, 'kx_train.pkl'))
+        self.kx_test = load(os.path.join(self.output_dir, 'kx_test.pkl'))
+        self.ky_train = load(os.path.join(self.output_dir, 'ky_train.pkl'))
+        self.ky_test = load(os.path.join(self.output_dir, 'ky_test.pkl'))
+
+    def persist_from_disk(self):
+        with open(os.path.join(self.output_dir, 'categorical_speakers.pkl'), 'wb') as w:
+            pickle.dump(self.categorical_speakers, w)
+        with open(os.path.join(self.output_dir, 'kx_train.pkl'), 'wb') as w:
+            pickle.dump(self.kx_train, w)
+        with open(os.path.join(self.output_dir, 'kx_test.pkl'), 'wb') as w:
+            pickle.dump(self.kx_test, w)
+        with open(os.path.join(self.output_dir, 'ky_train.pkl'), 'wb') as w:
+            pickle.dump(self.ky_train, w)
+        with open(os.path.join(self.output_dir, 'ky_test.pkl'), 'wb') as w:
+            pickle.dump(self.ky_test, w)
+
+    def convert(self, data):
+        categorical_speakers = SpeakersToCategorical(data)
+        kx_train, ky_train, kx_test, ky_test = [], [], [], []
+        ky_test = []
+        for speaker_id in categorical_speakers.get_speaker_ids():
+            d = data[speaker_id]
+            y = categorical_speakers.get_one_hot(d['speaker_id'])
+            for x_train_elt in data[speaker_id]['train']:
+                for x_train_sub_elt in x_train_elt:
+                    kx_train.append(x_train_sub_elt)
+                    ky_train.append(y)
+
+            for x_test_elt in data[speaker_id]['test']:
+                for x_test_sub_elt in x_test_elt:
+                    kx_test.append(x_test_sub_elt)
+                    ky_test.append(y)
+
+        kx_train = np.array(kx_train)
+        kx_test = np.array(kx_test)
+
+        ky_train = np.array(ky_train)
+        ky_test = np.array(ky_test)
+
+        self.categorical_speakers = categorical_speakers
+        self.kx_train, self.ky_train, self.kx_test, self.ky_test = kx_train, ky_train, kx_test, ky_test
+
+        return kx_train, ky_train, kx_test, ky_test, categorical_speakers
 
 
 def generate_features(audio_entities, max_count, progress_bar=False):
@@ -245,7 +289,7 @@ class SpeakersToCategorical:
     def get_speaker_from_index(self, index):
         return self.map_index_to_speakers[index]
 
-    def get_one_hot_vector(self, speaker_id):
+    def get_one_hot(self, speaker_id):
         index = self.map_speakers_to_index[speaker_id]
         return self.speaker_categories[index]
 
