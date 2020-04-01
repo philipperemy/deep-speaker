@@ -1,35 +1,42 @@
 import logging
 import os
 import pickle
-from glob import glob
+from collections import defaultdict
 
 import librosa
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
+from constants import SAMPLE_RATE
+from utils import find_files, ensures_dir
 from utils import parallel_function
 
 logger = logging.getLogger(__name__)
 
-SENTENCE_ID = 'sentence_id'
-SPEAKER_ID = 'speaker_id'
-FILENAME = 'filename'
+
+def read_audio(filename, sample_rate=SAMPLE_RATE):
+    audio, sr = librosa.load(filename, sr=sample_rate, mono=True)
+    assert sr == sample_rate
+    return audio
 
 
-def find_files(directory, pattern='**/*.wav'):
-    """Recursively finds all files matching the pattern."""
-    return sorted(glob(directory + pattern, recursive=True))
-
-
-def read_audio_from_filename(filename, sample_rate):
-    audio, _ = librosa.load(filename, sr=sample_rate, mono=True)
-    audio = audio.reshape(-1, 1)
-    return audio, filename
+def read_librispeech_structure(directory):
+    libri = pd.DataFrame()
+    libri['filename'] = find_files(directory)
+    libri['filename'] = libri['filename'].apply(lambda x: x.replace('\\', '/'))  # normalize windows paths
+    libri['chapter_id'] = libri['filename'].apply(lambda x: x.split('/')[-2])
+    libri['speaker_id'] = libri['filename'].apply(lambda x: x.split('/')[-3])
+    libri['dataset_id'] = libri['filename'].apply(lambda x: x.split('/')[-4])
+    num_speakers = len(libri['speaker_id'].unique())
+    logging.info(f'Found {str(len(libri)).zfill(7)} files with {str(num_speakers).zfill(5)} different speakers.')
+    logging.info(libri.head(10))
+    return libri
 
 
 def trim_silence(audio, threshold):
     """Removes silence at the beginning and end of a sample."""
-    energy = librosa.feature.rmse(audio)
+    energy = librosa.feature.rms(audio)
     frames = np.nonzero(np.array(energy > threshold))
     indices = librosa.core.frames_to_samples(frames)[1]
 
@@ -44,6 +51,42 @@ def trim_silence(audio, threshold):
     return audio_trim, left_blank, right_blank
 
 
+def get_mfcc_features_390(sig, rate, max_frames=None):
+    window_length_sec = 25.0 / 1000
+    window_step_sec = 10.0 / 1000
+    window_cnn_fr_size = int(window_length_sec * rate)  # window size in frames
+    window_cnn_fr_steps = int(window_step_sec * rate)  # the step size in frames. if step < window, overlap!
+    feat_mat = []
+    for i in range(int(len(sig) / window_cnn_fr_steps)):
+        start = window_cnn_fr_steps * i
+        end = start + window_cnn_fr_size
+        slice_sig = sig[start:end]
+        if len(slice_sig) / rate == window_length_sec:
+            feat = mfcc_features(slice_sig, rate).flatten()
+            feat_mat.append(feat)
+    feat_mat = np.array(feat_mat, dtype=float)
+
+    indices = np.array(range(10))
+    new_feat_mat = []
+    for frame_id in range(len(feat_mat)):
+        if max(indices) >= len(feat_mat):
+            break
+        new_feat_mat.append(np.transpose(feat_mat[indices]).flatten())  # (39, 10).flatten()
+        indices += 3
+    new_feat_mat = np.array(new_feat_mat)
+    if max_frames is not None:
+        new_feat_mat = new_feat_mat[0:max_frames]
+    return new_feat_mat
+
+
+def mfcc_features(sig, rate, nb_features=13):
+    from python_speech_features import mfcc, delta
+    mfcc_feat = mfcc(sig, rate, numcep=nb_features, nfilt=nb_features)
+    delta_feat = delta(mfcc_feat, 2)
+    double_delta_feat = delta(delta_feat, 2)
+    return np.concatenate((mfcc_feat, delta_feat, double_delta_feat), axis=1)
+
+
 def extract_speaker_id(filename):
     return filename.split('/')[-2]
 
@@ -53,6 +96,10 @@ def extract_sentence_id(filename):
 
 
 class AudioReader:
+    SENTENCE_ID = 'sentence_id'
+    SPEAKER_ID = 'speaker_id'
+    FILENAME = 'filename'
+
     def __init__(self, input_audio_dir,
                  output_cache_dir,
                  sample_rate,
@@ -62,11 +109,11 @@ class AudioReader:
         self.sample_rate = sample_rate
         self.multi_threading = multi_threading
         self.cache_pkl_dir = os.path.join(self.cache_dir, 'audio_cache_pkl')
-        self.pkl_filenames = find_files(self.cache_pkl_dir, pattern='/**/*.pkl')
+        self.pkl_filenames = find_files(self.cache_pkl_dir, 'pkl')
 
-        logger.info('audio_dir = {}'.format(self.audio_dir))
-        logger.info('cache_dir = {}'.format(self.cache_dir))
-        logger.info('sample_rate = {}'.format(sample_rate))
+        logger.info(f'audio_dir = {self.audio_dir}')
+        logger.info(f'cache_dir = {self.cache_dir}')
+        logger.info(f'sample_rate = {sample_rate}')
 
         speakers = set()
         self.speaker_ids_to_filename = {}
@@ -80,7 +127,7 @@ class AudioReader:
 
     def load_cache(self, speakers_sub_list=None):
         cache = {}
-        metadata = {}
+        metadata = defaultdict(dict)
 
         if speakers_sub_list is None:
             filenames = self.pkl_filenames
@@ -92,56 +139,52 @@ class AudioReader:
         for pkl_file in filenames:
             with open(pkl_file, 'rb') as f:
                 obj = pickle.load(f)
-                if FILENAME in obj:
-                    cache[obj[FILENAME]] = obj
+                if self.FILENAME in obj:
+                    cache[obj[self.FILENAME]] = obj
 
         for filename in sorted(cache):
             speaker_id = extract_speaker_id(filename)
-            if speaker_id not in metadata:
-                metadata[speaker_id] = {}
             sentence_id = extract_sentence_id(filename)
             if sentence_id not in metadata[speaker_id]:
                 metadata[speaker_id][sentence_id] = []
-            metadata[speaker_id][sentence_id] = {SPEAKER_ID: speaker_id,
-                                                 SENTENCE_ID: sentence_id,
-                                                 FILENAME: filename}
+            metadata[speaker_id][sentence_id] = {
+                self.SPEAKER_ID: speaker_id,
+                self.SENTENCE_ID: sentence_id,
+                self.FILENAME: filename
+            }
 
         # metadata # small cache <speaker_id -> sentence_id, filename> - auto generated from self.cache.
         # cache # big cache <filename, data:audio librosa, blanks.>
         return cache, metadata
 
     def build_cache(self):
-        if not os.path.exists(self.cache_pkl_dir):
-            os.makedirs(self.cache_pkl_dir)
-        logger.info('Nothing found at {}. Generating all the cache now.'.format(self.cache_pkl_dir))
-        logger.info('Looking for the audio dataset in {}.'.format(self.audio_dir))
-        audio_files = find_files(self.audio_dir)
+        ensures_dir(self.cache_pkl_dir)
+        logger.info(f'Nothing found at {self.cache_pkl_dir}. Generating all the cache now.')
+        logger.info(f'Looking for the audio dataset in {self.audio_dir}.')
+        audio_files = find_files(self.audio_dir, extension='wav')
         audio_files_count = len(audio_files)
-        assert audio_files_count != 0, 'Generate your cache please.'
-        logger.info('Found {} files in total in {}.'.format(audio_files_count, self.audio_dir))
-        assert len(audio_files) != 0
-
+        assert audio_files_count != 0, f'Could not find any WAV files in {self.audio_dir}.'
+        logger.info(f'Found {audio_files_count:,} files in total in {self.audio_dir}.')
         if self.multi_threading:
             num_threads = os.cpu_count()
-            parallel_function(self.dump_audio_to_pkl_cache, audio_files, num_threads)
+            parallel_function(self.cache_audio_file, audio_files, num_threads)
         else:
-            bar = tqdm(audio_files)
-            for filename in bar:
-                bar.set_description(filename)
-                self.dump_audio_to_pkl_cache(filename)
-            bar.close()
+            with tqdm(audio_files) as bar:
+                for filename in bar:
+                    bar.set_description(filename)
+                    self.cache_audio_file(filename)
 
-    def dump_audio_to_pkl_cache(self, input_filename):
+    def cache_audio_file(self, input_filename):
         try:
-            cache_filename = input_filename.split('/')[-1].split('.')[0] + '_cache'
+            cache_filename = os.path.splitext(os.path.basename(input_filename))[0] + '_cache'
             pkl_filename = os.path.join(self.cache_pkl_dir, cache_filename) + '.pkl'
 
             if os.path.isfile(pkl_filename):
                 logger.info('[FILE ALREADY EXISTS] {}'.format(pkl_filename))
                 return
 
-            audio, _ = read_audio_from_filename(input_filename, self.sample_rate)
-            energy = np.abs(audio[:, 0])
+            audio = read_audio(input_filename, self.sample_rate)
+            energy = np.abs(audio)
             silence_threshold = np.percentile(energy, 95)
             offsets = np.where(energy > silence_threshold)[0]
             left_blank_duration_ms = (1000.0 * offsets[0]) // self.sample_rate  # frame_id to duration (ms)
@@ -153,11 +196,13 @@ class AudioReader:
             #                                                                       right_blank_duration_ms,
             #                                                                       len(audio),
             #                                                                       silence_threshold))
-            obj = {'audio': audio,
-                   'audio_voice_only': audio[offsets[0]:offsets[-1]],
-                   'left_blank_duration_ms': left_blank_duration_ms,
-                   'right_blank_duration_ms': right_blank_duration_ms,
-                   FILENAME: input_filename}
+            obj = {
+                'audio': audio,
+                'audio_voice_only': audio[offsets[0]:offsets[-1]],
+                'left_blank_duration_ms': left_blank_duration_ms,
+                'right_blank_duration_ms': right_blank_duration_ms,
+                self.FILENAME: input_filename
+            }
 
             with open(pkl_filename, 'wb') as f:
                 pickle.dump(obj, f)

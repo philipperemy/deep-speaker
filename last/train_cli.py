@@ -32,7 +32,7 @@ def get_arguments(parser: ArgumentParser):
 
 def get_script_arguments():
     parser = argparse.ArgumentParser()
-    # generated from: python cli.py --generate_training_inputs --multi_threading
+    # generated from: python cli.py --generate_training_inputs --parallel
     parser.add_argument('--data_filename', type=str, required=True)
     parser.add_argument('--loss_on_softmax', action='store_true')
     parser.add_argument('--loss_on_embeddings', action='store_true')

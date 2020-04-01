@@ -16,7 +16,7 @@ def arg_parse():
     arg_p.add_argument('--regenerate_full_cache', action='store_true')
     arg_p.add_argument('--update_cache', action='store_true')
     arg_p.add_argument('--generate_training_inputs', action='store_true')
-    arg_p.add_argument('--multi_threading', action='store_true')
+    arg_p.add_argument('--parallel', action='store_true')
     arg_p.add_argument('--unseen_speakers')  # p225,p226 example.
     arg_p.add_argument('--get_embeddings')  # p225 example.
     return arg_p
