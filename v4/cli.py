@@ -61,6 +61,24 @@ def build_inputs_cache(audio_dir, cache_dir, sample_rate, parallel):
         parallel
     )
 
+@cli.command('keras-inputs', short_help='Convert inputs to Keras.')
+@click.option('--audio_dir', required=True, type=Ct.input_dir())
+@click.option('--cache_dir', required=True, type=Ct.input_dir())
+@click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
+@click.option('--parallel/--no-parallel', default=False, show_default=True)
+def build_inputs_cache(audio_dir, cache_dir, sample_rate, parallel):
+    audio_reader = AudioReader(
+        input_audio_dir=audio_dir,
+        output_cache_dir=cache_dir,
+        sample_rate=sample_rate,
+        multi_threading=parallel
+    )
+    generate_cache_from_training_inputs(
+        cache_dir,
+        audio_reader,
+        parallel
+    )
+
 
 if __name__ == '__main__':
     cli()
