@@ -5,7 +5,7 @@ Deep Speaker: an End-to-End Neural Speaker Embedding System https://arxiv.org/pd
 
 This is the current version that works correctly with a dataset of ~110 speakers and a smaller model (~100k parameters).
 
-The bigger dataset and model impl can be found here: [/v3](v3). It's still a work in progress (not stable).
+The bigger dataset and model impl can be found here: [/v3](../v3). It's still a work in progress (not stable).
 
 ## Get Started (Only Linux/MacOS)
 
@@ -67,7 +67,7 @@ python train_cli.py --loss_on_softmax --data_filename $CACHE_DIR/full_inputs.pkl
 ```
 
 <p align="center">
-  <img src="misc/fig1.png" width="400"><br/>
+  <img src="../misc/fig1.png" width="400"><br/>
 </p>
 
 It took roughly 1 hour to train with a GTX1070 and 32GB of memory. Next phase is to train the network with the triplet loss.
@@ -80,7 +80,7 @@ Training the embeddings with the triplet loss (specific to deep speaker) takes t
 
 
 <p align="center">
-  <img src="misc/fig2.png" width="400"><br/>
+  <img src="../misc/fig2.png" width="400"><br/>
 </p>
 
 It took roughly 1~2 hour to train with a GTX1070 and 32GB of memory. The training code here is highly unoptimized for GPU.

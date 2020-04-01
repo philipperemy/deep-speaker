@@ -13,9 +13,9 @@ from keras.layers import Dense, Lambda
 from keras.optimizers import Adam
 from natsort import natsorted
 
-from constants import c
-from triplet_loss import deep_speaker_loss
-from utils import data_to_keras
+from last.constants import c
+from last.triplet_loss import deep_speaker_loss
+from last.utils import data_to_keras
 
 BATCH_SIZE = 900
 
@@ -191,8 +191,8 @@ def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_
 
 
 def start_training():
-    if not os.path.exists('checkpoints'):
-        os.makedirs('checkpoints')
+    if not os.path.exists('../checkpoints'):
+        os.makedirs('../checkpoints')
 
     args = get_script_arguments()
     if not args.loss_on_softmax and not args.loss_on_embeddings:

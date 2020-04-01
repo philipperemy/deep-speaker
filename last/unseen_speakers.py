@@ -4,10 +4,10 @@ from glob import glob
 import numpy as np
 from natsort import natsorted
 
-from constants import c
-from speech_features import get_mfcc_features_390
-from train_cli import triplet_softmax_model
-from utils import normalize, InputsGenerator
+from last.constants import c
+from last.speech_features import get_mfcc_features_390
+from last.train_cli import triplet_softmax_model
+from last.utils import normalize, InputsGenerator
 
 logger = logging.getLogger(__name__)
 

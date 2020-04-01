@@ -22,10 +22,10 @@ def load_constants():
         c_ = filename_to_named_tuple(CONFIGURATION_FILENAME)
     except FileNotFoundError as e:
         try:
-            c_ = filename_to_named_tuple(os.path.join('..', CONFIGURATION_FILENAME))
+            c_ = filename_to_named_tuple(os.path.join('../..', CONFIGURATION_FILENAME))
         except FileNotFoundError as e:
             try:
-                c_ = filename_to_named_tuple(os.path.join('..', '..', CONFIGURATION_FILENAME))
+                c_ = filename_to_named_tuple(os.path.join('../..', '..', CONFIGURATION_FILENAME))
             except:
                 logger.error(e)
                 logger.error('Please execute this command: cp conf.json.example conf.json')

@@ -2,17 +2,16 @@ import logging
 from time import time
 
 import numpy as np
-import sys
 
-import ds_constants as c
-from librispeech_wav_reader import read_librispeech_structure
+from audio import read_librispeech_structure
+from batcher import stochastic_mini_batch
+from constants import BATCH_SIZE, LOSS_FILE, CHECKPOINT_FOLDER
 from models import convolutional_model
-from next_batch import stochastic_mini_batch
 from triplet_loss import deep_speaker_loss
-from utils import get_last_checkpoint_if_any, create_dir_and_delete_content
+from utils import get_last_checkpoint_if_any, create_new_empty_dir
 
 
-def main(libri_dir=c.DATASET_DIR):
+def main(libri_dir):
     logging.info('Looking for audio [wav] files in {}.'.format(libri_dir))
     libri = read_librispeech_structure(libri_dir)
 
@@ -20,8 +19,8 @@ def main(libri_dir=c.DATASET_DIR):
         logging.warning('Have you converted flac files to wav? If not, run audio/convert_flac_2_wav.sh')
         exit(1)
 
-    batch = stochastic_mini_batch(libri, batch_size=c.BATCH_NUM_TRIPLETS)
-    batch_size = c.BATCH_NUM_TRIPLETS * 3  # A triplet has 3 parts.
+    batch = stochastic_mini_batch(libri, batch_size=BATCH_SIZE * 3)
+    batch_size = BATCH_SIZE * 3  # A triplet has 3 parts.
     x, y = batch.to_inputs()
     b = x[0]
     num_frames = b.shape[0]
@@ -77,16 +76,9 @@ def main(libri_dir=c.DATASET_DIR):
         orig_time = time()
 
         # record training loss
-        with open(c.LOSS_FILE, "a") as f:
+        with open(LOSS_FILE, "a") as f:
             f.write("{0},{1}\n".format(grad_steps, loss))
 
         # checkpoints are really heavy so let's just keep the last one.
-        create_dir_and_delete_content(c.CHECKPOINT_FOLDER)
+        create_new_empty_dir(CHECKPOINT_FOLDER)
         model.save_weights('{0}/model_{1}_{2:.5f}.h5'.format(c.CHECKPOINT_FOLDER, grad_steps, loss))
-
-
-
-if __name__ == '__main__':
-    logging.basicConfig(handlers=[logging.StreamHandler(stream=sys.stdout)], level=logging.INFO,
-                        format='%(asctime)-15s [%(levelname)s] %(filename)s/%(funcName)s | %(message)s')
-    main()

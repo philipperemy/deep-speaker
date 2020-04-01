@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     model = convolutional_model(batch_input_shape=(BATCH_NUM_TRIPLETS * NUM_FRAMES, 16, 16, 1))
 
-    from triplet_loss import deep_speaker_loss
+    from last.triplet_loss import deep_speaker_loss
     model.compile(optimizer='adam',
                   loss=deep_speaker_loss,
                   metrics=['accuracy'])

@@ -5,12 +5,12 @@ from keras import layers
 from keras import regularizers
 from keras.layers import Input
 from keras.layers.convolutional import Conv2D
-from keras.layers.core import Lambda, Dense, RepeatVector
+from keras.layers.core import Lambda, Dense
 from keras.layers.core import Reshape
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 
-from ds_constants import *
+from constants import BATCH_SIZE, NUM_FRAMES
 
 layers_dict = dict()
 
@@ -60,8 +60,8 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     return x
 
 
-def convolutional_model(batch_input_shape=(BATCH_NUM_TRIPLETS * NUM_FRAMES, 16, 16, 1),
-                        batch_size=BATCH_NUM_TRIPLETS, num_frames=NUM_FRAMES):
+def convolutional_model(batch_input_shape=(BATCH_SIZE * 3 * NUM_FRAMES, 16, 16, 1),
+                        batch_size=BATCH_SIZE * 3, num_frames=NUM_FRAMES):
     # http://cs231n.github.io/convolutional-networks/
     # conv weights
     # #params = ks * ks * nb_filters * num_channels_input
@@ -99,7 +99,8 @@ def convolutional_model(batch_input_shape=(BATCH_NUM_TRIPLETS * NUM_FRAMES, 16, 
         x_ = conv_and_res_block(x_, 512, stage=4)
         return x_
 
-    inputs = Input(batch_shape=batch_input_shape)  # TODO the network should be definable without explicit batch shape
+    # TODO the network should be definable without explicit batch shape
+    inputs = Input(batch_shape=batch_input_shape)
     x = cnn_component(inputs)
     x = Reshape((2048,))(x)
     x = Lambda(lambda y: K.reshape(y, (batch_size, num_frames, 2048)), name='reshape')(x)

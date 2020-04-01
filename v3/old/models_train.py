@@ -4,7 +4,7 @@ import numpy as np
 
 from models import convolutional_model
 from pre_process import next_batch
-from triplet_loss import deep_speaker_loss
+from last.triplet_loss import deep_speaker_loss
 from ds_constants import BATCH_NUM_TRIPLETS
 
 if __name__ == '__main__':

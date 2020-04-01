@@ -4,8 +4,8 @@ import numpy as np
 import os
 import pickle
 
-from constants import c
-from speech_features import get_mfcc_features_390
+from last.constants import c
+from last.speech_features import get_mfcc_features_390
 
 logger = logging.getLogger(__name__)
 
