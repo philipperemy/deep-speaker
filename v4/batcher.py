@@ -41,15 +41,19 @@ def normalize(list_matrices, mean, std):
 
 class KerasConverter:
 
-    def __init__(self, saved_dir):
-        self.saved_dir = saved_dir
-        self.output_dir = os.path.join(self.saved_dir, 'keras-inputs')
+    def __init__(self, working_dir):
+        self.working_dir = working_dir
+        self.data_filename = os.path.join(self.working_dir, 'complete_fbank_inputs.pkl')
+        self.output_dir = os.path.join(self.working_dir, 'keras-inputs')
+        with open(self.data_filename, 'rb') as r:
+            self.data = dill.load(r)
         ensures_dir(self.output_dir)
         self.categorical_speakers = None
         self.kx_train = None
         self.kx_test = None
         self.ky_train = None
         self.ky_test = None
+        self.load_from_disk()
 
     def load_from_disk(self):
 
@@ -65,7 +69,7 @@ class KerasConverter:
         self.ky_train = load(os.path.join(self.output_dir, 'ky_train.pkl'))
         self.ky_test = load(os.path.join(self.output_dir, 'ky_test.pkl'))
 
-    def persist_from_disk(self):
+    def persist_to_disk(self):
         with open(os.path.join(self.output_dir, 'categorical_speakers.pkl'), 'wb') as w:
             dill.dump(self.categorical_speakers, w)
         with open(os.path.join(self.output_dir, 'kx_train.pkl'), 'wb') as w:
@@ -77,28 +81,29 @@ class KerasConverter:
         with open(os.path.join(self.output_dir, 'ky_test.pkl'), 'wb') as w:
             dill.dump(self.ky_test, w)
 
-    def convert(self, data):
-        categorical_speakers = OneHotSpeakers(data)
+    def convert(self, max_length=28):  # say xx fbank frames for now bitch.
+        categorical_speakers = OneHotSpeakers(self.data)
         kx_train, ky_train, kx_test, ky_test = [], [], [], []
         ky_test = []
         for speaker_id in categorical_speakers.get_speaker_ids():
-            d = data[speaker_id]
+            d = self.data[speaker_id]
             y = categorical_speakers.get_one_hot(d['speaker_id'])
-            for x_train_elt in data[speaker_id]['train']:
-                for x_train_sub_elt in x_train_elt:
-                    kx_train.append(x_train_sub_elt)
-                    ky_train.append(y)
+            for x_train_elt in self.data[speaker_id]['train']:
+                kx_train.append(x_train_elt[0:max_length])
+                ky_train.append(y)
 
-            for x_test_elt in data[speaker_id]['test']:
-                for x_test_sub_elt in x_test_elt:
-                    kx_test.append(x_test_sub_elt)
-                    ky_test.append(y)
+            for x_test_elt in self.data[speaker_id]['test']:
+                kx_test.append(x_test_elt[0:max_length])
+                ky_test.append(y)
 
         kx_train = np.array(kx_train)
+        print(f'kx_train.shape = {kx_train.shape}')
         kx_test = np.array(kx_test)
-
+        print(f'kx_test.shape = {kx_test.shape}')
         ky_train = np.array(ky_train)
+        print(f'ky_train.shape = {ky_train.shape}')
         ky_test = np.array(ky_test)
+        print(f'ky_test.shape = {ky_test.shape}')
 
         self.categorical_speakers = categorical_speakers
         self.kx_train, self.ky_train, self.kx_test, self.ky_test = kx_train, ky_train, kx_test, ky_test
@@ -119,7 +124,6 @@ class FBankProcessor:
         self.speaker_ids = self.audio_reader.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
 
     def generate(self):
-        logger.info('Starting the inputs generation...')
         if self.parallel:
             num_proc = os.cpu_count()
             logger.info(f'Using {num_proc} threads.')
@@ -135,7 +139,7 @@ class FBankProcessor:
                 inputs = dill.load(r)
                 logger.info(f'Read {inputs_filename}.')
             full_inputs[inputs['speaker_id']] = inputs
-        full_inputs_output_filename = os.path.join(self.working_dir, 'full_inputs.pkl')
+        full_inputs_output_filename = os.path.join(self.working_dir, 'complete_fbank_inputs.pkl')
         # dill can manage with files larger than 4GB.
         with open(full_inputs_output_filename, 'wb') as w:
             dill.dump(obj=full_inputs, file=w)
@@ -162,7 +166,7 @@ class FBankProcessor:
         train = features(audio_entities_train, self.count_per_speaker)
         test = features(audio_entities_test, self.count_per_speaker)
         logger.info(f'Generated {self.count_per_speaker}/{self.count_per_speaker} '
-                    f'inputs for train/test for speaker {speaker_id}.')
+                    f'fbank inputs (train/test) for speaker {speaker_id}.')
 
         # TODO: check that.
         mean_train = np.mean([np.mean(t) for t in train])

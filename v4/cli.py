@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import pickle
 
 import click
 
@@ -68,15 +67,11 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate, parallel):
 
 
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')
-@click.option('--data_filename', required=True, type=Ct.input_file())
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-def build_keras_inputs(data_filename, working_dir):
-    with open(data_filename, 'rb') as r:
-        data = pickle.load(r)
+def build_keras_inputs(working_dir):
     kc = KerasConverter(working_dir)
-    kc.load_from_disk()
-    kc.convert(data)
-    kc.persist_from_disk()
+    kc.convert()
+    kc.persist_to_disk()
 
 
 @cli.command('train-model', short_help='Train a Keras model.')
@@ -84,8 +79,7 @@ def build_keras_inputs(data_filename, working_dir):
 @click.option('--checkpoints_dir', default='checkpoints', show_default=True, type=Ct.output_dir())
 def build_keras_inputs(working_dir, checkpoints_dir):
     kc = KerasConverter(working_dir)
-    kc.load_from_disk()
-    start_training(checkpoints_dir, kc)
+    start_training(kc)
 
 
 if __name__ == '__main__':

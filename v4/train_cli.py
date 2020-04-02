@@ -2,25 +2,35 @@ import os
 from collections import deque
 from glob import glob
 
-import keras.backend as K
 import numpy as np
-from keras import Input, Model
-from keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint, Callback
-from keras.layers import Dense, Lambda
-from keras.optimizers import Adam
+import tensorflow.keras.backend as K
 from natsort import natsorted
+from tensorflow.keras import Input, Model
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint, Callback
+from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Dense, Lambda, Flatten
+from tensorflow.keras.optimizers import Adam
 
 from batcher import KerasConverter
-from constants import BATCH_SIZE
+from constants import BATCH_SIZE, CHECKPOINTS_DIR
 from triplet_loss import deep_speaker_loss
 
 
 # - Triplet Loss for embeddings
 # - Softmax for pre-training
-def triplet_softmax_model(num_speakers_softmax, batch_size=BATCH_SIZE,
-                          emb_trainable=True, normalize_embeddings=False):
-    inp = Input(batch_shape=[batch_size, 39 * 10])
-    embeddings = Dense(200, activation='sigmoid', name='fc1', trainable=emb_trainable)(inp)
+def triplet_softmax_model(batch_input_shape,
+                          num_speakers_softmax,
+                          emb_trainable=True,
+                          normalize_embeddings=False):
+    inp = Input(batch_shape=batch_input_shape)
+    x = Conv2D(filters=64, kernel_size=5, strides=1, activation='relu')(inp)
+    x = MaxPooling2D(pool_size=2, strides=2)(x)
+    x = Conv2D(filters=128, kernel_size=5, strides=1, activation='relu')(x)
+    x = MaxPooling2D(pool_size=2, strides=2)(x)
+    x = Flatten()(x)
+    x = Dense(units=128, activation='relu')(x)
+    x = Flatten()(x)
+    embeddings = Dense(128, activation='sigmoid', name='fc1', trainable=emb_trainable)(x)
     if normalize_embeddings:
         print('Embeddings will be normalized.')
         embeddings = Lambda(lambda y: K.l2_normalize(y, axis=1), name='normalization')(embeddings)
@@ -122,19 +132,19 @@ def fit_model(m, kx_train, ky_train, kx_test, ky_test,
         if epoch % 100 == 0:
             print('train metrics =', train_loss)
             print('test metrics =', test_loss)
-            m.save_weights('checkpoints/unified_model_checkpoints_{}.h5'.format(epoch), overwrite=True)
+            m.save_weights(f'{CHECKPOINTS_DIR}/unified_model_checkpoints_{epoch}.h5', overwrite=True)
             print('Last two speakers were {} and {}.'.format(anchor_positive_speaker, negative_speaker))
             print('Saving...')
 
 
 def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_SIZE, max_epochs=1000, initial_epoch=0):
-    checkpoint = ModelCheckpoint(filepath='checkpoints/unified_model_checkpoints_{epoch}.h5',
+    checkpoint = ModelCheckpoint(filepath=CHECKPOINTS_DIR + '/unified_model_checkpoints_{epoch}.h5',
                                  period=10)
     # if the accuracy does not increase by 1.0% over 10 epochs, we stop the training.
-    early_stopping = EarlyStopping(monitor='val_softmax_acc', min_delta=0.01, patience=100, verbose=1, mode='max')
+    early_stopping = EarlyStopping(monitor='val_softmax_accuracy', min_delta=0.01, patience=100, verbose=1, mode='max')
 
     # if the accuracy does not increase over 10 epochs, we reduce the learning rate by half.
-    reduce_lr = ReduceLROnPlateau(monitor='val_softmax_acc', factor=0.5, patience=10, min_lr=0.0001, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_softmax_accuracy', factor=0.5, patience=10, min_lr=0.0001, verbose=1)
 
     max_len_train = len(kx_train) - len(kx_train) % batch_size
 
@@ -153,8 +163,8 @@ def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_
             print('The embedding loss here does not make sense. Do not get fooled by it. '
                   'Triplets are not generated here. We train the embedding weights first.')
 
-    m.fit(kx_train,
-          {'embeddings': ky_train, 'softmax': ky_train},
+    m.fit(x=kx_train,
+          y={'embeddings': ky_train, 'softmax': ky_train},
           batch_size=batch_size,
           epochs=initial_epoch + max_epochs,
           initial_epoch=initial_epoch,
@@ -163,13 +173,13 @@ def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_
           callbacks=[early_stopping, reduce_lr, checkpoint, WarningCallback()])
 
 
-def start_training(checkpoints_dir: str, kc: KerasConverter):
+def start_training(kc: KerasConverter):
     loss_on_softmax = True
     loss_on_embeddings = True
     freeze_embedding_weights = False
     normalize_embeddings = True
-    if not os.path.exists(checkpoints_dir):
-        os.makedirs(checkpoints_dir)
+    if not os.path.exists(CHECKPOINTS_DIR):
+        os.makedirs(CHECKPOINTS_DIR)
 
     if not loss_on_softmax and not loss_on_embeddings:
         print('Please provide at least --loss_on_softmax or --loss_on_embeddings.')
@@ -180,11 +190,14 @@ def start_training(checkpoints_dir: str, kc: KerasConverter):
         print('FrEeZiNg tHe eMbeDdInG wEiGhTs.')
         emb_trainable = False
 
-    m = triplet_softmax_model(num_speakers_softmax=len(kc.categorical_speakers.speaker_ids),
-                              emb_trainable=emb_trainable,
-                              normalize_embeddings=normalize_embeddings)
+    m = triplet_softmax_model(
+        batch_input_shape=[BATCH_SIZE, 28, 64, 3],
+        num_speakers_softmax=len(kc.categorical_speakers.speaker_ids),
+        emb_trainable=emb_trainable,
+        normalize_embeddings=normalize_embeddings
+    )
 
-    checkpoints = natsorted(glob(os.path.join(checkpoints_dir, '*.h5')))
+    checkpoints = natsorted(glob(os.path.join(CHECKPOINTS_DIR, '*.h5')))
 
     compile_triplet_softmax_model(m, loss_on_softmax, loss_on_embeddings)
     print(m.summary())
