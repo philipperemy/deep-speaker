@@ -2,18 +2,27 @@ import logging
 import os
 import pickle
 from collections import defaultdict
-from random import random, choice
+from random import choice
 
 import dill
 import numpy as np
 from keras.utils import to_categorical
+from python_speech_features import fbank, delta
 
 from audio import extract_speaker_id
 from constants import SAMPLE_RATE
-from speech_features import pre_process_inputs
 from utils import parallel_function, ensures_dir, find_files
 
 logger = logging.getLogger(__name__)
+
+
+def pre_process_inputs(sig=np.random.uniform(size=32000), target_sample_rate=8000):
+    filter_banks, energies = fbank(sig, samplerate=target_sample_rate, nfilt=64)
+    delta_1 = delta(filter_banks, N=1)
+    delta_2 = delta(delta_1, N=1)
+    # should not normalize here. That's an heresy!
+    frames_features = np.transpose(np.stack([filter_banks, delta_1, delta_2]), (1, 2, 0))
+    return frames_features
 
 
 def generate_cache_from_training_inputs(cache_dir, audio_reader, parallel):
@@ -45,9 +54,6 @@ def normalize(list_matrices, mean, std):
 class KerasConverter:
 
     def __init__(self, saved_dir):
-        """
-        @param data: data coming from full_inputs.pkl
-        """
         self.saved_dir = saved_dir
         self.output_dir = os.path.join(self.saved_dir, 'keras-converter')
         ensures_dir(self.output_dir)

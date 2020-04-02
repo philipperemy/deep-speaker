@@ -6,7 +6,7 @@ import pickle
 
 import click
 
-from audio import AudioReader
+from audio import Audio
 from batcher import generate_cache_from_training_inputs, KerasConverter
 from constants import SAMPLE_RATE
 from train_cli import start_training
@@ -36,7 +36,7 @@ def version():
 @click.option('--parallel/--no-parallel', default=False, show_default=True)
 def build_audio_cache(audio_dir, cache_dir, sample_rate, parallel):
     create_new_empty_dir(cache_dir)
-    audio_reader = AudioReader(
+    audio_reader = Audio(
         input_audio_dir=audio_dir,
         output_cache_dir=cache_dir,
         sample_rate=sample_rate,
@@ -51,7 +51,7 @@ def build_audio_cache(audio_dir, cache_dir, sample_rate, parallel):
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
 @click.option('--parallel/--no-parallel', default=False, show_default=True)
 def build_inputs_cache(audio_dir, cache_dir, sample_rate, parallel):
-    audio_reader = AudioReader(
+    audio_reader = Audio(
         input_audio_dir=audio_dir,
         output_cache_dir=cache_dir,
         sample_rate=sample_rate,

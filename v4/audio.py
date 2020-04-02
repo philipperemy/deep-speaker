@@ -5,7 +5,6 @@ from collections import defaultdict
 
 import librosa
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
 
 from constants import SAMPLE_RATE
@@ -13,78 +12,6 @@ from utils import find_files, ensures_dir
 from utils import parallel_function
 
 logger = logging.getLogger(__name__)
-
-
-def read_audio(filename, sample_rate=SAMPLE_RATE):
-    audio, sr = librosa.load(filename, sr=sample_rate, mono=True)
-    assert sr == sample_rate
-    return audio
-
-
-def read_librispeech_structure(directory):
-    libri = pd.DataFrame()
-    libri['filename'] = find_files(directory)
-    libri['filename'] = libri['filename'].apply(lambda x: x.replace('\\', '/'))  # normalize windows paths
-    libri['chapter_id'] = libri['filename'].apply(lambda x: x.split('/')[-2])
-    libri['speaker_id'] = libri['filename'].apply(lambda x: x.split('/')[-3])
-    libri['dataset_id'] = libri['filename'].apply(lambda x: x.split('/')[-4])
-    num_speakers = len(libri['speaker_id'].unique())
-    logging.info(f'Found {str(len(libri)).zfill(7)} files with {str(num_speakers).zfill(5)} different speakers.')
-    logging.info(libri.head(10))
-    return libri
-
-
-def trim_silence(audio, threshold):
-    """Removes silence at the beginning and end of a sample."""
-    energy = librosa.feature.rms(audio)
-    frames = np.nonzero(np.array(energy > threshold))
-    indices = librosa.core.frames_to_samples(frames)[1]
-
-    # Note: indices can be an empty array, if the whole audio was silence.
-    audio_trim = audio[0:0]
-    left_blank = audio[0:0]
-    right_blank = audio[0:0]
-    if indices.size:
-        audio_trim = audio[indices[0]:indices[-1]]
-        left_blank = audio[:indices[0]]  # slice before.
-        right_blank = audio[indices[-1]:]  # slice after.
-    return audio_trim, left_blank, right_blank
-
-
-def get_mfcc_features_390(sig, rate, max_frames=None):
-    window_length_sec = 25.0 / 1000
-    window_step_sec = 10.0 / 1000
-    window_cnn_fr_size = int(window_length_sec * rate)  # window size in frames
-    window_cnn_fr_steps = int(window_step_sec * rate)  # the step size in frames. if step < window, overlap!
-    feat_mat = []
-    for i in range(int(len(sig) / window_cnn_fr_steps)):
-        start = window_cnn_fr_steps * i
-        end = start + window_cnn_fr_size
-        slice_sig = sig[start:end]
-        if len(slice_sig) / rate == window_length_sec:
-            feat = mfcc_features(slice_sig, rate).flatten()
-            feat_mat.append(feat)
-    feat_mat = np.array(feat_mat, dtype=float)
-
-    indices = np.array(range(10))
-    new_feat_mat = []
-    for frame_id in range(len(feat_mat)):
-        if max(indices) >= len(feat_mat):
-            break
-        new_feat_mat.append(np.transpose(feat_mat[indices]).flatten())  # (39, 10).flatten()
-        indices += 3
-    new_feat_mat = np.array(new_feat_mat)
-    if max_frames is not None:
-        new_feat_mat = new_feat_mat[0:max_frames]
-    return new_feat_mat
-
-
-def mfcc_features(sig, rate, nb_features=13):
-    from python_speech_features import mfcc, delta
-    mfcc_feat = mfcc(sig, rate, numcep=nb_features, nfilt=nb_features)
-    delta_feat = delta(mfcc_feat, 2)
-    double_delta_feat = delta(delta_feat, 2)
-    return np.concatenate((mfcc_feat, delta_feat, double_delta_feat), axis=1)
 
 
 def extract_speaker_id(filename):
@@ -95,7 +22,7 @@ def extract_sentence_id(filename):
     return filename.split('/')[-1].split('_')[1].split('.')[0]
 
 
-class AudioReader:
+class Audio:
     SENTENCE_ID = 'sentence_id'
     SPEAKER_ID = 'speaker_id'
     FILENAME = 'filename'
@@ -124,6 +51,29 @@ class AudioReader:
             self.speaker_ids_to_filename[speaker_id].append(pkl_filename)
             speakers.add(speaker_id)
         self.all_speaker_ids = sorted(speakers)
+
+    @staticmethod
+    def trim_silence(audio, threshold):
+        """Removes silence at the beginning and end of a sample."""
+        energy = librosa.feature.rms(audio)
+        frames = np.nonzero(np.array(energy > threshold))
+        indices = librosa.core.frames_to_samples(frames)[1]
+
+        # Note: indices can be an empty array, if the whole audio was silence.
+        audio_trim = audio[0:0]
+        left_blank = audio[0:0]
+        right_blank = audio[0:0]
+        if indices.size:
+            audio_trim = audio[indices[0]:indices[-1]]
+            left_blank = audio[:indices[0]]  # slice before.
+            right_blank = audio[indices[-1]:]  # slice after.
+        return audio_trim, left_blank, right_blank
+
+    @staticmethod
+    def read(filename, sample_rate=SAMPLE_RATE):
+        audio, sr = librosa.load(filename, sr=sample_rate, mono=True)
+        assert sr == sample_rate
+        return audio
 
     def load_cache(self, speakers_sub_list=None):
         cache = {}
@@ -183,7 +133,8 @@ class AudioReader:
                 logger.info('[FILE ALREADY EXISTS] {}'.format(pkl_filename))
                 return
 
-            audio = read_audio(input_filename, self.sample_rate)
+            audio = Audio.read(input_filename, self.sample_rate)
+            # TODO: could use trim_silence().
             energy = np.abs(audio)
             silence_threshold = np.percentile(energy, 95)
             offsets = np.where(energy > silence_threshold)[0]
