@@ -108,13 +108,13 @@ class KerasConverter:
 
 class FBankProcessor:
 
-    def __init__(self, working_dir, audio_reader, max_count_per_class=50,
+    def __init__(self, working_dir, audio_reader, count_per_speaker=50,
                  speakers_sub_list=None, parallel=False):
         self.working_dir = os.path.expanduser(working_dir)
         self.audio_reader = audio_reader
         self.parallel = parallel
         self.model_inputs_dir = os.path.join(self.working_dir, 'fbank-inputs')
-        self.max_count_per_class = max_count_per_class
+        self.count_per_speaker = count_per_speaker
         ensures_dir(self.model_inputs_dir)
         self.speaker_ids = self.audio_reader.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
 
@@ -123,11 +123,11 @@ class FBankProcessor:
         if self.parallel:
             num_proc = os.cpu_count()
             logger.info(f'Using {num_proc} threads.')
-            parallel_function(self.cache_inputs, sorted(self.speaker_ids), num_proc)
+            parallel_function(self._cache_inputs, sorted(self.speaker_ids), num_proc)
         else:
             logger.info('Using only 1 thread.')
             for s in self.speaker_ids:
-                self.cache_inputs(s)
+                self._cache_inputs(s)
         logger.info('Generating the unified inputs pkl file.')
         full_inputs = {}
         for inputs_filename in find_files(self.model_inputs_dir, ext='pkl'):
@@ -141,7 +141,7 @@ class FBankProcessor:
             dill.dump(obj=full_inputs, file=w)
         logger.info(f'[DUMP UNIFIED INPUTS] {full_inputs_output_filename}.')
 
-    def cache_inputs(self, speaker_id):
+    def _cache_inputs(self, speaker_id):
         output_filename = os.path.join(self.model_inputs_dir, speaker_id + '.pkl')
         if os.path.isfile(output_filename):
             logger.info(f'Inputs file already exists: {output_filename}.')
@@ -159,9 +159,9 @@ class FBankProcessor:
         audio_entities_train = audio_entities[0:cutoff]
         audio_entities_test = audio_entities[cutoff:]
 
-        train = features(audio_entities_train, self.max_count_per_class)
-        test = features(audio_entities_test, self.max_count_per_class)
-        logger.info(f'Generated {self.max_count_per_class}/{self.max_count_per_class} '
+        train = features(audio_entities_train, self.count_per_speaker)
+        test = features(audio_entities_test, self.count_per_speaker)
+        logger.info(f'Generated {self.count_per_speaker}/{self.count_per_speaker} '
                     f'inputs for train/test for speaker {speaker_id}.')
 
         # TODO: check that.
@@ -187,7 +187,7 @@ class FBankProcessor:
         audio_entities = list(speaker_cache.values())
         logger.info(f'Generating the inputs necessary for the inference (speaker is {speaker_id})...')
         logger.info('This might take a couple of minutes to complete.')
-        feat = features(audio_entities, self.max_count_per_class)
+        feat = features(audio_entities, self.count_per_speaker)
         mean = np.mean([np.mean(t) for t in feat])
         std = np.mean([np.std(t) for t in feat])
         feat = normalize(feat, mean, std)

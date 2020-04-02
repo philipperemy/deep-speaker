@@ -11,9 +11,8 @@ from keras.optimizers import Adam
 from natsort import natsorted
 
 from batcher import KerasConverter
+from constants import BATCH_SIZE
 from triplet_loss import deep_speaker_loss
-
-BATCH_SIZE = 900
 
 
 # - Triplet Loss for embeddings
