@@ -22,7 +22,7 @@ def generate_features_for_unseen_speakers(audio_reader, target_speaker='p363'):
     assert target_speaker in audio_reader.all_speaker_ids
     # audio.metadata = dict()  # small cache <SPEAKER_ID -> SENTENCE_ID, filename>
     # audio.cache = dict()  # big cache <filename, data:audio librosa, blanks.>
-    inputs_generator = InputsGenerator(cache_dir=audio_reader.cache_dir,
+    inputs_generator = InputsGenerator(working_dir=audio_reader.working_dir,
                                        audio_reader=audio_reader,
                                        max_count_per_class=1000)
     inputs = inputs_generator.generate_inputs_for_inference(target_speaker)

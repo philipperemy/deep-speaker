@@ -59,12 +59,12 @@ def normalize(list_matrices, mean, std):
 
 class InputsGenerator:
 
-    def __init__(self, cache_dir, audio_reader, max_count_per_class=500,
+    def __init__(self, working_dir, audio_reader, max_count_per_class=500,
                  speakers_sub_list=None, multi_threading=False):
-        self.cache_dir = cache_dir
+        self.working_dir = working_dir
         self.audio_reader = audio_reader
         self.multi_threading = multi_threading
-        self.inputs_dir = os.path.join(self.cache_dir, 'inputs')
+        self.inputs_dir = os.path.join(self.working_dir, 'inputs')
         self.max_count_per_class = max_count_per_class
         if not os.path.exists(self.inputs_dir):
             os.makedirs(self.inputs_dir)
@@ -90,7 +90,7 @@ class InputsGenerator:
                 inputs = pickle.load(r)
                 logger.info('Read {}'.format(inputs_filename))
             full_inputs[inputs['speaker_id']] = inputs
-        full_inputs_output_filename = os.path.join(self.cache_dir, 'full_inputs.pkl')
+        full_inputs_output_filename = os.path.join(self.working_dir, 'full_inputs.pkl')
         # dill can manage with files larger than 4GB.
         with open(full_inputs_output_filename, 'wb') as w:
             dill.dump(obj=full_inputs, file=w)

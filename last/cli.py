@@ -36,8 +36,8 @@ def regenerate_full_cache(audio_reader, args):
 
 
 def generate_cache_from_training_inputs(audio_reader, args):
-    cache_dir = os.path.expanduser(args.cache_output_dir)
-    inputs_generator = InputsGenerator(cache_dir=cache_dir,
+    working_dir = os.path.expanduser(args.cache_output_dir)
+    inputs_generator = InputsGenerator(working_dir=working_dir,
                                        audio_reader=audio_reader,
                                        max_count_per_class=1000,
                                        speakers_sub_list=None,
@@ -49,7 +49,7 @@ def main():
     args = arg_parse().parse_args()
 
     audio_reader = AudioReader(input_audio_dir=args.audio_dir,
-                               output_cache_dir=args.cache_output_dir,
+                               output_working_dir=args.cache_output_dir,
                                sample_rate=c.AUDIO.SAMPLE_RATE,
                                multi_threading=args.multi_threading)
 

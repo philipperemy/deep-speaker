@@ -1,6 +1,5 @@
 import logging
 import os
-import pickle
 from collections import defaultdict
 from random import choice
 
@@ -16,24 +15,24 @@ from utils import parallel_function, ensures_dir, find_files
 logger = logging.getLogger(__name__)
 
 
-def pre_process_inputs(sig=np.random.uniform(size=32000), target_sample_rate=8000):
+def mfcc_fbank(sig=np.random.uniform(size=32000), target_sample_rate=8000):
+    # Returns MFCC with shape (num_frames, n_filters, 3).
     filter_banks, energies = fbank(sig, samplerate=target_sample_rate, nfilt=64)
     delta_1 = delta(filter_banks, N=1)
     delta_2 = delta(delta_1, N=1)
-    # (num_frames, n_filters, 3).
     frames_features = np.transpose(np.stack([filter_banks, delta_1, delta_2]), (1, 2, 0))
     return frames_features
 
 
-def generate_features(audio_entities, max_count):
-    features = []
-    for _ in range(max_count):
+def features(audio_entities, n):
+    feat = []
+    for _ in range(n):
         audio_entity = np.random.choice(audio_entities)
         voice_only_signal = audio_entity['audio_voice_only']
         cut = choice(range(SAMPLE_RATE // 10))
         signal_to_process = voice_only_signal[cut:]
-        features.append(pre_process_inputs(signal_to_process, SAMPLE_RATE))
-    return np.array(features)
+        feat.append(mfcc_fbank(signal_to_process, SAMPLE_RATE))
+    return np.array(feat)
 
 
 def normalize(list_matrices, mean, std):
@@ -44,7 +43,7 @@ class KerasConverter:
 
     def __init__(self, saved_dir):
         self.saved_dir = saved_dir
-        self.output_dir = os.path.join(self.saved_dir, 'keras-converter')
+        self.output_dir = os.path.join(self.saved_dir, 'keras-inputs')
         ensures_dir(self.output_dir)
         self.categorical_speakers = None
         self.kx_train = None
@@ -58,7 +57,7 @@ class KerasConverter:
             if not os.path.exists(file):
                 return None
             with open(file, 'rb') as r:
-                return pickle.load(r)
+                return dill.load(r)
 
         self.categorical_speakers = load(os.path.join(self.output_dir, 'categorical_speakers.pkl'))
         self.kx_train = load(os.path.join(self.output_dir, 'kx_train.pkl'))
@@ -68,15 +67,15 @@ class KerasConverter:
 
     def persist_from_disk(self):
         with open(os.path.join(self.output_dir, 'categorical_speakers.pkl'), 'wb') as w:
-            pickle.dump(self.categorical_speakers, w)
+            dill.dump(self.categorical_speakers, w)
         with open(os.path.join(self.output_dir, 'kx_train.pkl'), 'wb') as w:
-            pickle.dump(self.kx_train, w)
+            dill.dump(self.kx_train, w)
         with open(os.path.join(self.output_dir, 'kx_test.pkl'), 'wb') as w:
-            pickle.dump(self.kx_test, w)
+            dill.dump(self.kx_test, w)
         with open(os.path.join(self.output_dir, 'ky_train.pkl'), 'wb') as w:
-            pickle.dump(self.ky_train, w)
+            dill.dump(self.ky_train, w)
         with open(os.path.join(self.output_dir, 'ky_test.pkl'), 'wb') as w:
-            pickle.dump(self.ky_test, w)
+            dill.dump(self.ky_test, w)
 
     def convert(self, data):
         categorical_speakers = OneHotSpeakers(data)
@@ -109,12 +108,12 @@ class KerasConverter:
 
 class FBankProcessor:
 
-    def __init__(self, cache_dir, audio_reader, max_count_per_class=50,
+    def __init__(self, working_dir, audio_reader, max_count_per_class=50,
                  speakers_sub_list=None, parallel=False):
-        self.cache_dir = os.path.expanduser(cache_dir)
+        self.working_dir = os.path.expanduser(working_dir)
         self.audio_reader = audio_reader
         self.parallel = parallel
-        self.model_inputs_dir = os.path.join(self.cache_dir, 'inputs')
+        self.model_inputs_dir = os.path.join(self.working_dir, 'fbank-inputs')
         self.max_count_per_class = max_count_per_class
         ensures_dir(self.model_inputs_dir)
         self.speaker_ids = self.audio_reader.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
@@ -122,21 +121,21 @@ class FBankProcessor:
     def generate(self):
         logger.info('Starting the inputs generation...')
         if self.parallel:
-            num_threads = os.cpu_count()
-            logger.info(f'Using {num_threads} threads.')
-            parallel_function(self.cache_inputs, sorted(self.speaker_ids), num_threads)
+            num_proc = os.cpu_count()
+            logger.info(f'Using {num_proc} threads.')
+            parallel_function(self.cache_inputs, sorted(self.speaker_ids), num_proc)
         else:
             logger.info('Using only 1 thread.')
             for s in self.speaker_ids:
                 self.cache_inputs(s)
         logger.info('Generating the unified inputs pkl file.')
         full_inputs = {}
-        for inputs_filename in find_files(self.model_inputs_dir, 'pkl'):
+        for inputs_filename in find_files(self.model_inputs_dir, ext='pkl'):
             with open(inputs_filename, 'rb') as r:
-                inputs = pickle.load(r)
+                inputs = dill.load(r)
                 logger.info(f'Read {inputs_filename}.')
             full_inputs[inputs['speaker_id']] = inputs
-        full_inputs_output_filename = os.path.join(self.cache_dir, 'full_inputs.pkl')
+        full_inputs_output_filename = os.path.join(self.working_dir, 'full_inputs.pkl')
         # dill can manage with files larger than 4GB.
         with open(full_inputs_output_filename, 'wb') as w:
             dill.dump(obj=full_inputs, file=w)
@@ -160,8 +159,8 @@ class FBankProcessor:
         audio_entities_train = audio_entities[0:cutoff]
         audio_entities_test = audio_entities[cutoff:]
 
-        train = generate_features(audio_entities_train, self.max_count_per_class)
-        test = generate_features(audio_entities_test, self.max_count_per_class)
+        train = features(audio_entities_train, self.max_count_per_class)
+        test = features(audio_entities_test, self.max_count_per_class)
         logger.info(f'Generated {self.max_count_per_class}/{self.max_count_per_class} '
                     f'inputs for train/test for speaker {speaker_id}.')
 
@@ -180,7 +179,7 @@ class FBankProcessor:
             'std_train': std_train
         }
         with open(output_filename, 'wb') as w:
-            pickle.dump(obj=inputs, file=w)
+            dill.dump(obj=inputs, file=w)
         logger.info(f'[DUMP INPUTS] {output_filename}')
 
     def generate_inputs_for_inference(self, speaker_id):
@@ -188,7 +187,7 @@ class FBankProcessor:
         audio_entities = list(speaker_cache.values())
         logger.info(f'Generating the inputs necessary for the inference (speaker is {speaker_id})...')
         logger.info('This might take a couple of minutes to complete.')
-        feat = generate_features(audio_entities, self.max_count_per_class)
+        feat = features(audio_entities, self.max_count_per_class)
         mean = np.mean([np.mean(t) for t in feat])
         std = np.mean([np.std(t) for t in feat])
         feat = normalize(feat, mean, std)

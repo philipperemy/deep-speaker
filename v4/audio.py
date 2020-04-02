@@ -28,19 +28,19 @@ class Audio:
     FILENAME = 'filename'
 
     def __init__(self, input_audio_dir,
-                 output_cache_dir,
+                 output_working_dir,
                  sample_rate,
                  multi_threading=False):
         self.audio_dir = os.path.expanduser(input_audio_dir)
-        self.cache_dir = os.path.expanduser(output_cache_dir)
+        self.working_dir = os.path.expanduser(output_working_dir)
         self.sample_rate = sample_rate
         self.multi_threading = multi_threading
-        self.cache_pkl_dir = os.path.join(self.cache_dir, 'audio_cache')
+        self.cache_pkl_dir = os.path.join(self.working_dir, 'audio_cache')
         self.pkl_filenames = find_files(self.cache_pkl_dir, ext='pkl')
         self.speaker_ids_to_filename = {}
 
         logger.info(f'audio_dir = {self.audio_dir}')
-        logger.info(f'cache_dir = {self.cache_dir}')
+        logger.info(f'working_dir = {self.working_dir}')
         logger.info(f'sample_rate = {self.sample_rate}')
 
         speakers = set()
