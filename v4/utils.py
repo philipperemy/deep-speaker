@@ -32,13 +32,6 @@ def natural_sort(lst: list):
     return sorted(lst, key=alphanum_key)
 
 
-def get_last_checkpoint_if_any(checkpoint_folder):
-    files = find_files(checkpoint_folder, 'h5')
-    if len(files) == 0:
-        return None
-    return natural_sort(files)[-1]
-
-
 def create_new_empty_dir(directory: str):
     if os.path.exists(directory):
         shutil.rmtree(directory)

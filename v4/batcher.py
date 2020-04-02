@@ -10,7 +10,7 @@ from keras.utils import to_categorical
 from python_speech_features import fbank, delta
 
 from audio import extract_speaker_id
-from constants import SAMPLE_RATE
+from constants import SAMPLE_RATE, TRAIN_TEST_RATIO
 from utils import parallel_function, ensures_dir, find_files
 
 logger = logging.getLogger(__name__)
@@ -20,20 +20,9 @@ def pre_process_inputs(sig=np.random.uniform(size=32000), target_sample_rate=800
     filter_banks, energies = fbank(sig, samplerate=target_sample_rate, nfilt=64)
     delta_1 = delta(filter_banks, N=1)
     delta_2 = delta(delta_1, N=1)
-    # should not normalize here. That's an heresy!
+    # (num_frames, n_filters, 3).
     frames_features = np.transpose(np.stack([filter_banks, delta_1, delta_2]), (1, 2, 0))
     return frames_features
-
-
-def generate_cache_from_training_inputs(cache_dir, audio_reader, parallel):
-    inputs_generator = InputsGenerator(
-        cache_dir=cache_dir,
-        audio_reader=audio_reader,
-        max_count_per_class=50,
-        speakers_sub_list=None,
-        parallel=parallel
-    )
-    inputs_generator.start_generation()
 
 
 def generate_features(audio_entities, max_count):
@@ -90,7 +79,7 @@ class KerasConverter:
             pickle.dump(self.ky_test, w)
 
     def convert(self, data):
-        categorical_speakers = SpeakersToCategorical(data)
+        categorical_speakers = OneHotSpeakers(data)
         kx_train, ky_train, kx_test, ky_test = [], [], [], []
         ky_test = []
         for speaker_id in categorical_speakers.get_speaker_ids():
@@ -155,11 +144,6 @@ class InputsGenerator:
         logger.info(f'[DUMP UNIFIED INPUTS] {full_inputs_output_filename}.')
 
     def generate_and_dump_inputs_to_pkl(self, speaker_id):
-
-        # if speaker_id not in c.AUDIO.SPEAKERS_TRAINING_SET:
-        #     logger.info(f'Discarding speaker for the training dataset (cf. conf.json): {speaker_id}.')
-        #     return
-
         output_filename = os.path.join(self.model_inputs_dir, speaker_id + '.pkl')
         if os.path.isfile(output_filename):
             logger.info(f'Inputs file already exists: {output_filename}.')
@@ -191,7 +175,7 @@ class InputsGenerator:
             per_speaker_dict[speaker_id].append(audio_entity)
 
         audio_entities = per_speaker_dict[speaker_id]
-        cutoff = int(len(audio_entities) * 0.8)
+        cutoff = int(len(audio_entities) * TRAIN_TEST_RATIO)
         audio_entities_train = audio_entities[0:cutoff]
         audio_entities_test = audio_entities[cutoff:]
 
@@ -200,23 +184,23 @@ class InputsGenerator:
         logger.info(f'Generated {self.max_count_per_class}/{self.max_count_per_class} '
                     f'inputs for train/test for speaker {speaker_id}.')
 
+        # TODO: check that.
         mean_train = np.mean([np.mean(t) for t in train])
         std_train = np.mean([np.std(t) for t in train])
 
         train = normalize(train, mean_train, std_train)
         test = normalize(test, mean_train, std_train)
 
-        inputs = {
+        return {
             'train': train,
             'test': test,
             'speaker_id': speaker_id,
             'mean_train': mean_train,
             'std_train': std_train
         }
-        return inputs
 
 
-class SpeakersToCategorical:
+class OneHotSpeakers:
 
     def __init__(self, data):
         self.speaker_ids = sorted(list(data.keys()))

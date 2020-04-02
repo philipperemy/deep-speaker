@@ -7,7 +7,7 @@ import pickle
 import click
 
 from audio import Audio
-from batcher import generate_cache_from_training_inputs, KerasConverter
+from batcher import generate_cache_from_training_inputs, KerasConverter, InputsGenerator
 from constants import SAMPLE_RATE
 from train_cli import start_training
 from utils import ClickType as Ct
@@ -57,11 +57,14 @@ def build_inputs_cache(audio_dir, cache_dir, sample_rate, parallel):
         sample_rate=sample_rate,
         multi_threading=parallel
     )
-    generate_cache_from_training_inputs(
-        cache_dir,
-        audio_reader,
-        parallel
+    inputs_generator = InputsGenerator(
+        cache_dir=cache_dir,
+        audio_reader=audio_reader,
+        max_count_per_class=50,
+        speakers_sub_list=None,
+        parallel=parallel
     )
+    inputs_generator.start_generation()
 
 
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')

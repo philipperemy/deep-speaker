@@ -1,5 +1,4 @@
 import os
-from argparse import ArgumentParser
 from collections import deque
 from glob import glob
 
@@ -15,16 +14,6 @@ from batcher import KerasConverter
 from triplet_loss import deep_speaker_loss
 
 BATCH_SIZE = 900
-
-
-def get_arguments(parser: ArgumentParser):
-    args = None
-    try:
-        args = parser.parse_args()
-    except Exception:
-        parser.print_help()
-        exit(1)
-    return args
 
 
 # - Triplet Loss for embeddings
