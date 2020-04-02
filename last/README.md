@@ -25,7 +25,7 @@ git clone git@github.com:philipperemy/deep-speaker.git && cd deep-speaker
 
 DS_DIR=~/deep-speaker-data
 AUDIO_DIR=$DS_DIR/VCTK-Corpus/
-CACHE_DIR=$DS_DIR/cache/
+WORKING_DIR=$DS_DIR/cache/
 
 mkdir -p $DS_DIR
 
@@ -47,13 +47,13 @@ pip install tensorflow # or tensorflow-gpu if you have a GPU at hand.
 The first step generates the cache for the audio files. Caching usually involves sampling the WAV files at 8KHz and trimming the silences. The task took roughly 10min on my server (i7 8770K).
 
 ```bash
-python cli.py --regenerate_full_cache --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
+python cli.py --regenerate_full_cache --multi_threading --cache_output_dir $WORKING_DIR --audio_dir $AUDIO_DIR
 ```
 
 The second step generates the inputs used in the softmax pre-training and the embeddings training. Everything is cached to make the training smoother and faster. In a nutshell, MFCC windows randomly sampled from the audio cached files and put in a unified pickle file. The task took roughly 18min on my server (i7 8770K).
 
 ```bash
-python cli.py --generate_training_inputs --multi_threading --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
+python cli.py --generate_training_inputs --multi_threading --cache_output_dir $WORKING_DIR --audio_dir $AUDIO_DIR
 ```
 
 ### Run softmax pre-training and embeddings training with triplet loss
@@ -63,7 +63,7 @@ python cli.py --generate_training_inputs --multi_threading --cache_output_dir $C
 We perform softmax pre-training to avoid getting stuck in a local minimum. After the softmax pre-training, the speaker classification accuracy should be around 95%.
 
 ```bash
-python train_cli.py --loss_on_softmax --data_filename $CACHE_DIR/full_inputs.pkl
+python train_cli.py --loss_on_softmax --data_filename $WORKING_DIR/full_inputs.pkl
 ```
 
 <p align="center">
@@ -73,7 +73,7 @@ python train_cli.py --loss_on_softmax --data_filename $CACHE_DIR/full_inputs.pkl
 It took roughly 1 hour to train with a GTX1070 and 32GB of memory. Next phase is to train the network with the triplet loss.
 
 ```bash
-python train_cli.py --loss_on_embeddings --normalize_embeddings --data_filename $CACHE_DIR/full_inputs.pkl
+python train_cli.py --loss_on_embeddings --normalize_embeddings --data_filename $WORKING_DIR/full_inputs.pkl
 ```
 
 Training the embeddings with the triplet loss (specific to deep speaker) takes time and the loss should go around 0.02 after ~5k steps (on un-normalized embeddings). After only 2k steps, I had 0.04-0.05. I noticed that the softmax pre-training really helped the convergence be faster. The case where (anchor speaker == positive speaker == negative speaker) yields a loss of 0.20. This optimizer gets stuck and cannot do much. This is expected. We can clearly see that the model is learning something. I recall that we train with (anchor speaker == positive speaker != negative speaker).
@@ -96,8 +96,8 @@ This command will:
 - check that the SAP is much lower than the SAN.
 
 ```bash
-python cli.py --unseen_speakers p363,p364 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
-python cli.py --unseen_speakers p363,p363 --audio_dir $AUDIO_DIR --cache_output_dir $CACHE_DIR
+python cli.py --unseen_speakers p363,p364 --audio_dir $AUDIO_DIR --cache_output_dir $WORKING_DIR
+python cli.py --unseen_speakers p363,p363 --audio_dir $AUDIO_DIR --cache_output_dir $WORKING_DIR
 ```
 The first cosine value is the SAN and the second the SAP. I could get cosine values of ~0.56 and ~0.0008. The audio slices are randomly chosen so it's very likely you get different results than me. However you should always see SAN >> SAP.
 
@@ -118,14 +118,14 @@ Once it's done, we can run a cache update:
 
 ```bash
 NEW_AUDIO_DIR=./samples/PhilippeRemy/
-python cli.py --update_cache --multi_threading --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
+python cli.py --update_cache --multi_threading --audio_dir $NEW_AUDIO_DIR --cache_output_dir $WORKING_DIR
 ```
 
 We can check the SAN and SAP of our new speaker `PhilippeRemy` by running:
 
 ```bash
-python cli.py --unseen_speakers p225,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
-python cli.py --unseen_speakers PhilippeRemy,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $CACHE_DIR
+python cli.py --unseen_speakers p225,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $WORKING_DIR
+python cli.py --unseen_speakers PhilippeRemy,PhilippeRemy --audio_dir $NEW_AUDIO_DIR --cache_output_dir $WORKING_DIR
 ```
 
 I had a cosine dist value of ~0.41 for the first command (different speakers) and ~0.01 for the second command (same speaker). Again, it's expected. The choice of p225 is completely arbitrary, as long as it's a different speaker.
@@ -133,7 +133,7 @@ I had a cosine dist value of ~0.41 for the first command (different speakers) an
 This command will compute and display the embedding vector:
 
 ```bash
-python cli.py --get_embeddings PhilippeRemy --cache_output_dir $CACHE_DIR --audio_dir $AUDIO_DIR
+python cli.py --get_embeddings PhilippeRemy --cache_output_dir $WORKING_DIR --audio_dir $AUDIO_DIR
 ```
 
 For now, it's insanely slow. It took ~2min on my MacBook and ~1min on my server.
@@ -143,7 +143,7 @@ For now, it's insanely slow. It took ~2min on my MacBook and ~1min on my server.
 Once the embeddings are correctly trained, we can freeze the weights and only re-train the softmax layer with the new embeddings.
 
 ```bash
-python train_cli.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings --data_filename $CACHE_DIR/full_inputs.pkl
+python train_cli.py --loss_on_softmax --freeze_embedding_weights --normalize_embeddings --data_filename $WORKING_DIR/full_inputs.pkl
 ```
 
 After a while, we get an accuracy around 71%. Not bad! We expect it to be less than 95% of course, because the embeddings are not trained to maximize the classification accuracy but to reduce the triplet loss (maximize cosine distance between different speakers).
