@@ -76,7 +76,7 @@ def convolutional_model(input_shapes=(16, 16, 1), num_frames=4):
     # ks*ks*nb_filters*channels/strides+bias(=nb_filters)
 
     # take 100 ms -> 4 frames.
-    # if signal is 3 seconds, then take 100ms per 100ms and average out this network.
+    # if sig is 3 seconds, then take 100ms per 100ms and average out this network.
     # 8*8 = 64 features.
 
     # used to share all the layers across the inputs

@@ -54,7 +54,7 @@ def compile_triplet_softmax_model(m: Model, loss_on_softmax=True, loss_on_embedd
 
     print(losses)
     print(loss_weights)
-    m.compile(optimizer=Adam(lr=0.001),
+    m.compile(optimizer=Adam(lr=0.0001),
               loss=losses,
               loss_weights=loss_weights,
               metrics=['accuracy'])

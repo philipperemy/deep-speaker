@@ -2,90 +2,44 @@ import logging
 import os
 import pickle
 from collections import defaultdict
+from random import random, choice
 
 import dill
 import numpy as np
-import pandas as pd
+from keras.utils import to_categorical
 
 from audio import extract_speaker_id
 from constants import SAMPLE_RATE
-from speech_features import get_mfcc_features_390
-from preprocess import pre_process_inputs, load_wav
+from speech_features import pre_process_inputs
 from utils import parallel_function, ensures_dir, find_files
 
 logger = logging.getLogger(__name__)
 
 
-class MiniBatch:
-    def __init__(self, libri: pd.DataFrame, batch_size):
-        # indices = np.random.choice(len(libri), size=batch_size, replace=False)
-        # [anc1, anc2, anc3, pos1, pos2, pos3, neg1, neg2, neg3]
-        # [sp1, sp2, sp3, sp1, sp2, sp3, sp4, sp5, sp6]
-
-        unique_speakers = list(libri['speaker_id'].unique())
-        num_triplets = batch_size
-
-        anchor_batch = None
-        positive_batch = None
-        negative_batch = None
-        for ii in range(num_triplets):
-            two_different_speakers = np.random.choice(unique_speakers, size=2, replace=False)
-            anchor_positive_speaker = two_different_speakers[0]
-            negative_speaker = two_different_speakers[1]
-            anchor_positive_file = libri[libri['speaker_id'] == anchor_positive_speaker].sample(n=2, replace=False)
-            anchor_df = pd.DataFrame(anchor_positive_file[0:1])
-            anchor_df['training_type'] = 'anchor'
-            positive_df = pd.DataFrame(anchor_positive_file[1:2])
-            positive_df['training_type'] = 'positive'
-            negative_df = libri[libri['speaker_id'] == negative_speaker].sample(n=1)
-            negative_df['training_type'] = 'negative'
-
-            if anchor_batch is None:
-                anchor_batch = anchor_df.copy()
-            else:
-                anchor_batch = pd.concat([anchor_batch, anchor_df], axis=0)
-
-            if positive_batch is None:
-                positive_batch = positive_df.copy()
-            else:
-                positive_batch = pd.concat([positive_batch, positive_df], axis=0)
-
-            if negative_batch is None:
-                negative_batch = negative_df.copy()
-            else:
-                negative_batch = pd.concat([negative_batch, negative_df], axis=0)
-
-        self.libri_batch = pd.DataFrame(pd.concat([anchor_batch, positive_batch, negative_batch], axis=0))
-        self.audio_loaded = False
-        self.num_triplets = num_triplets
-
-    def load_wav(self):
-        self.libri_batch = load_wav(self.libri_batch)
-        self.audio_loaded = True
-
-    def to_inputs(self):
-
-        if not self.audio_loaded:
-            self.load_wav()
-
-        x = self.libri_batch['raw_audio'].values
-        new_x = []
-        for sig in x:
-            new_x.append(pre_process_inputs(sig, target_sample_rate=SAMPLE_RATE))
-        x = np.array(new_x)
-        y = self.libri_batch['speaker_id'].values
-        logging.info('x.shape = {}'.format(x.shape))
-        logging.info('y.shape = {}'.format(y.shape))
-
-        # anchor examples [speakers] == positive examples [speakers]
-        np.testing.assert_array_equal(y[0:self.num_triplets], y[self.num_triplets:2 * self.num_triplets])
-
-        return x, y
+def generate_cache_from_training_inputs(cache_dir, audio_reader, parallel):
+    inputs_generator = InputsGenerator(
+        cache_dir=cache_dir,
+        audio_reader=audio_reader,
+        max_count_per_class=50,
+        speakers_sub_list=None,
+        parallel=parallel
+    )
+    inputs_generator.start_generation()
 
 
-def stochastic_mini_batch(libri, batch_size):
-    mini_batch = MiniBatch(libri, batch_size)
-    return mini_batch
+def generate_features(audio_entities, max_count):
+    features = []
+    for _ in range(max_count):
+        audio_entity = np.random.choice(audio_entities)
+        voice_only_signal = audio_entity['audio_voice_only']
+        cut = choice(range(SAMPLE_RATE // 10))
+        signal_to_process = voice_only_signal[cut:]
+        features.append(pre_process_inputs(signal_to_process, SAMPLE_RATE))
+    return np.array(features)
+
+
+def normalize(list_matrices, mean, std):
+    return [(m - mean) / std for m in list_matrices]
 
 
 class KerasConverter:
@@ -158,27 +112,6 @@ class KerasConverter:
         return kx_train, ky_train, kx_test, ky_test, categorical_speakers
 
 
-def generate_features(audio_entities, max_count, progress_bar=False):
-    features = []
-    count_range = range(max_count)
-    if progress_bar:
-        from tqdm import tqdm
-        count_range = tqdm(count_range)
-    for _ in count_range:
-        audio_entity = np.random.choice(audio_entities)
-        voice_only_signal = audio_entity['audio_voice_only']
-        # just add a bit of randomness here.
-        cut = np.random.uniform(low=0, high=SAMPLE_RATE // 10, size=1)
-        signal_to_process = voice_only_signal[int(cut):]
-        features_per_conv = get_mfcc_features_390(signal_to_process, SAMPLE_RATE, max_frames=None)
-        features.append(features_per_conv)
-    return features
-
-
-def normalize(list_matrices, mean, std):
-    return [(m - mean) / std for m in list_matrices]
-
-
 class InputsGenerator:
 
     def __init__(self, cache_dir, audio_reader, max_count_per_class=50,
@@ -236,7 +169,7 @@ class InputsGenerator:
         audio_entities = list(speaker_cache.values())
         logger.info(f'Generating the inputs necessary for the inference (speaker is {speaker_id})...')
         logger.info('This might take a couple of minutes to complete.')
-        feat = generate_features(audio_entities, self.max_count_per_class, progress_bar=False)
+        feat = generate_features(audio_entities, self.max_count_per_class)
         mean = np.mean([np.mean(t) for t in feat])
         std = np.mean([np.std(t) for t in feat])
         feat = normalize(feat, mean, std)
@@ -278,8 +211,8 @@ class InputsGenerator:
 
 
 class SpeakersToCategorical:
+
     def __init__(self, data):
-        from keras.utils import to_categorical
         self.speaker_ids = sorted(list(data.keys()))
         self.int_speaker_ids = list(range(len(self.speaker_ids)))
         self.map_speakers_to_index = dict([(k, v) for (k, v) in zip(self.speaker_ids, self.int_speaker_ids)])
@@ -295,14 +228,3 @@ class SpeakersToCategorical:
 
     def get_speaker_ids(self):
         return self.speaker_ids
-
-
-def generate_cache_from_training_inputs(cache_dir, audio_reader, parallel):
-    inputs_generator = InputsGenerator(
-        cache_dir=cache_dir,
-        audio_reader=audio_reader,
-        max_count_per_class=50,
-        speakers_sub_list=None,
-        parallel=parallel
-    )
-    inputs_generator.start_generation()
