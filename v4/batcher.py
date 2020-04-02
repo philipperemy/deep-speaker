@@ -107,7 +107,7 @@ class KerasConverter:
         return kx_train, ky_train, kx_test, ky_test, categorical_speakers
 
 
-class InputsGenerator:
+class FBankProcessor:
 
     def __init__(self, cache_dir, audio_reader, max_count_per_class=50,
                  speakers_sub_list=None, parallel=False):
@@ -119,17 +119,16 @@ class InputsGenerator:
         ensures_dir(self.model_inputs_dir)
         self.speaker_ids = self.audio_reader.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
 
-    def start_generation(self):
+    def generate(self):
         logger.info('Starting the inputs generation...')
         if self.parallel:
             num_threads = os.cpu_count()
             logger.info(f'Using {num_threads} threads.')
-            parallel_function(self.generate_and_dump_inputs_to_pkl, sorted(self.speaker_ids), num_threads)
+            parallel_function(self.cache_inputs, sorted(self.speaker_ids), num_threads)
         else:
             logger.info('Using only 1 thread.')
             for s in self.speaker_ids:
-                self.generate_and_dump_inputs_to_pkl(s)
-
+                self.cache_inputs(s)
         logger.info('Generating the unified inputs pkl file.')
         full_inputs = {}
         for inputs_filename in find_files(self.model_inputs_dir, 'pkl'):
@@ -143,29 +142,11 @@ class InputsGenerator:
             dill.dump(obj=full_inputs, file=w)
         logger.info(f'[DUMP UNIFIED INPUTS] {full_inputs_output_filename}.')
 
-    def generate_and_dump_inputs_to_pkl(self, speaker_id):
+    def cache_inputs(self, speaker_id):
         output_filename = os.path.join(self.model_inputs_dir, speaker_id + '.pkl')
         if os.path.isfile(output_filename):
             logger.info(f'Inputs file already exists: {output_filename}.')
             return
-
-        inputs = self.generate_inputs(speaker_id)
-        with open(output_filename, 'wb') as w:
-            pickle.dump(obj=inputs, file=w)
-        logger.info(f'[DUMP INPUTS] {output_filename}')
-
-    def generate_inputs_for_inference(self, speaker_id):
-        speaker_cache, metadata = self.audio_reader.load_cache([speaker_id])
-        audio_entities = list(speaker_cache.values())
-        logger.info(f'Generating the inputs necessary for the inference (speaker is {speaker_id})...')
-        logger.info('This might take a couple of minutes to complete.')
-        feat = generate_features(audio_entities, self.max_count_per_class)
-        mean = np.mean([np.mean(t) for t in feat])
-        std = np.mean([np.std(t) for t in feat])
-        feat = normalize(feat, mean, std)
-        return feat
-
-    def generate_inputs(self, speaker_id):
         per_speaker_dict = defaultdict(list)
         cache, metadata = self.audio_reader.load_cache([speaker_id])
 
@@ -191,13 +172,27 @@ class InputsGenerator:
         train = normalize(train, mean_train, std_train)
         test = normalize(test, mean_train, std_train)
 
-        return {
+        inputs = {
             'train': train,
             'test': test,
             'speaker_id': speaker_id,
             'mean_train': mean_train,
             'std_train': std_train
         }
+        with open(output_filename, 'wb') as w:
+            pickle.dump(obj=inputs, file=w)
+        logger.info(f'[DUMP INPUTS] {output_filename}')
+
+    def generate_inputs_for_inference(self, speaker_id):
+        speaker_cache, metadata = self.audio_reader.load_cache([speaker_id])
+        audio_entities = list(speaker_cache.values())
+        logger.info(f'Generating the inputs necessary for the inference (speaker is {speaker_id})...')
+        logger.info('This might take a couple of minutes to complete.')
+        feat = generate_features(audio_entities, self.max_count_per_class)
+        mean = np.mean([np.mean(t) for t in feat])
+        std = np.mean([np.std(t) for t in feat])
+        feat = normalize(feat, mean, std)
+        return feat
 
 
 class OneHotSpeakers:

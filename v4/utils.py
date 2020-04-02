@@ -1,7 +1,5 @@
 import logging
 import os
-import random
-import re
 import shutil
 from glob import glob
 
@@ -11,8 +9,8 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def find_files(directory, extension='wav'):
-    return sorted(glob(directory + f'/**/*.{extension}', recursive=True))
+def find_files(directory, ext='wav'):
+    return sorted(glob(directory + f'/**/*.{ext}', recursive=True))
 
 
 def init_pandas():
@@ -20,16 +18,6 @@ def init_pandas():
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
-
-
-def natural_sort(lst: list):
-    def convert(text):
-        return int(text) if text.isdigit() else text.lower()
-
-    def alphanum_key(key):
-        return [convert(c) for c in re.split('([0-9]+)', key)]
-
-    return sorted(lst, key=alphanum_key)
 
 
 def create_new_empty_dir(directory: str):
@@ -55,11 +43,6 @@ def split(arr, size):
         arr = arr[size:]
     arrays.append(arr)
     return arrays
-
-
-def shuffle(lst: list):
-    random.seed(123)
-    random.shuffle(lst)
 
 
 class ClickType:

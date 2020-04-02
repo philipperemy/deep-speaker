@@ -35,15 +35,15 @@ class Audio:
         self.cache_dir = os.path.expanduser(output_cache_dir)
         self.sample_rate = sample_rate
         self.multi_threading = multi_threading
-        self.cache_pkl_dir = os.path.join(self.cache_dir, 'audio_cache_pkl')
-        self.pkl_filenames = find_files(self.cache_pkl_dir, 'pkl')
+        self.cache_pkl_dir = os.path.join(self.cache_dir, 'audio_cache')
+        self.pkl_filenames = find_files(self.cache_pkl_dir, ext='pkl')
+        self.speaker_ids_to_filename = {}
 
         logger.info(f'audio_dir = {self.audio_dir}')
         logger.info(f'cache_dir = {self.cache_dir}')
-        logger.info(f'sample_rate = {sample_rate}')
+        logger.info(f'sample_rate = {self.sample_rate}')
 
         speakers = set()
-        self.speaker_ids_to_filename = {}
         for pkl_filename in self.pkl_filenames:
             speaker_id = os.path.basename(pkl_filename).split('_')[0]
             if speaker_id not in self.speaker_ids_to_filename:
@@ -111,7 +111,7 @@ class Audio:
         ensures_dir(self.cache_pkl_dir)
         logger.info(f'Nothing found at {self.cache_pkl_dir}. Generating all the cache now.')
         logger.info(f'Looking for the audio dataset in {self.audio_dir}.')
-        audio_files = find_files(self.audio_dir, extension='wav')
+        audio_files = find_files(self.audio_dir, ext='wav')
         audio_files_count = len(audio_files)
         assert audio_files_count != 0, f'Could not find any WAV files in {self.audio_dir}.'
         logger.info(f'Found {audio_files_count:,} files in total in {self.audio_dir}.')
@@ -134,7 +134,7 @@ class Audio:
                 return
 
             audio = Audio.read(input_filename, self.sample_rate)
-            # TODO: could use trim_silence().
+            # TODO: could use trim_silence() here.
             energy = np.abs(audio)
             silence_threshold = np.percentile(energy, 95)
             offsets = np.where(energy > silence_threshold)[0]
