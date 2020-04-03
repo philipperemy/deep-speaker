@@ -81,6 +81,8 @@ def build_keras_inputs(working_dir):
 @click.option('--normalize_embeddings/--normalize_embeddings', default=False, show_default=True)
 def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embeddings):
     assert loss_on_softmax or loss_on_embeddings
+    # Default parameters: 0.97 accuracy on test set with [--loss_on_softmax].
+    # p225 p226 p227 p228 p229 p230 p231 p232 p233 p234 p236 p237 p238 p239
     # 1/ --loss_on_softmax
     # 2/ --loss_on_embeddings --normalize_embeddings
     kc = KerasConverter(working_dir)
