@@ -89,11 +89,13 @@ class KerasConverter:
             d = self.data[speaker_id]
             y = categorical_speakers.get_one_hot(d['speaker_id'])
             for x_train_elt in self.data[speaker_id]['train']:
-                kx_train.append(x_train_elt[0:max_length])
+                st = choice(range(0, len(x_train_elt) - max_length + 1))
+                kx_train.append(x_train_elt[st:st + max_length])
                 ky_train.append(y)
 
             for x_test_elt in self.data[speaker_id]['test']:
-                kx_test.append(x_test_elt[0:max_length])
+                st = choice(range(0, len(x_test_elt) - max_length + 1))
+                kx_test.append(x_test_elt[st:st + max_length])
                 ky_test.append(y)
 
         kx_train = np.array(kx_train)

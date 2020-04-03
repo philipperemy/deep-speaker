@@ -59,7 +59,7 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate, parallel):
     inputs_generator = FBankProcessor(
         working_dir=working_dir,
         audio_reader=audio_reader,
-        count_per_speaker=1000,
+        count_per_speaker=3000,
         speakers_sub_list=None,
         parallel=parallel
     )
@@ -76,8 +76,9 @@ def build_keras_inputs(working_dir):
 
 @cli.command('train-model', short_help='Train a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--checkpoints_dir', default='checkpoints', show_default=True, type=Ct.output_dir())
-def build_keras_inputs(working_dir, checkpoints_dir):
+def build_keras_inputs(working_dir):
+    # 1/ --loss_on_softmax
+    # 2/ --loss_on_embeddings --normalize_embeddings
     kc = KerasConverter(working_dir)
     start_training(kc)
 

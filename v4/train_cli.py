@@ -158,10 +158,10 @@ def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_
     print('The embedding loss here does not make sense. Do not get fooled by it. Triplets are not present here.')
     print('We train the embedding weights first.')
 
-    class WarningCallback(Callback):
-        def on_epoch_end(self, epoch, logs=None):
-            print('The embedding loss here does not make sense. Do not get fooled by it. '
-                  'Triplets are not generated here. We train the embedding weights first.')
+    # class WarningCallback(Callback):
+    #     def on_epoch_end(self, epoch, logs=None):
+    #         print('The embedding loss here does not make sense. Do not get fooled by it. '
+    #               'Triplets are not generated here. We train the embedding weights first.')
 
     m.fit(x=kx_train,
           y={'embeddings': ky_train, 'softmax': ky_train},
@@ -170,7 +170,7 @@ def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_
           initial_epoch=initial_epoch,
           verbose=1,
           validation_data=(kx_test, {'embeddings': ky_test, 'softmax': ky_test}),
-          callbacks=[early_stopping, reduce_lr, checkpoint, WarningCallback()])
+          callbacks=[early_stopping, reduce_lr, checkpoint])
 
 
 def start_training(kc: KerasConverter):
