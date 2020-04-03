@@ -11,4 +11,5 @@ rm -rf ${WORKING_DIR}
 python cli.py build-audio-cache --audio_dir ${AUDIO_DIR} --working_dir ${WORKING_DIR} --parallel
 python cli.py build-inputs-cache --audio_dir ${AUDIO_DIR} --working_dir ${WORKING_DIR}
 python cli.py build-keras-inputs --working_dir ${WORKING_DIR}
-python cli.py train-model --working_dir ${WORKING_DIR}
+python cli.py train-model --working_dir ${WORKING_DIR} --loss_on_softmax
+python cli.py train-model --working_dir ${WORKING_DIR} --loss_on_embeddings --normalize_embeddings
