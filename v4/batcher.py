@@ -43,10 +43,7 @@ class KerasConverter:
 
     def __init__(self, working_dir):
         self.working_dir = working_dir
-        self.data_filename = os.path.join(self.working_dir, 'complete_fbank_inputs.pkl')
         self.output_dir = os.path.join(self.working_dir, 'keras-inputs')
-        with open(self.data_filename, 'rb') as r:
-            self.data = dill.load(r)
         ensures_dir(self.output_dir)
         self.categorical_speakers = None
         self.kx_train = None
@@ -82,30 +79,42 @@ class KerasConverter:
             dill.dump(self.ky_test, w)
 
     def convert(self, max_length=28):  # say xx fbank frames for now bitch.
-        categorical_speakers = OneHotSpeakers(self.data)
-        kx_train, ky_train, kx_test, ky_test = [], [], [], []
-        ky_test = []
+        fbank_files = os.path.join(self.working_dir, 'fbank-inputs')
+        speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
+        categorical_speakers = OneHotSpeakers(speakers_list)
+
+        # num_samples = len(speakers_list) *
+        kx_train, ky_train, kx_test, ky_test = None, None, None, None
         for speaker_id in categorical_speakers.get_speaker_ids():
-            d = self.data[speaker_id]
+            with open(os.path.join(self.working_dir, 'fbank-inputs', speaker_id + '.pkl'), 'rb') as r:
+                d = dill.load(r)
             y = categorical_speakers.get_one_hot(d['speaker_id'])
-            for x_train_elt in self.data[speaker_id]['train']:
+
+            if kx_train is None:
+                num_samples_train = len(speakers_list) * len(d['train'])
+                num_samples_test = len(speakers_list) * len(d['test'])
+
+                # 64 fbanks 3 channels.
+                kx_train = np.zeros((num_samples_train, max_length, 64, 3))
+                ky_train = np.zeros((num_samples_train, len(speakers_list)))
+
+                kx_test = np.zeros((num_samples_test, max_length, 64, 3))
+                ky_test = np.zeros((num_samples_test, len(speakers_list)))
+
+                print(f'kx_train.shape = {kx_train.shape}')
+                print(f'kx_test.shape = {kx_test.shape}')
+                print(f'ky_train.shape = {ky_train.shape}')
+                print(f'ky_test.shape = {ky_test.shape}')
+
+            for i, x_train_elt in enumerate(d['train']):
                 st = choice(range(0, len(x_train_elt) - max_length + 1))
-                kx_train.append(x_train_elt[st:st + max_length])
-                ky_train.append(y)
+                kx_train[i] = x_train_elt[st:st + max_length]
+                ky_train[i] = y
 
-            for x_test_elt in self.data[speaker_id]['test']:
+            for i, x_test_elt in enumerate(d['test']):
                 st = choice(range(0, len(x_test_elt) - max_length + 1))
-                kx_test.append(x_test_elt[st:st + max_length])
-                ky_test.append(y)
-
-        kx_train = np.array(kx_train)
-        print(f'kx_train.shape = {kx_train.shape}')
-        kx_test = np.array(kx_test)
-        print(f'kx_test.shape = {kx_test.shape}')
-        ky_train = np.array(ky_train)
-        print(f'ky_train.shape = {ky_train.shape}')
-        ky_test = np.array(ky_test)
-        print(f'ky_test.shape = {ky_test.shape}')
+                kx_test[i] = x_test_elt[st:st + max_length]
+                ky_test[i] = y
 
         self.categorical_speakers = categorical_speakers
         self.kx_train, self.ky_train, self.kx_test, self.ky_test = kx_train, ky_train, kx_test, ky_test
@@ -134,18 +143,6 @@ class FBankProcessor:
             logger.info('Using only 1 thread.')
             for s in self.speaker_ids:
                 self._cache_inputs(s)
-        logger.info('Generating the unified inputs pkl file.')
-        full_inputs = {}
-        for inputs_filename in find_files(self.model_inputs_dir, ext='pkl'):
-            with open(inputs_filename, 'rb') as r:
-                inputs = dill.load(r)
-                logger.info(f'Read {inputs_filename}.')
-            full_inputs[inputs['speaker_id']] = inputs
-        full_inputs_output_filename = os.path.join(self.working_dir, 'complete_fbank_inputs.pkl')
-        # dill can manage with files larger than 4GB.
-        with open(full_inputs_output_filename, 'wb') as w:
-            dill.dump(obj=full_inputs, file=w)
-        logger.info(f'[DUMP UNIFIED INPUTS] {full_inputs_output_filename}.')
 
     def _cache_inputs(self, speaker_id):
         output_filename = os.path.join(self.model_inputs_dir, speaker_id + '.pkl')
@@ -202,8 +199,8 @@ class FBankProcessor:
 
 class OneHotSpeakers:
 
-    def __init__(self, data):
-        self.speaker_ids = sorted(list(data.keys()))
+    def __init__(self, speakers_list):
+        self.speaker_ids = sorted(speakers_list)
         self.int_speaker_ids = list(range(len(self.speaker_ids)))
         self.map_speakers_to_index = dict([(k, v) for (k, v) in zip(self.speaker_ids, self.int_speaker_ids)])
         self.map_index_to_speakers = dict([(v, k) for (k, v) in zip(self.speaker_ids, self.int_speaker_ids)])
