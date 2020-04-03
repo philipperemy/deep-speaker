@@ -89,8 +89,6 @@ class KerasConverter:
         fbank_files = os.path.join(self.working_dir, 'fbank-inputs')
         speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
         categorical_speakers = OneHotSpeakers(speakers_list)
-
-        # num_samples = len(speakers_list) *
         kx_train, ky_train, kx_test, ky_test = None, None, None, None
         for speaker_id in tqdm(categorical_speakers.get_speaker_ids(), desc='Converting to Keras format'):
             with open(os.path.join(self.working_dir, 'fbank-inputs', speaker_id + '.pkl'), 'rb') as r:
@@ -103,11 +101,11 @@ class KerasConverter:
 
                 # 64 fbanks 3 channels.
                 # float32
-                kx_train = np.zeros((num_samples_train, max_length, 64, 3), dtype=np.float32)
-                ky_train = np.zeros((num_samples_train, len(speakers_list)), dtype=np.float32)
+                kx_train = np.zeros((num_samples_train, max_length, 64, 3))
+                ky_train = np.zeros((num_samples_train, len(speakers_list)))
 
-                kx_test = np.zeros((num_samples_test, max_length, 64, 3), dtype=np.float32)
-                ky_test = np.zeros((num_samples_test, len(speakers_list)), dtype=np.float32)
+                kx_test = np.zeros((num_samples_test, max_length, 64, 3))
+                ky_test = np.zeros((num_samples_test, len(speakers_list)))
 
                 print(f'kx_train.shape = {kx_train.shape}')
                 print(f'kx_test.shape = {kx_test.shape}')
@@ -121,6 +119,7 @@ class KerasConverter:
                     ky_train[i] = y
                 else:
                     # simple for now.
+                    logger.info(f'Too small {i}.')
                     kx_train[i] = kx_train[i - 1]
                     ky_train[i] = ky_train[i - 1]
 
@@ -130,6 +129,7 @@ class KerasConverter:
                     kx_test[i] = x_test_elt[st:st + max_length]
                     ky_test[i] = y
                 else:
+                    logger.info(f'Too small {i}.')
                     kx_test[i] = kx_test[i - 1]
                     ky_test[i] = ky_test[i - 1]
 
