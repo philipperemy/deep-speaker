@@ -85,6 +85,8 @@ def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embe
     # p225 p226 p227 p228 p229 p230 p231 p232 p233 p234 p236 p237 p238 p239
     # 1/ --loss_on_softmax
     # 2/ --loss_on_embeddings --normalize_embeddings
+    # We can easily get:
+    # 011230, train(emb, last 100) = 0.37317 test(emb, last 100) = 0.37739
     kc = KerasConverter(working_dir)
     start_training(kc, loss_on_softmax, loss_on_embeddings, normalize_embeddings)
 
