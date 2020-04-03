@@ -50,6 +50,8 @@ def build_audio_cache(audio_dir, working_dir, sample_rate, parallel):
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
 @click.option('--parallel/--no-parallel', default=False, show_default=True)
 def build_inputs_cache(audio_dir, working_dir, sample_rate, parallel):
+    # TODO: funny enough. This seems to be parallel by default with one process.
+    # So no parallel?
     audio_reader = Audio(
         input_audio_dir=audio_dir,
         output_working_dir=working_dir,
