@@ -1,12 +1,9 @@
-import logging
 import os
 import shutil
 from glob import glob
 
 import click
 import pandas as pd
-
-logger = logging.getLogger(__name__)
 
 
 def find_files(directory, ext='wav'):
@@ -33,16 +30,6 @@ def ensure_dir_for_filename(filename: str):
 def ensures_dir(directory: str):
     if len(directory) > 0 and not os.path.exists(directory):
         os.makedirs(directory)
-
-
-def split(arr, size):
-    arrays = []
-    while len(arr) > size:
-        slice_ = arr[:size]
-        arrays.append(slice_)
-        arr = arr[size:]
-    arrays.append(arr)
-    return arrays
 
 
 class ClickType:
