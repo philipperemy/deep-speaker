@@ -79,11 +79,11 @@ def build_keras_inputs(working_dir):
 @click.option('--loss_on_softmax/--no_loss_on_softmax', default=False, show_default=True)
 @click.option('--loss_on_embeddings/--no_loss_on_embeddings', default=False, show_default=True)
 @click.option('--normalize_embeddings/--normalize_embeddings', default=False, show_default=True)
-def train_model(working_dir):
+def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embeddings):
     # 1/ --loss_on_softmax
     # 2/ --loss_on_embeddings --normalize_embeddings
     kc = KerasConverter(working_dir)
-    start_training(kc)
+    start_training(kc, loss_on_softmax, loss_on_embeddings, normalize_embeddings)
 
 
 if __name__ == '__main__':

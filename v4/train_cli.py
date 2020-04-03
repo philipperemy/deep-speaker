@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow.keras.backend as K
 from natsort import natsorted
 from tensorflow.keras import Input, Model
-from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint, Callback
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.layers import Dense, Lambda, Flatten
 from tensorflow.keras.optimizers import Adam
@@ -173,11 +173,11 @@ def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_
           callbacks=[early_stopping, reduce_lr, checkpoint])
 
 
-def start_training(kc: KerasConverter):
-    loss_on_softmax = True
-    loss_on_embeddings = True
+def start_training(kc: KerasConverter, loss_on_softmax, loss_on_embeddings, normalize_embeddings):
+    # loss_on_softmax = True
+    # loss_on_embeddings = True
     freeze_embedding_weights = False
-    normalize_embeddings = True
+    # normalize_embeddings = True
     if not os.path.exists(CHECKPOINTS_DIR):
         os.makedirs(CHECKPOINTS_DIR)
 
