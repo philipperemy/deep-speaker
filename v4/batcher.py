@@ -7,6 +7,7 @@ import dill
 import numpy as np
 from keras.utils import to_categorical
 from python_speech_features import fbank, delta
+from tqdm import tqdm
 
 from audio import extract_speaker_id
 from constants import SAMPLE_RATE, TRAIN_TEST_RATIO
@@ -26,12 +27,17 @@ def mfcc_fbank(sig=np.random.uniform(size=32000), target_sample_rate=8000):
 
 def features(audio_entities, n):
     feat = []
-    for _ in range(n):
-        audio_entity = np.random.choice(audio_entities)
-        voice_only_signal = audio_entity['audio_voice_only']
-        cut = choice(range(SAMPLE_RATE // 10))
-        signal_to_process = voice_only_signal[cut:]
-        feat.append(mfcc_fbank(signal_to_process, SAMPLE_RATE))
+    count = 0
+    while count < n:
+        try:
+            audio_entity = np.random.choice(audio_entities)
+            voice_only_signal = audio_entity['audio_voice_only']
+            cut = choice(range(SAMPLE_RATE // 10))
+            signal_to_process = voice_only_signal[cut:]
+            feat.append(mfcc_fbank(signal_to_process, SAMPLE_RATE))
+            count += 1
+        except IndexError:  # happens if signal is too small.
+            pass
     return np.array(feat)
 
 
@@ -60,32 +66,33 @@ class KerasConverter:
             with open(file, 'rb') as r:
                 return dill.load(r)
 
+        def load2(file):
+            if not os.path.exists(file):
+                return None
+            return np.load(file)
+
         self.categorical_speakers = load(os.path.join(self.output_dir, 'categorical_speakers.pkl'))
-        self.kx_train = load(os.path.join(self.output_dir, 'kx_train.pkl'))
-        self.kx_test = load(os.path.join(self.output_dir, 'kx_test.pkl'))
-        self.ky_train = load(os.path.join(self.output_dir, 'ky_train.pkl'))
-        self.ky_test = load(os.path.join(self.output_dir, 'ky_test.pkl'))
+        self.kx_train = load2(os.path.join(self.output_dir, 'kx_train.npy'))
+        self.kx_test = load2(os.path.join(self.output_dir, 'kx_test.npy'))
+        self.ky_train = load2(os.path.join(self.output_dir, 'ky_train.npy'))
+        self.ky_test = load2(os.path.join(self.output_dir, 'ky_test.npy'))
 
     def persist_to_disk(self):
         with open(os.path.join(self.output_dir, 'categorical_speakers.pkl'), 'wb') as w:
             dill.dump(self.categorical_speakers, w)
-        with open(os.path.join(self.output_dir, 'kx_train.pkl'), 'wb') as w:
-            dill.dump(self.kx_train, w)
-        with open(os.path.join(self.output_dir, 'kx_test.pkl'), 'wb') as w:
-            dill.dump(self.kx_test, w)
-        with open(os.path.join(self.output_dir, 'ky_train.pkl'), 'wb') as w:
-            dill.dump(self.ky_train, w)
-        with open(os.path.join(self.output_dir, 'ky_test.pkl'), 'wb') as w:
-            dill.dump(self.ky_test, w)
+        np.save(os.path.join(self.output_dir, 'kx_train.npy'), self.kx_train)
+        np.save(os.path.join(self.output_dir, 'kx_test.npy'), self.kx_test)
+        np.save(os.path.join(self.output_dir, 'ky_train.npy'), self.ky_train)
+        np.save(os.path.join(self.output_dir, 'ky_test.npy'), self.ky_test)
 
-    def convert(self, max_length=28):  # say xx fbank frames for now bitch.
+    def convert(self, max_length=28):  # TODO: say xx fbank frames for now bitch.
         fbank_files = os.path.join(self.working_dir, 'fbank-inputs')
         speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
         categorical_speakers = OneHotSpeakers(speakers_list)
 
         # num_samples = len(speakers_list) *
         kx_train, ky_train, kx_test, ky_test = None, None, None, None
-        for speaker_id in categorical_speakers.get_speaker_ids():
+        for speaker_id in tqdm(categorical_speakers.get_speaker_ids(), desc='Converting to Keras format'):
             with open(os.path.join(self.working_dir, 'fbank-inputs', speaker_id + '.pkl'), 'rb') as r:
                 d = dill.load(r)
             y = categorical_speakers.get_one_hot(d['speaker_id'])
@@ -95,11 +102,12 @@ class KerasConverter:
                 num_samples_test = len(speakers_list) * len(d['test'])
 
                 # 64 fbanks 3 channels.
-                kx_train = np.zeros((num_samples_train, max_length, 64, 3))
-                ky_train = np.zeros((num_samples_train, len(speakers_list)))
+                # float32
+                kx_train = np.zeros((num_samples_train, max_length, 64, 3), dtype=np.float32)
+                ky_train = np.zeros((num_samples_train, len(speakers_list)), dtype=np.float32)
 
-                kx_test = np.zeros((num_samples_test, max_length, 64, 3))
-                ky_test = np.zeros((num_samples_test, len(speakers_list)))
+                kx_test = np.zeros((num_samples_test, max_length, 64, 3), dtype=np.float32)
+                ky_test = np.zeros((num_samples_test, len(speakers_list)), dtype=np.float32)
 
                 print(f'kx_train.shape = {kx_train.shape}')
                 print(f'kx_test.shape = {kx_test.shape}')
@@ -107,14 +115,23 @@ class KerasConverter:
                 print(f'ky_test.shape = {ky_test.shape}')
 
             for i, x_train_elt in enumerate(d['train']):
-                st = choice(range(0, len(x_train_elt) - max_length + 1))
-                kx_train[i] = x_train_elt[st:st + max_length]
-                ky_train[i] = y
+                if len(x_train_elt) >= max_length:
+                    st = choice(range(0, len(x_train_elt) - max_length + 1))
+                    kx_train[i] = x_train_elt[st:st + max_length]
+                    ky_train[i] = y
+                else:
+                    # simple for now.
+                    kx_train[i] = kx_train[i - 1]
+                    ky_train[i] = ky_train[i - 1]
 
             for i, x_test_elt in enumerate(d['test']):
-                st = choice(range(0, len(x_test_elt) - max_length + 1))
-                kx_test[i] = x_test_elt[st:st + max_length]
-                ky_test[i] = y
+                if len(x_test_elt) >= max_length:
+                    st = choice(range(0, len(x_test_elt) - max_length + 1))
+                    kx_test[i] = x_test_elt[st:st + max_length]
+                    ky_test[i] = y
+                else:
+                    kx_test[i] = kx_test[i - 1]
+                    ky_test[i] = ky_test[i - 1]
 
         self.categorical_speakers = categorical_speakers
         self.kx_train, self.ky_train, self.kx_test, self.ky_test = kx_train, ky_train, kx_test, ky_test
