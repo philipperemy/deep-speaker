@@ -90,6 +90,7 @@ class KerasConverter:
         speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
         categorical_speakers = OneHotSpeakers(speakers_list)
         kx_train, ky_train, kx_test, ky_test = None, None, None, None
+        c_train, c_test = 0, 0
         for speaker_id in tqdm(categorical_speakers.get_speaker_ids(), desc='Converting to Keras format'):
             with open(os.path.join(self.working_dir, 'fbank-inputs', speaker_id + '.pkl'), 'rb') as r:
                 d = dill.load(r)
@@ -112,27 +113,31 @@ class KerasConverter:
                 print(f'ky_train.shape = {ky_train.shape}')
                 print(f'ky_test.shape = {ky_test.shape}')
 
-            for i, x_train_elt in enumerate(d['train']):
+            for x_train_elt in d['train']:
                 if len(x_train_elt) >= max_length:
                     st = choice(range(0, len(x_train_elt) - max_length + 1))
-                    kx_train[i] = x_train_elt[st:st + max_length]
-                    ky_train[i] = y
+                    kx_train[c_train] = x_train_elt[st:st + max_length]
+                    ky_train[c_train] = y
                 else:
                     # simple for now.
-                    logger.info(f'Too small {i}.')
-                    kx_train[i] = kx_train[i - 1]
-                    ky_train[i] = ky_train[i - 1]
+                    logger.info(f'Too small {c_train}.')
+                    kx_train[c_train] = kx_train[c_train - 1]
+                    ky_train[c_train] = ky_train[c_train - 1]
+                c_train += 1
 
-            for i, x_test_elt in enumerate(d['test']):
+            for x_test_elt in d['test']:
                 if len(x_test_elt) >= max_length:
                     st = choice(range(0, len(x_test_elt) - max_length + 1))
-                    kx_test[i] = x_test_elt[st:st + max_length]
-                    ky_test[i] = y
+                    kx_test[c_test] = x_test_elt[st:st + max_length]
+                    ky_test[c_test] = y
                 else:
-                    logger.info(f'Too small {i}.')
-                    kx_test[i] = kx_test[i - 1]
-                    ky_test[i] = ky_test[i - 1]
+                    logger.info(f'Too small {c_test}.')
+                    kx_test[c_test] = kx_test[c_test - 1]
+                    ky_test[c_test] = ky_test[c_test - 1]
+                c_test += 1
 
+        assert c_train == len(ky_train)
+        assert c_test == len(ky_test)
         self.categorical_speakers = categorical_speakers
         self.kx_train, self.ky_train, self.kx_test, self.ky_test = kx_train, ky_train, kx_test, ky_test
 
