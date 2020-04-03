@@ -36,22 +36,22 @@ def deep_speaker_loss(y_true, y_pred):
     # _____________________________________________________
 
     elements = int(K.int_shape(y_pred)[0] / 3)
-    logging.info('elements={}'.format(elements))
+    # logging.info('elements={}'.format(elements))
 
     anchor = y_pred[0:elements]
     positive_ex = y_pred[elements:2 * elements]
     negative_ex = y_pred[2 * elements:]
-    logging.info('anchor={}'.format(anchor))
-    logging.info('positive_ex={}'.format(positive_ex))
-    logging.info('negative_ex={}'.format(negative_ex))
+    # logging.info('anchor={}'.format(anchor))
+    # logging.info('positive_ex={}'.format(positive_ex))
+    # logging.info('negative_ex={}'.format(negative_ex))
 
     sap = batch_cosine_similarity(anchor, positive_ex)
-    logging.info('sap={}'.format(sap))
+    # logging.info('sap={}'.format(sap))
     san = batch_cosine_similarity(anchor, negative_ex)
-    logging.info('san={}'.format(san))
+    # logging.info('san={}'.format(san))
     loss = K.maximum(san - sap + alpha, 0.0)
-    logging.info('loss={}'.format(loss))
+    # logging.info('loss={}'.format(loss))
     # total_loss = K.sum(loss)
     total_loss = K.mean(loss)
-    logging.info('total_loss={}'.format(total_loss))
+    # logging.info('total_loss={}'.format(total_loss))
     return total_loss
