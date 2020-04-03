@@ -76,7 +76,10 @@ def build_keras_inputs(working_dir):
 
 @cli.command('train-model', short_help='Train a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-def build_keras_inputs(working_dir):
+@click.option('--loss_on_softmax/--no_loss_on_softmax', default=False, show_default=True)
+@click.option('--loss_on_embeddings/--no_loss_on_embeddings', default=False, show_default=True)
+@click.option('--normalize_embeddings/--normalize_embeddings', default=False, show_default=True)
+def train_model(working_dir):
     # 1/ --loss_on_softmax
     # 2/ --loss_on_embeddings --normalize_embeddings
     kc = KerasConverter(working_dir)
