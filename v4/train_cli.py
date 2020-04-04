@@ -11,8 +11,8 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.layers import Dense, Lambda, Flatten
 from tensorflow.keras.optimizers import Adam
 
-from batcher import KerasConverter
-from constants import BATCH_SIZE, CHECKPOINTS_DIR, NUM_FRAMES, NUM_FBANKS
+from batcher import KerasConverter, TripletBatcher
+from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
 from triplet_loss import deep_speaker_loss
 
 
@@ -61,7 +61,7 @@ def compile_triplet_softmax_model(m: Model, loss_on_softmax=True, loss_on_embedd
 def fit_model(m, kx_train, ky_train, kx_test, ky_test,
               batch_size=BATCH_SIZE, max_grad_steps=1000000, initial_epoch=0):
     # TODO: use this callback checkpoint.
-    # checkpoint = ModelCheckpoint(monitor='val_acc', filepath='checkpoints/model_{epoch:02d}_{val_acc:.3f}.h5',
+    # checkpoint = ModelCheckpoint(monitor='val_acc', filepath='checkpoints/model_{grad_step:02d}_{val_acc:.3f}.h5',
     #                              save_best_only=True)
     # if the accuracy does not increase by 1.0% over 10 epochs, we stop the training.
     # early_stopping = EarlyStopping(monitor='val_acc', min_delta=0.01, patience=100, verbose=1, mode='max')
@@ -73,74 +73,48 @@ def fit_model(m, kx_train, ky_train, kx_test, ky_test,
     # negative = second one.
     # order is [anchor, positive, negative].
 
-    def select_inputs_and_outputs_for_speaker(x, y, speaker_id_):
-        indices = np.random.choice(np.where(y.argmax(axis=1) == speaker_id_)[0], size=batch_size // 3)
-        return x[indices], y[indices]
+    triplet_batcher = TripletBatcher(kx_train, ky_train, kx_test, ky_test)
 
-    print()
-    print()
-    assert sorted(set(ky_test.argmax(axis=1))) == sorted(set(ky_train.argmax(axis=1)))
-    num_different_speakers = len(set(ky_train.argmax(axis=1)))
-    print('num different speakers =', num_different_speakers)
-    deque_size = 100
+    test_every = 10
+    deque_size = 200
     train_overall_loss_emb = deque(maxlen=deque_size)
     test_overall_loss_emb = deque(maxlen=deque_size)
-    train_overall_loss_softmax = deque(maxlen=deque_size)
-    test_overall_loss_softmax = deque(maxlen=deque_size)
-    # TODO: not very much epoch here.
-    for epoch in range(initial_epoch, max_grad_steps):
-        two_different_speakers = np.random.choice(range(num_different_speakers), size=2, replace=False)
-        anchor_positive_speaker = two_different_speakers[0]
-        # negative_speaker = two_different_speakers[0]
-        negative_speaker = two_different_speakers[1]
-        assert negative_speaker != anchor_positive_speaker
+    loss_file = open(os.path.join(CHECKPOINTS_TRIPLET_DIR, 'losses.txt'), 'w')
 
-        train_inputs_outputs = [
-            select_inputs_and_outputs_for_speaker(kx_train, ky_train, anchor_positive_speaker),
-            select_inputs_and_outputs_for_speaker(kx_train, ky_train, anchor_positive_speaker),
-            select_inputs_and_outputs_for_speaker(kx_train, ky_train, negative_speaker)
-        ]
-        inputs = np.vstack([v[0] for v in train_inputs_outputs])
-        outputs = np.vstack([v[1] for v in train_inputs_outputs])
+    for grad_step in range(initial_epoch, max_grad_steps):
 
-        train_loss = m.train_on_batch(inputs, {'embeddings': outputs * 0, 'softmax': outputs})
-        train_loss = dict(zip(m.metrics_names, train_loss))
+        if grad_step % test_every == 0:
+            batch_x, batch_y = triplet_batcher.get_batch(batch_size, is_test=False)
+            test_loss_values = m.test_on_batch(x=batch_x, y=batch_y)
+            test_loss = dict(zip(m.metrics_names, test_loss_values))
+            test_overall_loss_emb.append(test_loss['embeddings_loss'])
+
+        batch_x, batch_y = triplet_batcher.get_batch(batch_size, is_test=True)
+        train_loss_values = m.train_on_batch(x=batch_x, y=batch_y)
+        train_loss = dict(zip(m.metrics_names, train_loss_values))
         train_overall_loss_emb.append(train_loss['embeddings_loss'])
-        train_overall_loss_softmax.append(train_loss['softmax_loss'])
 
-        test_inputs_outputs = [
-            select_inputs_and_outputs_for_speaker(kx_test, ky_test, anchor_positive_speaker),
-            select_inputs_and_outputs_for_speaker(kx_test, ky_test, anchor_positive_speaker),
-            select_inputs_and_outputs_for_speaker(kx_test, ky_test, negative_speaker)
-        ]
+        if grad_step % deque_size == 0:
+            format_str = 'step: {0:,}, train_loss: {1:.4f}, test_loss: {2:.4f}.'
+            tr_mean_loss = np.mean(train_overall_loss_emb)
+            te_mean_loss = np.mean(test_overall_loss_emb)
+            print(format_str.format(grad_step, tr_mean_loss, te_mean_loss, deque_size))
+            loss_file.write(','.join([str(grad_step), f'{tr_mean_loss:.4f}', f'{te_mean_loss:.4f}']) + '\n')
+            loss_file.flush()
 
-        test_inputs = np.vstack([v[0] for v in test_inputs_outputs])
-        test_outputs = np.vstack([v[1] for v in test_inputs_outputs])
-
-        test_loss = m.test_on_batch(test_inputs, {'embeddings': test_outputs * 0, 'softmax': test_outputs})
-        test_loss = dict(zip(m.metrics_names, test_loss))
-        test_overall_loss_emb.append(test_loss['embeddings_loss'])
-        test_overall_loss_softmax.append(test_loss['softmax_loss'])
-
-        if epoch % 10 == 0:
-            format_str = '{0}, train(emb, last {3}) = {1:.5f} test(emb, last {3}) = {2:.5f}.'
-            print(format_str.format(str(epoch).zfill(6),
-                                    np.mean(train_overall_loss_emb),
-                                    np.mean(test_overall_loss_emb),
-                                    deque_size))
-
-        if epoch % 100 == 0:
-            print('train metrics =', train_loss)
-            print('test metrics =', test_loss)
-            m.save_weights(f'{CHECKPOINTS_DIR}/unified_model_checkpoints_{epoch}.h5', overwrite=True)
-            print('Last two speakers were {} and {}.'.format(anchor_positive_speaker, negative_speaker))
+        if grad_step % 10_000 == 0:
             print('Saving...')
+            checkpoint_file = os.path.join(CHECKPOINTS_TRIPLET_DIR, f'triplet_model_{grad_step}.h5')
+            m.save_weights(checkpoint_file, overwrite=True)
+
+    loss_file.close()
 
 
 def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_SIZE, max_epochs=1000, initial_epoch=0):
-    checkpoint = ModelCheckpoint(filepath=CHECKPOINTS_DIR + '/unified_model_checkpoints_{epoch}.h5', period=10)
+    checkpoint = ModelCheckpoint(filepath=CHECKPOINTS_SOFTMAX_DIR + '/unified_model_checkpoints_{epoch}.h5', period=10)
     # if the accuracy does not increase by 1.0% over 10 epochs, we stop the training.
-    early_stopping = EarlyStopping(monitor='val_softmax_accuracy', min_delta=0.01, patience=100, verbose=1, mode='max')
+    # 100 was the value before.
+    early_stopping = EarlyStopping(monitor='val_softmax_accuracy', min_delta=0.01, patience=10, verbose=1, mode='max')
 
     # if the accuracy does not increase over 10 epochs, we reduce the learning rate by half.
     reduce_lr = ReduceLROnPlateau(monitor='val_softmax_accuracy', factor=0.5, patience=10, min_lr=0.0001, verbose=1)
@@ -175,8 +149,10 @@ def start_training(kc: KerasConverter, loss_on_softmax, loss_on_embeddings, norm
     # loss_on_embeddings = True
     freeze_embedding_weights = False
     # normalize_embeddings = True
-    if not os.path.exists(CHECKPOINTS_DIR):
-        os.makedirs(CHECKPOINTS_DIR)
+    if not os.path.exists(CHECKPOINTS_SOFTMAX_DIR):
+        os.makedirs(CHECKPOINTS_SOFTMAX_DIR)
+    if not os.path.exists(CHECKPOINTS_TRIPLET_DIR):
+        os.makedirs(CHECKPOINTS_TRIPLET_DIR)
 
     if not loss_on_softmax and not loss_on_embeddings:
         print('Please provide at least --loss_on_softmax or --loss_on_embeddings.')
@@ -194,7 +170,7 @@ def start_training(kc: KerasConverter, loss_on_softmax, loss_on_embeddings, norm
         normalize_embeddings=normalize_embeddings
     )
 
-    checkpoints = natsorted(glob(os.path.join(CHECKPOINTS_DIR, '*.h5')))
+    checkpoints = natsorted(glob(os.path.join(CHECKPOINTS_SOFTMAX_DIR, '*.h5')))
 
     compile_triplet_softmax_model(m, loss_on_softmax, loss_on_embeddings)
     print(m.summary())

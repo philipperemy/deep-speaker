@@ -264,3 +264,53 @@ class OneHotSpeakers:
 
     def get_speaker_ids(self):
         return self.speaker_ids
+
+
+class TripletBatcher:
+
+    def __init__(self, kx_train, ky_train, kx_test, ky_test):
+        self.kx_train = kx_train
+        self.ky_train = ky_train
+        self.kx_test = kx_test
+        self.ky_test = ky_test
+
+        speakers_list = sorted(set(ky_train.argmax(axis=1)))
+        num_different_speakers = len(speakers_list)
+        assert speakers_list == sorted(set(ky_test.argmax(axis=1)))  # train speakers = test speakers.
+        assert speakers_list == list(range(num_different_speakers))
+        self.train_indices_per_speaker = {}
+        self.test_indices_per_speaker = {}
+
+        for speaker_id in speakers_list:
+            self.train_indices_per_speaker[speaker_id] = list(np.where(ky_train.argmax(axis=1) == speaker_id)[0])
+            self.test_indices_per_speaker[speaker_id] = list(np.where(ky_test.argmax(axis=1) == speaker_id)[0])
+
+        # check.
+        # print(sorted(sum([v for v in self.train_indices_per_speaker.values()], [])))
+        # print(range(len(ky_train)))
+        assert sorted(sum([v for v in self.train_indices_per_speaker.values()], [])) == sorted(range(len(ky_train)))
+        assert sorted(sum([v for v in self.test_indices_per_speaker.values()], [])) == sorted(range(len(ky_test)))
+        self.speakers_list = speakers_list
+
+    def select_speaker_data(self, x, speaker, batch_size, is_test):
+        indices_per_speaker = self.test_indices_per_speaker if is_test else self.train_indices_per_speaker
+        indices = np.random.choice(indices_per_speaker[speaker], size=batch_size // 3)
+        return x[indices]
+
+    def get_batch(self, batch_size, is_test=False):
+        x = self.kx_test if is_test else self.kx_train
+        # y = self.ky_test if is_test else self.ky_train
+
+        two_different_speakers = np.random.choice(self.speakers_list, size=2, replace=False)
+        anchor_positive_speaker = two_different_speakers[0]
+        negative_speaker = two_different_speakers[1]
+        assert negative_speaker != anchor_positive_speaker
+
+        x = np.vstack([
+            self.select_speaker_data(x, anchor_positive_speaker, batch_size, is_test),
+            self.select_speaker_data(x, anchor_positive_speaker, batch_size, is_test),
+            self.select_speaker_data(x, negative_speaker, batch_size, is_test)
+        ])
+
+        y = np.zeros(shape=(len(x), len(self.speakers_list)))
+        return x, {'embeddings': y, 'softmax': y}

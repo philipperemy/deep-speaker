@@ -5,7 +5,9 @@ SAMPLE_RATE = 16000  # not higher than that otherwise we may have errors when co
 # Train/Test sets share the same speakers. They contain different utterances.
 TRAIN_TEST_RATIO = 0.8
 
-CHECKPOINTS_DIR = 'checkpoints'
+CHECKPOINTS_SOFTMAX_DIR = 'checkpoints-softmax'
+
+CHECKPOINTS_TRIPLET_DIR = 'checkpoints-triplets'
 
 BATCH_SIZE = 20 * 3  # have to be a multiple of 3.
 
