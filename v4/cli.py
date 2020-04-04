@@ -87,6 +87,7 @@ def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embe
     # We can easily get:
     # 011230, train(emb, last 100) = 0.37317 test(emb, last 100) = 0.37739
 
+    # (5000, 500) gives great results. (1000, 100) we stall at 0.965. Patience is only 10.
     # On all VCTK Corpus with LeNet, 0.98 without doing much.
     kc = KerasConverter(working_dir)
     start_training(kc, loss_on_softmax, loss_on_embeddings, normalize_embeddings)
