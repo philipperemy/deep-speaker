@@ -48,21 +48,19 @@ def build_audio_cache(audio_dir, working_dir, sample_rate, parallel):
 @click.option('--audio_dir', required=True, type=Ct.input_dir())
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-def build_inputs_cache(audio_dir, working_dir, sample_rate, parallel):
-    # TODO: funny enough. This seems to be parallel by default with one process.
-    # So no parallel?
+def build_inputs_cache(audio_dir, working_dir, sample_rate):
     audio_reader = Audio(
         input_audio_dir=audio_dir,
         output_working_dir=working_dir,
         sample_rate=sample_rate,
-        multi_threading=parallel
+        multi_threading=False
     )
     inputs_generator = FBankProcessor(
         working_dir=working_dir,
         audio_reader=audio_reader,
         counts_per_speaker=(3000, 500),  # train, test.
         speakers_sub_list=None,
-        parallel=parallel
+        parallel=False
     )
     inputs_generator.generate()
 
@@ -88,6 +86,8 @@ def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embe
     # 2/ --loss_on_embeddings --normalize_embeddings
     # We can easily get:
     # 011230, train(emb, last 100) = 0.37317 test(emb, last 100) = 0.37739
+
+    # On all VCTK Corpus with LeNet, 0.955 without doing much.
     kc = KerasConverter(working_dir)
     start_training(kc, loss_on_softmax, loss_on_embeddings, normalize_embeddings)
 

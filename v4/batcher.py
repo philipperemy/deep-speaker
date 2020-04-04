@@ -34,6 +34,8 @@ def features(audio_entities, n):
             voice_only_signal = audio_entity['audio_voice_only']
             cut = choice(range(SAMPLE_RATE // 10))
             signal_to_process = voice_only_signal[cut:]
+            # with default params, winlen=0.025,winstep=0.01
+            # 1 seconds ~ 100 frames.
             mfcc_samples.append(mfcc_fbank(signal_to_process, SAMPLE_RATE))
             count += 1
         except IndexError:  # happens if signal is too small.
@@ -102,11 +104,11 @@ class KerasConverter:
 
                 # 64 fbanks 3 channels.
                 # float32
-                kx_train = np.zeros((num_samples_train, max_length, NUM_FBANKS, 3))
-                ky_train = np.zeros((num_samples_train, len(speakers_list)))
+                kx_train = np.zeros((num_samples_train, max_length, NUM_FBANKS, 3), dtype=np.float32)
+                ky_train = np.zeros((num_samples_train, len(speakers_list)), dtype=np.float32)
 
-                kx_test = np.zeros((num_samples_test, max_length, NUM_FBANKS, 3))
-                ky_test = np.zeros((num_samples_test, len(speakers_list)))
+                kx_test = np.zeros((num_samples_test, max_length, NUM_FBANKS, 3), dtype=np.float32)
+                ky_test = np.zeros((num_samples_test, len(speakers_list)), dtype=np.float32)
 
                 print(f'kx_train.shape = {kx_train.shape}')
                 print(f'kx_test.shape = {kx_test.shape}')
