@@ -146,7 +146,7 @@ class KerasConverter:
 
 class FBankProcessor:
 
-    def __init__(self, working_dir, audio_reader, count_per_speaker=50,
+    def __init__(self, working_dir, audio_reader, count_per_speaker=(3000, 500),
                  speakers_sub_list=None, parallel=False):
         self.working_dir = os.path.expanduser(working_dir)
         self.audio_reader = audio_reader
@@ -184,9 +184,9 @@ class FBankProcessor:
         audio_entities_train = audio_entities[0:cutoff]
         audio_entities_test = audio_entities[cutoff:]
 
-        train = features(audio_entities_train, self.count_per_speaker)
-        test = features(audio_entities_test, self.count_per_speaker)
-        logger.info(f'Generated {self.count_per_speaker}/{self.count_per_speaker} '
+        train = features(audio_entities_train, self.count_per_speaker[0])
+        test = features(audio_entities_test, self.count_per_speaker[1])
+        logger.info(f'Generated {self.count_per_speaker[0]}/{self.count_per_speaker[1]} '
                     f'fbank inputs (train/test) for speaker {speaker_id}.')
 
         # TODO: check that.

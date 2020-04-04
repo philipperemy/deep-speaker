@@ -61,7 +61,7 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate, parallel):
     inputs_generator = FBankProcessor(
         working_dir=working_dir,
         audio_reader=audio_reader,
-        count_per_speaker=3000,
+        count_per_speaker=(3000, 500),
         speakers_sub_list=None,
         parallel=parallel
     )
