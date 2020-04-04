@@ -42,12 +42,11 @@ def normalize(list_matrices, mean, std):
 
 class KerasConverter:
 
-    def __init__(self, working_dir, counts_per_speaker):
+    def __init__(self, working_dir):
         self.working_dir = working_dir
         self.output_dir = os.path.join(self.working_dir, 'keras-inputs')
         ensures_dir(self.output_dir)
         self.categorical_speakers = None
-        self.counts_per_speaker = counts_per_speaker
         self.kx_train = None
         self.kx_test = None
         self.ky_train = None
@@ -81,21 +80,22 @@ class KerasConverter:
         np.save(os.path.join(self.output_dir, 'ky_train.npy'), self.ky_train)
         np.save(os.path.join(self.output_dir, 'ky_test.npy'), self.ky_test)
 
-    def generate(self, max_length=NUM_FRAMES):
+    def generate(self, max_length=NUM_FRAMES, counts_per_speaker=(3000, 500)):
         # TODO: use self.counts_per_speaker
         fbank_files = os.path.join(self.working_dir, 'fbank-inputs')
         speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
         categorical_speakers = OneHotSpeakers(speakers_list)
         kx_train, ky_train, kx_test, ky_test = None, None, None, None
         c_train, c_test = 0, 0
+        invalid_c_train, invalid_c_test = 0, 0
         for speaker_id in tqdm(categorical_speakers.get_speaker_ids(), desc='Converting to Keras format'):
             with open(os.path.join(self.working_dir, 'fbank-inputs', speaker_id + '.pkl'), 'rb') as r:
                 d = dill.load(r)
             y = categorical_speakers.get_one_hot(d['speaker_id'])
 
             if kx_train is None:
-                num_samples_train = len(speakers_list) * self.counts_per_speaker[0]
-                num_samples_test = len(speakers_list) * self.counts_per_speaker[1]
+                num_samples_train = len(speakers_list) * counts_per_speaker[0]
+                num_samples_test = len(speakers_list) * counts_per_speaker[1]
 
                 # 64 fbanks 3 channels.
                 # float32
@@ -110,7 +110,7 @@ class KerasConverter:
             cond = True
             while cond:
                 for x_train_elt in d['train']:
-                    if c >= self.counts_per_speaker[0]:
+                    if c >= counts_per_speaker[0]:
                         cond = False
                         break
                     if len(x_train_elt) >= max_length:
@@ -119,9 +119,12 @@ class KerasConverter:
                         ky_train[c_train] = y
                     else:
                         # simple for now.
-                        logger.info(f'Too small {c_train}.')
-                        kx_train[c_train] = kx_train[c_train - 1]
-                        ky_train[c_train] = ky_train[c_train - 1]
+                        invalid_c_train += 1
+                        try:
+                            kx_train[c_train] = kx_train[c_train - 1]
+                            ky_train[c_train] = ky_train[c_train - 1]
+                        except IndexError:
+                            pass
                     c_train += 1
                     c += 1
 
@@ -130,7 +133,7 @@ class KerasConverter:
             cond = True
             while cond:
                 for x_test_elt in d['test']:
-                    if c >= self.counts_per_speaker[1]:
+                    if c >= counts_per_speaker[1]:
                         cond = False
                         break
                     if len(x_test_elt) >= max_length:
@@ -138,10 +141,12 @@ class KerasConverter:
                         kx_test[c_test] = x_test_elt[st:st + max_length]
                         ky_test[c_test] = y
                     else:
-                        # simple for now.
-                        logger.info(f'Too small {c_test}.')
-                        kx_test[c_test] = kx_test[c_test - 1]
-                        ky_test[c_test] = ky_test[c_test - 1]
+                        invalid_c_test += 1
+                        try:
+                            kx_test[c_test] = kx_test[c_test - 1]
+                            ky_test[c_test] = ky_test[c_test - 1]
+                        except IndexError:
+                            pass
                     c_test += 1
                     c += 1
 
@@ -149,6 +154,20 @@ class KerasConverter:
         logger.info(f'kx_test.shape = {kx_test.shape}')
         logger.info(f'ky_train.shape = {ky_train.shape}')
         logger.info(f'ky_test.shape = {ky_test.shape}')
+
+        mix_ratio_train = (c_train - invalid_c_train) / c_train
+        mix_ratio_test = (c_test - invalid_c_test) / c_test
+        logger.info(f'Mix ratio train (1 is perfect): {mix_ratio_train:.4f}.')
+        logger.info(f'Mix ratio test (1 is perfect): {mix_ratio_test:.4f}.')
+
+        if mix_ratio_train < 0.9:
+            logger.warning(f'Low mix ratio for train: Set a lower value for NUM_FRAMES.')
+            exit(1)
+
+        if mix_ratio_test < 0.9:
+            logger.warning(f'Low mix ratio for test: Set a lower value for NUM_FRAMES.')
+            exit(1)
+
         assert c_train == len(ky_train)
         assert c_test == len(ky_test)
         self.categorical_speakers = categorical_speakers

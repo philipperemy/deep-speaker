@@ -7,7 +7,7 @@ import click
 
 from audio import Audio
 from batcher import KerasConverter, FBankProcessor
-from constants import SAMPLE_RATE
+from constants import SAMPLE_RATE, NUM_FRAMES
 from train_cli import start_training
 from utils import ClickType as Ct
 from utils import init_pandas, create_new_empty_dir
@@ -44,7 +44,7 @@ def build_audio_cache(audio_dir, working_dir, sample_rate, parallel):
     audio_reader.build_cache()
 
 
-@cli.command('build-inputs-cache', short_help='Build model inputs cache.')
+@cli.command('build-mfcc-cache', short_help='Build model inputs cache.')
 @click.option('--audio_dir', required=True, type=Ct.input_dir())
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
@@ -67,9 +67,9 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate):
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 def build_keras_inputs(working_dir):
-    counts_per_speaker = (3000, 500)  # train, test.
-    kc = KerasConverter(working_dir, counts_per_speaker)
-    kc.generate()
+    counts_per_speaker = (5000, 500)  # train, test.
+    kc = KerasConverter(working_dir)
+    kc.generate(max_length=NUM_FRAMES, counts_per_speaker=counts_per_speaker)
     kc.persist_to_disk()
 
 
@@ -87,7 +87,7 @@ def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embe
     # We can easily get:
     # 011230, train(emb, last 100) = 0.37317 test(emb, last 100) = 0.37739
 
-    # On all VCTK Corpus with LeNet, 0.955 without doing much.
+    # On all VCTK Corpus with LeNet, 0.98 without doing much.
     kc = KerasConverter(working_dir)
     start_training(kc, loss_on_softmax, loss_on_embeddings, normalize_embeddings)
 

@@ -138,8 +138,7 @@ def fit_model(m, kx_train, ky_train, kx_test, ky_test,
 
 
 def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_SIZE, max_epochs=1000, initial_epoch=0):
-    checkpoint = ModelCheckpoint(filepath=CHECKPOINTS_DIR + '/unified_model_checkpoints_{epoch}.h5',
-                                 period=10)
+    checkpoint = ModelCheckpoint(filepath=CHECKPOINTS_DIR + '/unified_model_checkpoints_{epoch}.h5', period=10)
     # if the accuracy does not increase by 1.0% over 10 epochs, we stop the training.
     early_stopping = EarlyStopping(monitor='val_softmax_accuracy', min_delta=0.01, patience=100, verbose=1, mode='max')
 
@@ -147,10 +146,8 @@ def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_
     reduce_lr = ReduceLROnPlateau(monitor='val_softmax_accuracy', factor=0.5, patience=10, min_lr=0.0001, verbose=1)
 
     max_len_train = len(kx_train) - len(kx_train) % batch_size
-
     kx_train = kx_train[0:max_len_train]
     ky_train = ky_train[0:max_len_train]
-
     max_len_test = len(kx_test) - len(kx_test) % batch_size
     kx_test = kx_test[0:max_len_test]
     ky_test = ky_test[0:max_len_test]
