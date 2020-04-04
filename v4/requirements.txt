@@ -1,0 +1,13 @@
+dill
+tensorflow
+librosa
+matplotlib
+pandas
+namedtupled
+natsort
+numpy
+python_speech_features
+scikit_learn
+tqdm
+h5py
+click
