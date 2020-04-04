@@ -10,7 +10,7 @@ from python_speech_features import fbank, delta
 from tqdm import tqdm
 
 from audio import extract_speaker_id
-from constants import SAMPLE_RATE, TRAIN_TEST_RATIO
+from constants import SAMPLE_RATE, TRAIN_TEST_RATIO, NUM_FRAMES, NUM_FBANKS, NUM_FBANKS
 from utils import parallel_function, ensures_dir, find_files
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def mfcc_fbank(sig=np.random.uniform(size=32000), target_sample_rate=8000):
     # Returns MFCC with shape (num_frames, n_filters, 3).
-    filter_banks, energies = fbank(sig, samplerate=target_sample_rate, nfilt=64)
+    filter_banks, energies = fbank(sig, samplerate=target_sample_rate, nfilt=NUM_FBANKS)
     delta_1 = delta(filter_banks, N=1)
     delta_2 = delta(delta_1, N=1)
     frames_features = np.transpose(np.stack([filter_banks, delta_1, delta_2]), (1, 2, 0))
@@ -85,7 +85,7 @@ class KerasConverter:
         np.save(os.path.join(self.output_dir, 'ky_train.npy'), self.ky_train)
         np.save(os.path.join(self.output_dir, 'ky_test.npy'), self.ky_test)
 
-    def convert(self, max_length=28):  # TODO: say xx fbank frames for now bitch.
+    def convert(self, max_length=NUM_FRAMES):
         fbank_files = os.path.join(self.working_dir, 'fbank-inputs')
         speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
         categorical_speakers = OneHotSpeakers(speakers_list)
@@ -102,10 +102,10 @@ class KerasConverter:
 
                 # 64 fbanks 3 channels.
                 # float32
-                kx_train = np.zeros((num_samples_train, max_length, 64, 3))
+                kx_train = np.zeros((num_samples_train, max_length, NUM_FBANKS, 3))
                 ky_train = np.zeros((num_samples_train, len(speakers_list)))
 
-                kx_test = np.zeros((num_samples_test, max_length, 64, 3))
+                kx_test = np.zeros((num_samples_test, max_length, NUM_FBANKS, 3))
                 ky_test = np.zeros((num_samples_test, len(speakers_list)))
 
                 print(f'kx_train.shape = {kx_train.shape}')

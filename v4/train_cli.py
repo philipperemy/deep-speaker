@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, Lambda, Flatten
 from tensorflow.keras.optimizers import Adam
 
 from batcher import KerasConverter
-from constants import BATCH_SIZE, CHECKPOINTS_DIR
+from constants import BATCH_SIZE, CHECKPOINTS_DIR, NUM_FRAMES, NUM_FBANKS
 from triplet_loss import deep_speaker_loss
 
 
@@ -191,7 +191,7 @@ def start_training(kc: KerasConverter, loss_on_softmax, loss_on_embeddings, norm
         emb_trainable = False
 
     m = triplet_softmax_model(
-        batch_input_shape=[BATCH_SIZE, 28, 64, 3],
+        batch_input_shape=[BATCH_SIZE, NUM_FRAMES, NUM_FBANKS, 3],
         num_speakers_softmax=len(kc.categorical_speakers.speaker_ids),
         emb_trainable=emb_trainable,
         normalize_embeddings=normalize_embeddings
