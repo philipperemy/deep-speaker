@@ -69,7 +69,7 @@ class Audio:
 
     @staticmethod
     def read(filename, sample_rate=SAMPLE_RATE):
-        audio, sr = librosa.load(filename, sr=sample_rate, mono=True)
+        audio, sr = librosa.load(filename, sr=sample_rate, mono=True, dtype=np.float32)
         assert sr == sample_rate
         return audio
 
