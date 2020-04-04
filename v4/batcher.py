@@ -10,7 +10,7 @@ from python_speech_features import fbank, delta
 from tqdm import tqdm
 
 from audio import extract_speaker_id
-from constants import SAMPLE_RATE, TRAIN_TEST_RATIO, NUM_FRAMES, NUM_FBANKS, NUM_FBANKS
+from constants import SAMPLE_RATE, TRAIN_TEST_RATIO, NUM_FRAMES, NUM_FBANKS
 from utils import parallel_function, ensures_dir, find_files
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ def mfcc_fbank(sig=np.random.uniform(size=32000), target_sample_rate=8000):
 
 
 def features(audio_entities, n):
-    feat = []
+    mfcc_samples = []
     count = 0
     while count < n:
         try:
@@ -34,11 +34,11 @@ def features(audio_entities, n):
             voice_only_signal = audio_entity['audio_voice_only']
             cut = choice(range(SAMPLE_RATE // 10))
             signal_to_process = voice_only_signal[cut:]
-            feat.append(mfcc_fbank(signal_to_process, SAMPLE_RATE))
+            mfcc_samples.append(mfcc_fbank(signal_to_process, SAMPLE_RATE))
             count += 1
         except IndexError:  # happens if signal is too small.
             pass
-    return np.array(feat)
+    return mfcc_samples
 
 
 def normalize(list_matrices, mean, std):
@@ -85,7 +85,7 @@ class KerasConverter:
         np.save(os.path.join(self.output_dir, 'ky_train.npy'), self.ky_train)
         np.save(os.path.join(self.output_dir, 'ky_test.npy'), self.ky_test)
 
-    def convert(self, max_length=NUM_FRAMES):
+    def generate(self, max_length=NUM_FRAMES):
         fbank_files = os.path.join(self.working_dir, 'fbank-inputs')
         speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
         categorical_speakers = OneHotSpeakers(speakers_list)
@@ -141,18 +141,16 @@ class KerasConverter:
         self.categorical_speakers = categorical_speakers
         self.kx_train, self.ky_train, self.kx_test, self.ky_test = kx_train, ky_train, kx_test, ky_test
 
-        return kx_train, ky_train, kx_test, ky_test, categorical_speakers
-
 
 class FBankProcessor:
 
-    def __init__(self, working_dir, audio_reader, count_per_speaker=(3000, 500),
+    def __init__(self, working_dir, audio_reader, counts_per_speaker=(3000, 500),
                  speakers_sub_list=None, parallel=False):
         self.working_dir = os.path.expanduser(working_dir)
         self.audio_reader = audio_reader
         self.parallel = parallel
         self.model_inputs_dir = os.path.join(self.working_dir, 'fbank-inputs')
-        self.count_per_speaker = count_per_speaker
+        self.counts_per_speaker = counts_per_speaker
         ensures_dir(self.model_inputs_dir)
         self.speaker_ids = self.audio_reader.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
 
@@ -184,9 +182,9 @@ class FBankProcessor:
         audio_entities_train = audio_entities[0:cutoff]
         audio_entities_test = audio_entities[cutoff:]
 
-        train = features(audio_entities_train, self.count_per_speaker[0])
-        test = features(audio_entities_test, self.count_per_speaker[1])
-        logger.info(f'Generated {self.count_per_speaker[0]}/{self.count_per_speaker[1]} '
+        train = features(audio_entities_train, self.counts_per_speaker[0])
+        test = features(audio_entities_test, self.counts_per_speaker[1])
+        logger.info(f'Generated {self.counts_per_speaker[0]}/{self.counts_per_speaker[1]} '
                     f'fbank inputs (train/test) for speaker {speaker_id}.')
 
         # TODO: check that.
@@ -203,6 +201,7 @@ class FBankProcessor:
             'mean_train': mean_train,
             'std_train': std_train
         }
+
         with open(output_filename, 'wb') as w:
             dill.dump(obj=inputs, file=w)
         logger.info(f'[DUMP INPUTS] {output_filename}')
@@ -212,7 +211,7 @@ class FBankProcessor:
         audio_entities = list(speaker_cache.values())
         logger.info(f'Generating the inputs necessary for the inference (speaker is {speaker_id})...')
         logger.info('This might take a couple of minutes to complete.')
-        feat = features(audio_entities, self.count_per_speaker)
+        feat = features(audio_entities, self.counts_per_speaker)
         mean = np.mean([np.mean(t) for t in feat])
         std = np.mean([np.std(t) for t in feat])
         feat = normalize(feat, mean, std)

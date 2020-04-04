@@ -48,7 +48,6 @@ def build_audio_cache(audio_dir, working_dir, sample_rate, parallel):
 @click.option('--audio_dir', required=True, type=Ct.input_dir())
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-@click.option('--parallel/--no-parallel', default=False, show_default=True)
 def build_inputs_cache(audio_dir, working_dir, sample_rate, parallel):
     # TODO: funny enough. This seems to be parallel by default with one process.
     # So no parallel?
@@ -61,7 +60,7 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate, parallel):
     inputs_generator = FBankProcessor(
         working_dir=working_dir,
         audio_reader=audio_reader,
-        count_per_speaker=(3000, 500),
+        counts_per_speaker=(3000, 500),  # train, test.
         speakers_sub_list=None,
         parallel=parallel
     )
@@ -72,7 +71,7 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate, parallel):
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 def build_keras_inputs(working_dir):
     kc = KerasConverter(working_dir)
-    kc.convert()
+    kc.generate()
     kc.persist_to_disk()
 
 

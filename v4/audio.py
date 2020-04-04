@@ -37,20 +37,18 @@ class Audio:
         self.multi_threading = multi_threading
         self.cache_pkl_dir = os.path.join(self.working_dir, 'audio_cache')
         self.pkl_filenames = find_files(self.cache_pkl_dir, ext='pkl')
-        self.speaker_ids_to_filename = {}
+        self.speaker_ids_to_filename = defaultdict(list)
 
-        logger.info(f'audio_dir = {self.audio_dir}')
-        logger.info(f'working_dir = {self.working_dir}')
-        logger.info(f'sample_rate = {self.sample_rate}')
+        logger.info(f'audio_dir: {self.audio_dir}.')
+        logger.info(f'working_dir: {self.working_dir}.')
+        logger.info(f'sample_rate: {self.sample_rate} hz.')
 
-        speakers = set()
+        unique_speakers = set()
         for pkl_filename in self.pkl_filenames:
             speaker_id = os.path.basename(pkl_filename).split('_')[0]
-            if speaker_id not in self.speaker_ids_to_filename:
-                self.speaker_ids_to_filename[speaker_id] = []
             self.speaker_ids_to_filename[speaker_id].append(pkl_filename)
-            speakers.add(speaker_id)
-        self.all_speaker_ids = sorted(speakers)
+            unique_speakers.add(speaker_id)
+        self.all_speaker_ids = sorted(unique_speakers)
 
     @staticmethod
     def trim_silence(audio, threshold):
