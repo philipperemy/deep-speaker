@@ -22,24 +22,17 @@ def mfcc_fbank(sig=np.random.uniform(size=32000), target_sample_rate=8000):
     delta_1 = delta(filter_banks, N=1)
     delta_2 = delta(delta_1, N=1)
     frames_features = np.transpose(np.stack([filter_banks, delta_1, delta_2]), (1, 2, 0))
-    return frames_features
+    return np.array(frames_features, dtype=np.float32)  # Float32 precision is enough here.
 
 
-def features(audio_entities, n):
+def mfcc(audio_entities):
     mfcc_samples = []
-    count = 0
-    while count < n:
+    # with default params, winlen=0.025,winstep=0.01, 1 seconds ~ 100 frames.
+    for audio_entity in audio_entities:
         try:
-            audio_entity = np.random.choice(audio_entities)
-            voice_only_signal = audio_entity['audio_voice_only']
-            cut = choice(range(SAMPLE_RATE // 10))
-            signal_to_process = voice_only_signal[cut:]
-            # with default params, winlen=0.025,winstep=0.01
-            # 1 seconds ~ 100 frames.
-            mfcc_samples.append(mfcc_fbank(signal_to_process, SAMPLE_RATE))
-            count += 1
+            mfcc_samples.append(mfcc_fbank(audio_entity['audio_voice_only'], SAMPLE_RATE))
         except IndexError:  # happens if signal is too small.
-            pass
+            logger.warning(f'Could not compute the fbank for this {audio_entity["filename"]} (after VAD processing).')
     return mfcc_samples
 
 
@@ -49,11 +42,12 @@ def normalize(list_matrices, mean, std):
 
 class KerasConverter:
 
-    def __init__(self, working_dir):
+    def __init__(self, working_dir, counts_per_speaker):
         self.working_dir = working_dir
         self.output_dir = os.path.join(self.working_dir, 'keras-inputs')
         ensures_dir(self.output_dir)
         self.categorical_speakers = None
+        self.counts_per_speaker = counts_per_speaker
         self.kx_train = None
         self.kx_test = None
         self.ky_train = None
@@ -88,6 +82,7 @@ class KerasConverter:
         np.save(os.path.join(self.output_dir, 'ky_test.npy'), self.ky_test)
 
     def generate(self, max_length=NUM_FRAMES):
+        # TODO: use self.counts_per_speaker
         fbank_files = os.path.join(self.working_dir, 'fbank-inputs')
         speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
         categorical_speakers = OneHotSpeakers(speakers_list)
@@ -99,8 +94,8 @@ class KerasConverter:
             y = categorical_speakers.get_one_hot(d['speaker_id'])
 
             if kx_train is None:
-                num_samples_train = len(speakers_list) * len(d['train'])
-                num_samples_test = len(speakers_list) * len(d['test'])
+                num_samples_train = len(speakers_list) * self.counts_per_speaker[0]
+                num_samples_test = len(speakers_list) * self.counts_per_speaker[1]
 
                 # 64 fbanks 3 channels.
                 # float32
@@ -110,34 +105,50 @@ class KerasConverter:
                 kx_test = np.zeros((num_samples_test, max_length, NUM_FBANKS, 3), dtype=np.float32)
                 ky_test = np.zeros((num_samples_test, len(speakers_list)), dtype=np.float32)
 
-                print(f'kx_train.shape = {kx_train.shape}')
-                print(f'kx_test.shape = {kx_test.shape}')
-                print(f'ky_train.shape = {ky_train.shape}')
-                print(f'ky_test.shape = {ky_test.shape}')
+            # TRAIN
+            c = 0
+            cond = True
+            while cond:
+                for x_train_elt in d['train']:
+                    if c >= self.counts_per_speaker[0]:
+                        cond = False
+                        break
+                    if len(x_train_elt) >= max_length:
+                        st = choice(range(0, len(x_train_elt) - max_length + 1))
+                        kx_train[c_train] = x_train_elt[st:st + max_length]
+                        ky_train[c_train] = y
+                    else:
+                        # simple for now.
+                        logger.info(f'Too small {c_train}.')
+                        kx_train[c_train] = kx_train[c_train - 1]
+                        ky_train[c_train] = ky_train[c_train - 1]
+                    c_train += 1
+                    c += 1
 
-            for x_train_elt in d['train']:
-                if len(x_train_elt) >= max_length:
-                    st = choice(range(0, len(x_train_elt) - max_length + 1))
-                    kx_train[c_train] = x_train_elt[st:st + max_length]
-                    ky_train[c_train] = y
-                else:
-                    # simple for now.
-                    logger.info(f'Too small {c_train}.')
-                    kx_train[c_train] = kx_train[c_train - 1]
-                    ky_train[c_train] = ky_train[c_train - 1]
-                c_train += 1
+            # TEST
+            c = 0
+            cond = True
+            while cond:
+                for x_test_elt in d['test']:
+                    if c >= self.counts_per_speaker[1]:
+                        cond = False
+                        break
+                    if len(x_test_elt) >= max_length:
+                        st = choice(range(0, len(x_test_elt) - max_length + 1))
+                        kx_test[c_test] = x_test_elt[st:st + max_length]
+                        ky_test[c_test] = y
+                    else:
+                        # simple for now.
+                        logger.info(f'Too small {c_test}.')
+                        kx_test[c_test] = kx_test[c_test - 1]
+                        ky_test[c_test] = ky_test[c_test - 1]
+                    c_test += 1
+                    c += 1
 
-            for x_test_elt in d['test']:
-                if len(x_test_elt) >= max_length:
-                    st = choice(range(0, len(x_test_elt) - max_length + 1))
-                    kx_test[c_test] = x_test_elt[st:st + max_length]
-                    ky_test[c_test] = y
-                else:
-                    logger.info(f'Too small {c_test}.')
-                    kx_test[c_test] = kx_test[c_test - 1]
-                    ky_test[c_test] = ky_test[c_test - 1]
-                c_test += 1
-
+        logger.info(f'kx_train.shape = {kx_train.shape}')
+        logger.info(f'kx_test.shape = {kx_test.shape}')
+        logger.info(f'ky_train.shape = {ky_train.shape}')
+        logger.info(f'ky_test.shape = {ky_test.shape}')
         assert c_train == len(ky_train)
         assert c_test == len(ky_test)
         self.categorical_speakers = categorical_speakers
@@ -146,13 +157,11 @@ class KerasConverter:
 
 class FBankProcessor:
 
-    def __init__(self, working_dir, audio_reader, counts_per_speaker=(3000, 500),
-                 speakers_sub_list=None, parallel=False):
+    def __init__(self, working_dir, audio_reader, speakers_sub_list=None, parallel=False):
         self.working_dir = os.path.expanduser(working_dir)
         self.audio_reader = audio_reader
         self.parallel = parallel
         self.model_inputs_dir = os.path.join(self.working_dir, 'fbank-inputs')
-        self.counts_per_speaker = counts_per_speaker
         ensures_dir(self.model_inputs_dir)
         self.speaker_ids = self.audio_reader.all_speaker_ids if speakers_sub_list is None else speakers_sub_list
 
@@ -184,10 +193,8 @@ class FBankProcessor:
         audio_entities_train = audio_entities[0:cutoff]
         audio_entities_test = audio_entities[cutoff:]
 
-        train = features(audio_entities_train, self.counts_per_speaker[0])
-        test = features(audio_entities_test, self.counts_per_speaker[1])
-        logger.info(f'Generated {self.counts_per_speaker[0]}/{self.counts_per_speaker[1]} '
-                    f'fbank inputs (train/test) for speaker {speaker_id}.')
+        train = mfcc(audio_entities_train)
+        test = mfcc(audio_entities_test)
 
         # TODO: check that.
         mean_train = np.mean([np.mean(t) for t in train])
@@ -206,14 +213,14 @@ class FBankProcessor:
 
         with open(output_filename, 'wb') as w:
             dill.dump(obj=inputs, file=w)
-        logger.info(f'[DUMP INPUTS] {output_filename}')
+        logger.info(f'FBanks generated for speaker: ({speaker_id}, {output_filename}).')
 
     def generate_inputs_for_inference(self, speaker_id):
         speaker_cache, metadata = self.audio_reader.load_cache([speaker_id])
         audio_entities = list(speaker_cache.values())
         logger.info(f'Generating the inputs necessary for the inference (speaker is {speaker_id})...')
         logger.info('This might take a couple of minutes to complete.')
-        feat = features(audio_entities, self.counts_per_speaker)
+        feat = mfcc(audio_entities)
         mean = np.mean([np.mean(t) for t in feat])
         std = np.mean([np.std(t) for t in feat])
         feat = normalize(feat, mean, std)

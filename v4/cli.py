@@ -58,7 +58,6 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate):
     inputs_generator = FBankProcessor(
         working_dir=working_dir,
         audio_reader=audio_reader,
-        counts_per_speaker=(3000, 500),  # train, test.
         speakers_sub_list=None,
         parallel=False
     )
@@ -68,7 +67,8 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate):
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 def build_keras_inputs(working_dir):
-    kc = KerasConverter(working_dir)
+    counts_per_speaker = (3000, 500)  # train, test.
+    kc = KerasConverter(working_dir, counts_per_speaker)
     kc.generate()
     kc.persist_to_disk()
 
