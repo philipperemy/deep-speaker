@@ -77,7 +77,7 @@ def build_keras_inputs(working_dir):
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--loss_on_softmax/--no_loss_on_softmax', default=False, show_default=True)
 @click.option('--loss_on_embeddings/--no_loss_on_embeddings', default=False, show_default=True)
-@click.option('--normalize_embeddings/--normalize_embeddings', default=False, show_default=True)
+@click.option('--normalize_embeddings/--no_normalize_embeddings', default=False, show_default=True)
 def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embeddings):
     assert loss_on_softmax or loss_on_embeddings
     # Default parameters: 0.97 accuracy on test set with [--loss_on_softmax].
