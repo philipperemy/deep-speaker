@@ -273,7 +273,6 @@ class TripletBatcher:
         self.ky_train = ky_train
         self.kx_test = kx_test
         self.ky_test = ky_test
-
         speakers_list = sorted(set(ky_train.argmax(axis=1)))
         num_different_speakers = len(speakers_list)
         assert speakers_list == sorted(set(ky_test.argmax(axis=1)))  # train speakers = test speakers.
@@ -306,11 +305,11 @@ class TripletBatcher:
         negative_speaker = two_different_speakers[1]
         assert negative_speaker != anchor_positive_speaker
 
-        x = np.vstack([
+        batch_x = np.vstack([
             self.select_speaker_data(x, anchor_positive_speaker, batch_size, is_test),
             self.select_speaker_data(x, anchor_positive_speaker, batch_size, is_test),
             self.select_speaker_data(x, negative_speaker, batch_size, is_test)
         ])
 
-        y = np.zeros(shape=(len(x), len(self.speakers_list)))
-        return x, {'embeddings': y, 'softmax': y}
+        batch_y = np.zeros(shape=(len(batch_x), len(self.speakers_list)))
+        return batch_x, {'embeddings': batch_y, 'softmax': batch_y}
