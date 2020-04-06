@@ -105,7 +105,7 @@ def start_training(kc: KerasConverter, pre_training_phase=True):
         print('Softmax pre-training.')
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
-        dsm.m.compile(optimizer=Adam(lr=0.001), loss='categorical_crossentropy')
+        dsm.m.compile(optimizer=Adam(lr=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
         checkpoints = natsorted(glob(os.path.join(CHECKPOINTS_SOFTMAX_DIR, '*.h5')))
         initial_epoch = 0
         if len(checkpoints) != 0:
