@@ -14,7 +14,7 @@ def batch_cosine_similarity(x1, x2):
 
 def deep_speaker_loss(y_true, y_pred):
     # y_true is not used. we respect this convention:
-    # y_true.shape = (batch_size, embedding_size)
+    # y_true.shape = (batch_size, embedding_size) [not used]
     # y_pred.shape = (batch_size, embedding_size)
     # EXAMPLE:
     # _____________________________________________________
@@ -31,6 +31,11 @@ def deep_speaker_loss(y_true, y_pred):
     positive_ex = y_pred[split:2 * split]
     negative_ex = y_pred[2 * split:]
 
+    # If the loss does not decrease below ALPHA then the model does not learn anything.
+    # If all anchor = positive = negative (model outputs the same vector always).
+    # Then sap = san = 1. and loss = max(alpha,0) = alpha.
+    # On the contrary if anchor = positive = [1] and negative = [-1].
+    # Then sap = 1 and san = -1. loss = max(-1-1+0.1,0) = max(-1.9, 0) = 0.
     sap = batch_cosine_similarity(anchor, positive_ex)
     san = batch_cosine_similarity(anchor, negative_ex)
     loss = K.maximum(san - sap + ALPHA, 0.0)
