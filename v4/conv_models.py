@@ -25,10 +25,10 @@ class DeepSpeakerModel:
     # MFCC, DIFF(MFCC), DIFF(DIFF(MFCC)), ENERGIES (probably tiled across the frequency domain).
     # this seems to help match the parameter counts.
     def __init__(self, batch_input_shape=(None, NUM_FRAMES, NUM_FBANKS, 4), include_softmax=False,
-                 num_speaker_softmax=None):
+                 num_speakers_softmax=None):
         self.include_softmax = include_softmax
         if self.include_softmax:
-            assert num_speaker_softmax > 0
+            assert num_speakers_softmax > 0
         self.clipped_relu_count = 0
 
         # http://cs231n.github.io/convolutional-networks/
@@ -57,7 +57,7 @@ class DeepSpeakerModel:
         x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
         x = Dense(512, name='affine')(x)
         if include_softmax:
-            x = Dense(num_speaker_softmax, activation='softmax')(x)
+            x = Dense(num_speakers_softmax, activation='softmax')(x)
         else:
             x = Lambda(lambda y: K.l2_normalize(y, axis=1), name='ln')(x)
         self.m = Model(inputs, x, name='ResCNN')
@@ -145,7 +145,7 @@ def main():
 def train():
     # x = np.random.uniform(size=(6, 32, 64, 4))  # 6 is multiple of 3.
     # y_softmax = np.random.uniform(size=(6, 100))
-    # dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=True, num_speaker_softmax=100)
+    # dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=True, num_speakers_softmax=100)
     # dsm.m.compile(optimizer=Adam(lr=0.01), loss='categorical_crossentropy')
     # print(dsm.m.predict(x).shape)
     # print(dsm.m.evaluate(x, y_softmax))

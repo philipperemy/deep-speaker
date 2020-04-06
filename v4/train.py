@@ -145,7 +145,8 @@ def fit_model_softmax(m, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_
           callbacks=[early_stopping, reduce_lr, checkpoint])
 
 
-def start_training(kc: KerasConverter, loss_on_softmax, loss_on_embeddings, normalize_embeddings):
+def start_training(kc: KerasConverter, loss_on_softmax,
+                   loss_on_embeddings, normalize_embeddings):
     # loss_on_softmax = True
     # loss_on_embeddings = True
     freeze_embedding_weights = False

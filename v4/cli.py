@@ -8,7 +8,7 @@ import click
 from audio import Audio
 from batcher import KerasConverter, FBankProcessor
 from constants import SAMPLE_RATE, NUM_FRAMES
-from train import start_training
+from train2 import start_training
 from utils import ClickType as Ct
 from utils import init_pandas, create_new_empty_dir
 
