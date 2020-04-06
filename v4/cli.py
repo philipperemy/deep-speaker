@@ -75,11 +75,8 @@ def build_keras_inputs(working_dir):
 
 @cli.command('train-model', short_help='Train a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--loss_on_softmax/--no_loss_on_softmax', default=False, show_default=True)
-@click.option('--loss_on_embeddings/--no_loss_on_embeddings', default=False, show_default=True)
-@click.option('--normalize_embeddings/--no_normalize_embeddings', default=False, show_default=True)
-def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embeddings):
-    assert loss_on_softmax or loss_on_embeddings
+@click.option('--pre_training_phase/--pre_training_phase', default=False, show_default=True)
+def train_model(working_dir, pre_training_phase):
     # Default parameters: 0.97 accuracy on test set with [--loss_on_softmax].
     # p225 p226 p227 p228 p229 p230 p231 p232 p233 p234 p236 p237 p238 p239
     # 1/ --loss_on_softmax
@@ -89,8 +86,7 @@ def train_model(working_dir, loss_on_softmax, loss_on_embeddings, normalize_embe
 
     # (5000, 500) gives great results. (1000, 100) we stall at 0.965. Patience is only 10.
     # On all VCTK Corpus with LeNet, 0.98 without doing much.
-    kc = KerasConverter(working_dir)
-    start_training(kc, loss_on_softmax, loss_on_embeddings, normalize_embeddings)
+    start_training(KerasConverter(working_dir), pre_training_phase)
 
 
 if __name__ == '__main__':
