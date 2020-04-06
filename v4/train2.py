@@ -13,6 +13,7 @@ from batcher import KerasConverter, TripletBatcher
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS, \
     PRE_TRAINING_WEIGHTS_FILE
 from conv_models import DeepSpeakerModel
+from triplet_loss import deep_speaker_loss
 
 
 def fit_model(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_SIZE):
@@ -117,6 +118,7 @@ def start_training(kc: KerasConverter, pre_training_phase=True):
     else:
         print('Training on the embeddings.')
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=False)
+        dsm.m.compile(optimizer=Adam(lr=0.01), loss=deep_speaker_loss)
         weights_file = PRE_TRAINING_WEIGHTS_FILE
         if os.path.isfile(weights_file):
             print(f'Loading weights from: {weights_file}.')

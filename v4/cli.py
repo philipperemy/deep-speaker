@@ -75,7 +75,7 @@ def build_keras_inputs(working_dir):
 
 @cli.command('train-model', short_help='Train a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--pre_training_phase/--pre_training_phase', default=False, show_default=True)
+@click.option('--pre_training_phase/--no_pre_training_phase', default=False, show_default=True)
 def train_model(working_dir, pre_training_phase):
     # Default parameters: 0.97 accuracy on test set with [--loss_on_softmax].
     # p225 p226 p227 p228 p229 p230 p231 p232 p233 p234 p236 p237 p238 p239
