@@ -11,36 +11,23 @@ from tensorflow.keras.layers import Lambda, Dense
 from tensorflow.keras.layers import Reshape
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import plot_model
 
-from constants import NUM_FBANKS
+from constants import NUM_FBANKS, NUM_FRAMES
 from triplet_loss import deep_speaker_loss
 
 logger = logging.getLogger(__name__)
 
 
-# class LayerCache:
-#
-#     def __init__(self):
-#         self.layers_dict = dict()
-#
-#     def get(self, obj):
-#         layer_name = obj.name
-#         if layer_name not in self.layers_dict:
-#             logger.info('-> Creating layer [{}]'.format(layer_name))
-#            create it
-# self.layers_dict[layer_name] = obj
-# else:
-#     logger.info('-> Using layer [{}]'.format(layer_name))
-# return self.layers_dict[layer_name]
-
-
 class DeepSpeakerModel:
 
     # I thought it was 3 but maybe energy is added at a 4th dimension.
+    # would be better to have 4 dimensions:
+    # MFCC, DIFF(MFCC), DIFF(DIFF(MFCC)), ENERGIES (probably tiled across the frequency domain).
     # this seems to help match the parameter counts.
-    def __init__(self, batch_input_shape=(None, 32, NUM_FBANKS, 4)):
-        # self.lc = LayerCache()
+    def __init__(self, batch_input_shape=(None, NUM_FRAMES, NUM_FBANKS, 4), include_softmax=False,
+                 num_speaker_softmax=None):
+        if include_softmax:
+            assert len(num_speaker_softmax) > 0
         self.clipped_relu_count = 0
 
         # http://cs231n.github.io/convolutional-networks/
@@ -67,14 +54,15 @@ class DeepSpeakerModel:
         x = Reshape((-1, 2048))(x)
         x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
         x = Dense(512, name='affine')(x)  # .shape = (BATCH_SIZE * NUM_FRAMES, 512)
-        x = Lambda(lambda y: K.l2_normalize(y, axis=1), name='ln')(x)
-        self.m = Model(inputs, x, name='convolutional')
+        if include_softmax:
+            x = Dense(num_speaker_softmax, activation='softmax')(x)
+        else:
+            x = Lambda(lambda y: K.l2_normalize(y, axis=1), name='ln')(x)
+        self.m = Model(inputs, x, name='ResCNN')
 
     def keras_model(self):
         return self.m
 
-    # no need to share the weights here because it does not exist.
-    # TODO: why do we need to share the weights?
     def clipped_relu(self, inputs):
         relu = Lambda(lambda y: K.minimum(K.maximum(y, 0), 20), name=f'clipped_relu_{self.clipped_relu_count}')(inputs)
         self.clipped_relu_count += 1
@@ -103,7 +91,7 @@ class DeepSpeakerModel:
                    kernel_regularizer=regularizers.l2(l=0.0001),
                    name=conv_name_base + '_2b')(x)
         x = BatchNormalization(name=conv_name_base + '_2b_bn')(x)
-        # TODO: should we put a ReLU here?
+
         x = self.clipped_relu(x)
 
         x = layers.add([x, input_tensor])
@@ -112,7 +100,6 @@ class DeepSpeakerModel:
 
     def conv_and_res_block(self, inp, filters, stage):
         conv_name = 'conv{}-s'.format(filters)
-
         # TODO: why kernel_regularizer?
         o = Conv2D(filters,
                    kernel_size=5,
@@ -139,16 +126,16 @@ def main():
     # Looks correct to me.
     # I have 37K but paper reports 41K. which is not too far.
     dsm = DeepSpeakerModel()
-
     dsm.m.summary()
 
     # I suspect num frames to be 32.
     # Then fbank=64, then total would be 32*64 = 2048.
-    plot_model(dsm.m, to_file='model.png', dpi=300, show_shapes=True, expand_nested=True)
+    # plot_model(dsm.m, to_file='model.png', dpi=300, show_shapes=True, expand_nested=True)
 
 
 def train():
     dsm = DeepSpeakerModel()
+    dsm.m.summary()
     dsm.m.compile(optimizer=Adam(lr=0.0001), loss=deep_speaker_loss)
     x = np.random.uniform(size=(6, 32, 64, 4))  # 6 is multiple of 3.
     # should be easy to learn this.
@@ -160,4 +147,4 @@ def train():
 
 
 if __name__ == '__main__':
-    train()
+    main()
