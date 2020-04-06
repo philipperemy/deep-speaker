@@ -35,7 +35,7 @@ def random_positive_random_negative_batch():
 
 def equal_positive_random_negative_batch():
     # should be low
-    b = np.random.uniform(low=-1, high=1, size=(BATCH_SIZE * 3, 512))
+    b = np.random.uniform(low=-1, high=1, size=(12, 512))
     b[0] = b[6]
     b[1] = b[7]
     b[2] = b[8]
@@ -95,3 +95,7 @@ class TripleLossTest(unittest.TestCase):
         lowest_loss = deep_speaker_loss(tf.constant(equal_positive_opposite_negative_batch()), x2).eval()
 
         self.assertTrue(highest_loss >= high_loss >= low_loss >= lowest_loss)
+
+    def test_2(self):
+        b = equal_positive_random_negative_batch()
+        a = 2

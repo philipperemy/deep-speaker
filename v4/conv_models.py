@@ -143,25 +143,38 @@ def main():
 
 
 def train():
-    x = np.random.uniform(size=(6, 32, 64, 4))  # 6 is multiple of 3.
-    y_softmax = np.random.uniform(size=(6, 100))
-    dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=True, num_speaker_softmax=100)
-    dsm.m.compile(optimizer=Adam(lr=0.0001), loss='categorical_crossentropy')
-    print(dsm.m.predict(x).shape)
-    print(dsm.m.evaluate(x, y_softmax))
+    # x = np.random.uniform(size=(6, 32, 64, 4))  # 6 is multiple of 3.
+    # y_softmax = np.random.uniform(size=(6, 100))
+    # dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=True, num_speaker_softmax=100)
+    # dsm.m.compile(optimizer=Adam(lr=0.01), loss='categorical_crossentropy')
+    # print(dsm.m.predict(x).shape)
+    # print(dsm.m.evaluate(x, y_softmax))
+    # w = dsm.get_weights()
+    dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=False)
+    # dsm.m.set_weights(w)
+    dsm.m.compile(optimizer=Adam(lr=0.01), loss=deep_speaker_loss)
 
-    w = dsm.get_weights()
-    dsm2 = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=False)
-    dsm2.m.set_weights(w)
-    dsm.m.compile(optimizer=Adam(lr=0.0001), loss=deep_speaker_loss)
-    x = np.random.uniform(size=(6, 32, 64, 4))  # 6 is multiple of 3.
-    # should be easy to learn this.
-    x[0:2] = -0.1  # anchor
-    x[2:4] = x[0:2]  # positive
-    x[4:6] = 0.1  # negative
-    y = np.zeros(shape=(6, 512))  # not important.
-    print(dsm.m.predict(x).shape)
-    print(dsm.m.evaluate(x, y))
+    # it works!!!!!!!!!!!!!!!!!!!!
+    # unit_batch_size = 20
+    # anchor = np.ones(shape=(unit_batch_size, 32, 64, 4))
+    # positive = np.array(anchor)
+    # negative = np.ones(shape=(unit_batch_size, 32, 64, 4)) * (-1)
+    # batch = np.vstack((anchor, positive, negative))
+    # x = batch
+    # y = np.zeros(shape=(len(batch), 512))  # not important.
+    # print('Starting to fit...')
+    # while True:
+    #     print(dsm.m.train_on_batch(x, y))
+
+    # should not work... and it does not work!
+    unit_batch_size = 20
+    negative = np.ones(shape=(unit_batch_size, 32, 64, 4)) * (-1)
+    batch = np.vstack((negative, negative, negative))
+    x = batch
+    y = np.zeros(shape=(len(batch), 512))  # not important.
+    print('Starting to fit...')
+    while True:
+        print(dsm.m.train_on_batch(x, y))
 
 
 if __name__ == '__main__':

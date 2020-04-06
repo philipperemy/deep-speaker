@@ -1,6 +1,7 @@
 import keras.backend as K
 
-ALPHA = 0.2  # used in FaceNet https://arxiv.org/pdf/1503.03832.pdf
+# ALPHA = 0.2  # used in FaceNet https://arxiv.org/pdf/1503.03832.pdf
+ALPHA = 0.1  # used in Deep Speaker.
 
 
 def batch_cosine_similarity(x1, x2):
@@ -33,5 +34,12 @@ def deep_speaker_loss(y_true, y_pred):
     sap = batch_cosine_similarity(anchor, positive_ex)
     san = batch_cosine_similarity(anchor, negative_ex)
     loss = K.maximum(san - sap + ALPHA, 0.0)
-    total_loss = K.sum(loss)
+    total_loss = K.mean(loss)
     return total_loss
+
+
+if __name__ == '__main__':
+    import numpy as np
+
+    y = np.array([[1.0], [1.0], [-1.0]])
+    deep_speaker_loss(y_true=y, y_pred=y)
