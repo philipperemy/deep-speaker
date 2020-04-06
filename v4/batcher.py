@@ -16,18 +16,18 @@ from utils import parallel_function, ensures_dir, find_files
 logger = logging.getLogger(__name__)
 
 
-def mfcc_fbank(sig=np.random.uniform(size=32000), target_sample_rate=8000):
+def mfcc_fbank(signal: np.array, target_sample_rate: int):  # 1D signal array.
     # Returns MFCC with shape (num_frames, n_filters, 3).
-    filter_banks, energies = fbank(sig, samplerate=target_sample_rate, nfilt=NUM_FBANKS)
+    filter_banks, energies = fbank(signal, samplerate=target_sample_rate, nfilt=NUM_FBANKS)
     delta_1 = delta(filter_banks, N=1)
     delta_2 = delta(delta_1, N=1)
     frames_features = np.transpose(np.stack([filter_banks, delta_1, delta_2]), (1, 2, 0))
     return np.array(frames_features, dtype=np.float32)  # Float32 precision is enough here.
 
 
-def mfcc(audio_entities):
+def get_mfcc_from_list(audio_entities):
     mfcc_samples = []
-    # with default params, winlen=0.025,winstep=0.01, 1 seconds ~ 100 frames.
+    # with default params, winlen=0.025, winstep=0.01, 1 seconds ~ 100 frames.
     for audio_entity in audio_entities:
         try:
             mfcc_samples.append(mfcc_fbank(audio_entity['audio_voice_only'], SAMPLE_RATE))
@@ -55,22 +55,22 @@ class KerasConverter:
 
     def load_from_disk(self):
 
-        def load(file):
+        def load_pickle(file):
             if not os.path.exists(file):
                 return None
             with open(file, 'rb') as r:
                 return dill.load(r)
 
-        def load2(file):
+        def load_npy(file):
             if not os.path.exists(file):
                 return None
             return np.load(file)
 
-        self.categorical_speakers = load(os.path.join(self.output_dir, 'categorical_speakers.pkl'))
-        self.kx_train = load2(os.path.join(self.output_dir, 'kx_train.npy'))
-        self.kx_test = load2(os.path.join(self.output_dir, 'kx_test.npy'))
-        self.ky_train = load2(os.path.join(self.output_dir, 'ky_train.npy'))
-        self.ky_test = load2(os.path.join(self.output_dir, 'ky_test.npy'))
+        self.categorical_speakers = load_pickle(os.path.join(self.output_dir, 'categorical_speakers.pkl'))
+        self.kx_train = load_npy(os.path.join(self.output_dir, 'kx_train.npy'))
+        self.kx_test = load_npy(os.path.join(self.output_dir, 'kx_test.npy'))
+        self.ky_train = load_npy(os.path.join(self.output_dir, 'ky_train.npy'))
+        self.ky_test = load_npy(os.path.join(self.output_dir, 'ky_test.npy'))
 
     def persist_to_disk(self):
         with open(os.path.join(self.output_dir, 'categorical_speakers.pkl'), 'wb') as w:
@@ -81,7 +81,6 @@ class KerasConverter:
         np.save(os.path.join(self.output_dir, 'ky_test.npy'), self.ky_test)
 
     def generate(self, max_length=NUM_FRAMES, counts_per_speaker=(3000, 500)):
-        # TODO: use self.counts_per_speaker
         fbank_files = os.path.join(self.working_dir, 'fbank-inputs')
         speakers_list = [os.path.splitext(os.path.basename(a))[0] for a in find_files(fbank_files, ext='pkl')]
         categorical_speakers = OneHotSpeakers(speakers_list)
@@ -114,6 +113,7 @@ class KerasConverter:
                         cond = False
                         break
                     if len(x_train_elt) >= max_length:
+                        # TODO: we should slice and input that to the model.
                         st = choice(range(0, len(x_train_elt) - max_length + 1))
                         kx_train[c_train] = x_train_elt[st:st + max_length]
                         ky_train[c_train] = y
@@ -137,6 +137,7 @@ class KerasConverter:
                         cond = False
                         break
                     if len(x_test_elt) >= max_length:
+                        # TODO: we should slice and input that to the model.
                         st = choice(range(0, len(x_test_elt) - max_length + 1))
                         kx_test[c_test] = x_test_elt[st:st + max_length]
                         ky_test[c_test] = y
@@ -212,8 +213,8 @@ class FBankProcessor:
         audio_entities_train = audio_entities[0:cutoff]
         audio_entities_test = audio_entities[cutoff:]
 
-        train = mfcc(audio_entities_train)
-        test = mfcc(audio_entities_test)
+        train = get_mfcc_from_list(audio_entities_train)
+        test = get_mfcc_from_list(audio_entities_test)
 
         # TODO: check that.
         mean_train = np.mean([np.mean(t) for t in train])
@@ -239,7 +240,7 @@ class FBankProcessor:
         audio_entities = list(speaker_cache.values())
         logger.info(f'Generating the inputs necessary for the inference (speaker is {speaker_id})...')
         logger.info('This might take a couple of minutes to complete.')
-        feat = mfcc(audio_entities)
+        feat = get_mfcc_from_list(audio_entities)
         mean = np.mean([np.mean(t) for t in feat])
         std = np.mean([np.std(t) for t in feat])
         feat = normalize(feat, mean, std)
