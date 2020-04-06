@@ -12,6 +12,7 @@ def batch_cosine_similarity(x1, x2):
 
 
 def deep_speaker_loss(y_true, y_pred):
+    # y_true is not used. we respect this convention:
     # y_true.shape = (batch_size, embedding_size)
     # y_pred.shape = (batch_size, embedding_size)
     # EXAMPLE:
@@ -23,11 +24,11 @@ def deep_speaker_loss(y_true, y_pred):
     # NEG EX 1 (512,)
     # NEG EX 2 (512,)
     # _____________________________________________________
-    elements = int(K.int_shape(y_pred)[0] / 3)
+    split = K.shape(y_pred)[0] // 3
 
-    anchor = y_pred[0:elements]
-    positive_ex = y_pred[elements:2 * elements]
-    negative_ex = y_pred[2 * elements:]
+    anchor = y_pred[0:split]
+    positive_ex = y_pred[split:2 * split]
+    negative_ex = y_pred[2 * split:]
 
     sap = batch_cosine_similarity(anchor, positive_ex)
     san = batch_cosine_similarity(anchor, negative_ex)
