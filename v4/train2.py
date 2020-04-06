@@ -111,17 +111,22 @@ def start_training(kc: KerasConverter, pre_training_phase=True):
         if len(checkpoints) != 0:
             checkpoint_file = checkpoints[-1]
             initial_epoch = int(checkpoint_file.split('/')[-1].split('.')[0].split('_')[-1])
-            print('Initial epoch is {}.'.format(initial_epoch))
-            print('Loading checkpoint: {}.'.format(checkpoint_file))
+            print(f'Initial epoch is {initial_epoch}.')
+            print(f'Loading softmax checkpoint: {checkpoint_file}.')
             dsm.m.load_weights(checkpoint_file)  # latest one.
         fit_model_softmax(dsm, kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test, initial_epoch=initial_epoch)
     else:
-        print('Training on the embeddings.')
+        print('Training with the triplet loss.')
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=False)
         dsm.m.compile(optimizer=Adam(lr=0.01), loss=deep_speaker_loss)
         weights_file = PRE_TRAINING_WEIGHTS_FILE
-        if os.path.isfile(weights_file):
-            print(f'Loading weights from: {weights_file}.')
+        checkpoints = natsorted(glob(os.path.join(CHECKPOINTS_TRIPLET_DIR, '*.h5')))
+        if len(checkpoints) != 0:
+            checkpoint_file = checkpoints[-1]
+            print(f'Loading triplet checkpoint: {checkpoint_file}.')
+            dsm.m.load_weights(checkpoint_file)
+        elif os.path.isfile(weights_file):
+            print(f'Loading pre-training weights from: {weights_file}.')
             with open(weights_file) as r:
                 w = pickle.load(r)
             dsm.m.set_weights(w)
