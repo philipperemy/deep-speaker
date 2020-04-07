@@ -58,12 +58,14 @@ class KerasConverter:
         def load_pickle(file):
             if not os.path.exists(file):
                 return None
+            logger.info(f'Loading PKL file: {file}.')
             with open(file, 'rb') as r:
                 return dill.load(r)
 
         def load_npy(file):
             if not os.path.exists(file):
                 return None
+            logger.info(f'Loading NPY file: {file}.')
             return np.load(file)
 
         self.categorical_speakers = load_pickle(os.path.join(self.output_dir, 'categorical_speakers.pkl'))
@@ -313,4 +315,4 @@ class TripletBatcher:
         ])
 
         batch_y = np.zeros(shape=(len(batch_x), len(self.speakers_list)))
-        return batch_x, {'embeddings': batch_y, 'softmax': batch_y}
+        return batch_x, batch_y

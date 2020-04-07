@@ -1,7 +1,7 @@
 import logging
 
-import keras.backend as K
 import numpy as np
+import tensorflow.keras.backend as K
 from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import BatchNormalization
@@ -57,8 +57,10 @@ class DeepSpeakerModel:
         x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
         x = Dense(512, name='affine')(x)
         if include_softmax:
+            # Those weights are just when we train on softmax.
             x = Dense(num_speakers_softmax, activation='softmax')(x)
         else:
+            # Does not contain any weights.
             x = Lambda(lambda y: K.l2_normalize(y, axis=1), name='ln')(x)
         self.m = Model(inputs, x, name='ResCNN')
 
@@ -129,6 +131,11 @@ class DeepSpeakerModel:
         x = self.conv_and_res_block(x, 256, stage=3)
         x = self.conv_and_res_block(x, 512, stage=4)
         return x
+
+    def set_weights(self, w):
+        for layer, layer_w in zip(self.m.layers, w):
+            layer.set_weights(layer_w)
+            logger.info(f'Setting weights for [{layer.name}]...')
 
 
 def main():

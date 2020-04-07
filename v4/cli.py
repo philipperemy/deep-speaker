@@ -86,7 +86,12 @@ def train_model(working_dir, pre_training_phase):
 
     # (5000, 500) gives great results. (1000, 100) we stall at 0.965. Patience is only 10.
     # On all VCTK Corpus with LeNet, 0.98 without doing much.
-    start_training(KerasConverter(working_dir), pre_training_phase)
+
+    # (5000, 500) gives good results (for first try).
+    # With the complicated model, we get 0.90 accuracy (epoch 5) which is not too bad.
+    # We obviously over-fit on the dataset.
+
+    start_training(working_dir, pre_training_phase)
 
 
 if __name__ == '__main__':
