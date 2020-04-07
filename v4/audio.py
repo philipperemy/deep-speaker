@@ -34,7 +34,7 @@ class Audio:
         self.audio_dir = os.path.expanduser(input_audio_dir)
         self.working_dir = os.path.expanduser(output_working_dir)
         self.sample_rate = sample_rate
-        self.multi_threading = multi_threading
+        self.parallel = multi_threading
         self.cache_pkl_dir = os.path.join(self.working_dir, 'audio_cache')
         self.pkl_filenames = find_files(self.cache_pkl_dir, ext='pkl')
         self.speaker_ids_to_filename = defaultdict(list)
@@ -113,7 +113,7 @@ class Audio:
         audio_files_count = len(audio_files)
         assert audio_files_count != 0, f'Could not find any WAV files in {self.audio_dir}.'
         logger.info(f'Found {audio_files_count:,} files in total in {self.audio_dir}.')
-        if self.multi_threading:
+        if self.parallel:
             num_threads = os.cpu_count()
             parallel_function(self.cache_audio_file, audio_files, num_threads)
         else:
