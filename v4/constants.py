@@ -12,7 +12,7 @@ PRE_TRAINING_WEIGHTS_FILE = 'pretraining-weights.pkl'
 
 CHECKPOINTS_TRIPLET_DIR = 'checkpoints-triplets'
 
-BATCH_SIZE = 20 * 3  # have to be a multiple of 3.
+BATCH_SIZE = 32 * 3  # have to be a multiple of 3.
 
 # Input to the model will be a 4D image: (batch_size, num_frames, num_fbanks, 3)
 # Where the 3 channels are: FBANK, DIFF(FBANK), DIFF(DIFF(FBANK)).

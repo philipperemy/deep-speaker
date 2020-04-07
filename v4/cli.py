@@ -9,8 +9,8 @@ from audio import Audio
 from batcher import KerasConverter, FBankProcessor
 from constants import SAMPLE_RATE, NUM_FRAMES
 from train2 import start_training
-from utils import ClickType as Ct
-from utils import init_pandas, create_new_empty_dir
+from utils import ClickType as Ct, ensures_dir
+from utils import init_pandas
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def version():
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
 @click.option('--parallel/--no-parallel', default=False, show_default=True)
 def build_audio_cache(audio_dir, working_dir, sample_rate, parallel):
-    create_new_empty_dir(working_dir)
+    ensures_dir(working_dir)
     audio_reader = Audio(
         input_audio_dir=audio_dir,
         output_working_dir=working_dir,
