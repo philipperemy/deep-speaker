@@ -96,6 +96,7 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
               epochs=initial_epoch + max_epochs,
               initial_epoch=initial_epoch,
               verbose=1,
+              shuffle=True,
               validation_data=(kx_test, ky_test),
               callbacks=[early_stopping, reduce_lr, checkpoint, triplet_checkpoint])
 
@@ -106,14 +107,15 @@ def start_training(working_dir, pre_training_phase=True):
     if not os.path.exists(CHECKPOINTS_TRIPLET_DIR):
         os.makedirs(CHECKPOINTS_TRIPLET_DIR)
 
-    batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 3]
+    # TODO: put back the diffs. Not sure they included them though.
+    batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 1]
 
     if pre_training_phase:
         logger.info('Softmax pre-training.')
         kc = KerasConverter(working_dir)
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
-        dsm.m.compile(optimizer=Adam(lr=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+        dsm.m.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         checkpoints = natsorted(glob(os.path.join(CHECKPOINTS_SOFTMAX_DIR, '*.h5')))
         initial_epoch = 0
         if len(checkpoints) != 0:

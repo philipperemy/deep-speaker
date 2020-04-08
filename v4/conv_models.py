@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 import tensorflow.keras.backend as K
+from tensorflow.keras.layers import Dropout
 from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import BatchNormalization
@@ -17,6 +18,7 @@ from triplet_loss import deep_speaker_loss
 
 logger = logging.getLogger(__name__)
 
+# TODO: Dropout has been added. Remove it later.
 
 class DeepSpeakerModel:
 
@@ -55,6 +57,7 @@ class DeepSpeakerModel:
         x = Reshape((-1, 2048))(x)
         # Temporal average layer. axis=1 is time.
         x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
+        x = Dropout(0.5)(x) # TODO: remove it but our dataset is too small.
         x = Dense(512, name='affine')(x)
         if include_softmax:
             # Those weights are just when we train on softmax.

@@ -6,7 +6,7 @@ from random import choice
 import dill
 import numpy as np
 from keras.utils import to_categorical
-from python_speech_features import fbank, delta
+from python_speech_features import fbank
 from tqdm import tqdm
 
 from audio import extract_speaker_id
@@ -16,13 +16,24 @@ from utils import parallel_function, ensures_dir, find_files
 logger = logging.getLogger(__name__)
 
 
-def mfcc_fbank(signal: np.array, target_sample_rate: int):  # 1D signal array.
+def normalize_frames(m, epsilon=1e-12):
+    return [(v - np.mean(v)) / max(np.std(v), epsilon) for v in m]
+
+
+def mfcc_fbank(signal: np.array, sample_rate: int):  # 1D signal array.
     # Returns MFCC with shape (num_frames, n_filters, 3).
-    filter_banks, energies = fbank(signal, samplerate=target_sample_rate, nfilt=NUM_FBANKS)
-    delta_1 = delta(filter_banks, N=1)
-    delta_2 = delta(delta_1, N=1)
-    frames_features = np.transpose(np.stack([filter_banks, delta_1, delta_2]), (1, 2, 0))
+    filter_banks, energies = fbank(signal, samplerate=sample_rate, nfilt=NUM_FBANKS)
+    frames_features = normalize_frames(filter_banks)
+    # delta_1 = delta(filter_banks, N=1)
+    # delta_2 = delta(delta_1, N=1)
+    # frames_features = np.transpose(np.stack([filter_banks, delta_1, delta_2]), (1, 2, 0))
     return np.array(frames_features, dtype=np.float32)  # Float32 precision is enough here.
+
+
+def pad_mfcc(mfcc, max_length):  # num_frames, nfilt=64.
+    if len(mfcc) < max_length:
+        mfcc = np.vstack((mfcc, np.tile(np.zeros(mfcc.shape[1]), (max_length - len(mfcc), 1))))
+    return mfcc
 
 
 def get_mfcc_from_list(audio_entities):
@@ -100,10 +111,10 @@ class KerasConverter:
 
                 # 64 fbanks 3 channels.
                 # float32
-                kx_train = np.zeros((num_samples_train, max_length, NUM_FBANKS, 3), dtype=np.float32)
+                kx_train = np.zeros((num_samples_train, max_length, NUM_FBANKS, 1), dtype=np.float32)
                 ky_train = np.zeros((num_samples_train, len(speakers_list)), dtype=np.float32)
 
-                kx_test = np.zeros((num_samples_test, max_length, NUM_FBANKS, 3), dtype=np.float32)
+                kx_test = np.zeros((num_samples_test, max_length, NUM_FBANKS, 1), dtype=np.float32)
                 ky_test = np.zeros((num_samples_test, len(speakers_list)), dtype=np.float32)
 
             # TRAIN
@@ -117,16 +128,13 @@ class KerasConverter:
                     if len(x_train_elt) >= max_length:
                         # TODO: we should slice and input that to the model.
                         st = choice(range(0, len(x_train_elt) - max_length + 1))
-                        kx_train[c_train] = x_train_elt[st:st + max_length]
-                        ky_train[c_train] = y
+                        kx_train[c_train] = np.expand_dims(x_train_elt[st:st + max_length], axis=-1)
+
                     else:
+                        kx_train[c_train] = np.expand_dims(pad_mfcc(x_train_elt, max_length), axis=-1)
                         # simple for now.
                         invalid_c_train += 1
-                        try:
-                            kx_train[c_train] = kx_train[c_train - 1]
-                            ky_train[c_train] = ky_train[c_train - 1]
-                        except IndexError:
-                            pass
+                    ky_train[c_train] = y
                     c_train += 1
                     c += 1
 
@@ -141,15 +149,11 @@ class KerasConverter:
                     if len(x_test_elt) >= max_length:
                         # TODO: we should slice and input that to the model.
                         st = choice(range(0, len(x_test_elt) - max_length + 1))
-                        kx_test[c_test] = x_test_elt[st:st + max_length]
-                        ky_test[c_test] = y
+                        kx_test[c_test] = np.expand_dims(x_test_elt[st:st + max_length], axis=-1)
                     else:
+                        kx_test[c_test] = np.expand_dims(pad_mfcc(x_test_elt, max_length), axis=-1)
                         invalid_c_test += 1
-                        try:
-                            kx_test[c_test] = kx_test[c_test - 1]
-                            ky_test[c_test] = ky_test[c_test - 1]
-                        except IndexError:
-                            pass
+                    ky_test[c_test] = y
                     c_test += 1
                     c += 1
 
@@ -158,18 +162,18 @@ class KerasConverter:
         logger.info(f'ky_train.shape = {ky_train.shape}')
         logger.info(f'ky_test.shape = {ky_test.shape}')
 
-        mix_ratio_train = (c_train - invalid_c_train) / c_train
-        mix_ratio_test = (c_test - invalid_c_test) / c_test
-        logger.info(f'Mix ratio train (1 is perfect): {mix_ratio_train:.4f}.')
-        logger.info(f'Mix ratio test (1 is perfect): {mix_ratio_test:.4f}.')
+        pad_ratio_train = (c_train - invalid_c_train) / c_train
+        pad_ratio_test = (c_test - invalid_c_test) / c_test
+        logger.info(f'Pad ratio train (1 is perfect): {pad_ratio_train:.4f}.')
+        logger.info(f'Pad ratio test (1 is perfect): {pad_ratio_test:.4f}.')
 
-        if mix_ratio_train < 0.9:
-            logger.warning(f'Low mix ratio for train: Set a lower value for NUM_FRAMES.')
-            exit(1)
-
-        if mix_ratio_test < 0.9:
-            logger.warning(f'Low mix ratio for test: Set a lower value for NUM_FRAMES.')
-            exit(1)
+        # if pad_ratio_train < 0.9:
+        #     logger.warning(f'Many audio are padded for train: Set a lower value for NUM_FRAMES.')
+        #     exit(1)
+        #
+        # if pad_ratio_test < 0.9:
+        #     logger.warning(f'Low mix ratio for test: Set a lower value for NUM_FRAMES.')
+        #     exit(1)
 
         assert c_train == len(ky_train)
         assert c_test == len(ky_test)
@@ -218,19 +222,10 @@ class FBankProcessor:
         train = get_mfcc_from_list(audio_entities_train)
         test = get_mfcc_from_list(audio_entities_test)
 
-        # TODO: check that.
-        mean_train = np.mean([np.mean(t) for t in train])
-        std_train = np.mean([np.std(t) for t in train])
-
-        train = normalize(train, mean_train, std_train)
-        test = normalize(test, mean_train, std_train)
-
         inputs = {
             'train': train,
             'test': test,
             'speaker_id': speaker_id,
-            'mean_train': mean_train,
-            'std_train': std_train
         }
 
         with open(output_filename, 'wb') as w:
