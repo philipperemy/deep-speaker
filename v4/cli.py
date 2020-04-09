@@ -95,7 +95,8 @@ def train_model(working_dir, pre_training_phase):
     # With the complicated model, we get 0.96 accuracy (epoch 10) which is not too bad.
     # We obviously over-fit on the dataset.
 
-    # Let's try with (5000, 500) and bigger frame 160, dropout 0.5.
+    # b2f145afef1d5d6ecedd1880e2b7a24a6e7ca33f (Thu Apr 9 00:09:58 2020 +0900).
+    # Let's try with (5000, 500) and bigger frame 160, dropout 0.5. It gave 0.985 easily. more stable.
     start_training(working_dir, pre_training_phase)
 
 
