@@ -52,8 +52,9 @@ def fit_model(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test, batch
         if grad_step % 1000 == 0:
             logger.info('Saving...')
             delete_older_checkpoints(CHECKPOINTS_TRIPLET_DIR, max_to_keep=10)
-            checkpoint_file = os.path.join(CHECKPOINTS_TRIPLET_DIR, f'triplet_model_{grad_step}.h5')
-            dsm.m.save_weights(checkpoint_file, overwrite=True)
+            checkpoint_name = dsm.m.name + '_checkpoint'
+            checkpoint_filename = os.path.join(CHECKPOINTS_TRIPLET_DIR, checkpoint_name + f'_{grad_step}.h5')
+            dsm.m.save_weights(checkpoint_filename, overwrite=True)
 
     loss_file.close()
 
