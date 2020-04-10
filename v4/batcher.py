@@ -53,7 +53,7 @@ def normalize(list_matrices, mean, std):
 
 class KerasConverter:
 
-    def __init__(self, working_dir):
+    def __init__(self, working_dir, load_test_only=False):
         self.working_dir = working_dir
         self.output_dir = os.path.join(self.working_dir, 'keras-inputs')
         ensures_dir(self.output_dir)
@@ -62,9 +62,9 @@ class KerasConverter:
         self.kx_test = None
         self.ky_train = None
         self.ky_test = None
-        self.load_from_disk()
+        self.load_from_disk(load_test_only)
 
-    def load_from_disk(self):
+    def load_from_disk(self, load_test_only):
 
         def load_pickle(file):
             if not os.path.exists(file):
@@ -80,9 +80,10 @@ class KerasConverter:
             return np.load(file)
 
         self.categorical_speakers = load_pickle(os.path.join(self.output_dir, 'categorical_speakers.pkl'))
-        self.kx_train = load_npy(os.path.join(self.output_dir, 'kx_train.npy'))
+        if not load_test_only:
+            self.kx_train = load_npy(os.path.join(self.output_dir, 'kx_train.npy'))
+            self.ky_train = load_npy(os.path.join(self.output_dir, 'ky_train.npy'))
         self.kx_test = load_npy(os.path.join(self.output_dir, 'kx_test.npy'))
-        self.ky_train = load_npy(os.path.join(self.output_dir, 'ky_train.npy'))
         self.ky_test = load_npy(os.path.join(self.output_dir, 'ky_test.npy'))
 
     def persist_to_disk(self):
@@ -311,3 +312,33 @@ class TripletBatcher:
 
         batch_y = np.zeros(shape=(len(batch_x), len(self.speakers_list)))
         return batch_x, batch_y
+
+
+class TripletEvaluator:
+
+    def __init__(self, kx_test, ky_test):
+        self.kx_test = kx_test
+        self.ky_test = ky_test
+        speakers_list = sorted(set(ky_test.argmax(axis=1)))
+        num_different_speakers = len(speakers_list)
+        assert speakers_list == list(range(num_different_speakers))
+        self.test_indices_per_speaker = {}
+        for speaker_id in speakers_list:
+            self.test_indices_per_speaker[speaker_id] = list(np.where(ky_test.argmax(axis=1) == speaker_id)[0])
+        assert sorted(sum([v for v in self.test_indices_per_speaker.values()], [])) == sorted(range(len(ky_test)))
+        self.speakers_list = speakers_list
+
+    def _select_speaker_data(self, speaker):
+        indices = np.random.choice(self.test_indices_per_speaker[speaker], size=1)
+        return self.kx_test[indices]
+
+    def get_speaker_verification_data(self, positive_speaker, num_different_speakers):
+        all_negative_speakers = list(set(self.speakers_list) - {positive_speaker})
+        assert len(self.speakers_list) - 1 == len(all_negative_speakers)
+        negative_speakers = np.random.choice(all_negative_speakers, size=num_different_speakers, replace=False)
+        assert positive_speaker not in negative_speakers
+        anchor = self._select_speaker_data(positive_speaker)
+        positive = self._select_speaker_data(positive_speaker)
+        data = [anchor, positive]
+        data.extend([self._select_speaker_data(n) for n in negative_speakers])
+        return np.vstack(data)

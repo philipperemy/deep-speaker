@@ -12,6 +12,7 @@ from tqdm import tqdm
 from audio import Audio
 from batcher import KerasConverter, FBankProcessor
 from constants import SAMPLE_RATE, NUM_FRAMES
+from test import test
 from train2 import start_training
 from utils import ClickType as Ct, ensures_dir, create_new_empty_dir, find_files
 from utils import init_pandas
@@ -76,6 +77,12 @@ def build_keras_inputs(working_dir, counts_per_speaker):
     kc = KerasConverter(working_dir)
     kc.generate(max_length=NUM_FRAMES, counts_per_speaker=counts_per_speaker)
     kc.persist_to_disk()
+
+
+@cli.command('test-model', short_help='Test a Keras model.')
+@click.option('--working_dir', required=True, type=Ct.input_dir())
+def test_model(working_dir):
+    test(working_dir)
 
 
 @cli.command('train-model', short_help='Train a Keras model.')
