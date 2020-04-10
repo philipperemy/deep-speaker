@@ -10,7 +10,7 @@ from batcher import KerasConverter, TripletBatcher
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
 from conv_models import DeepSpeakerModel
 from triplet_loss import deep_speaker_loss
-from utils import load_best_checkpoint, ensures_dir
+from utils import load_best_checkpoint, ensures_dir, delete_older_checkpoints
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ def fit_model(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test, batch
         # train_loss = dict(zip(dsm.m.metrics_names, train_loss_values))
         train_overall_loss_emb.append(train_loss)  # ['embeddings_loss'])
 
-        if grad_step % 100 == 0:
+        if grad_step % 10 == 0:
             format_str = 'step: {0:,}, train_loss: {1:.4f}, test_loss: {2:.4f}.'
             tr_mean_loss = np.mean(train_overall_loss_emb)
             te_mean_loss = np.mean(test_overall_loss_emb)
@@ -49,8 +49,9 @@ def fit_model(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test, batch
             loss_file.write(','.join([str(grad_step), f'{tr_mean_loss:.4f}', f'{te_mean_loss:.4f}']) + '\n')
             loss_file.flush()
 
-        if grad_step % 10_000 == 0:
+        if grad_step % 1000 == 0:
             logger.info('Saving...')
+            delete_older_checkpoints(CHECKPOINTS_TRIPLET_DIR, max_to_keep=10)
             checkpoint_file = os.path.join(CHECKPOINTS_TRIPLET_DIR, f'triplet_model_{grad_step}.h5')
             dsm.m.save_weights(checkpoint_file, overwrite=True)
 

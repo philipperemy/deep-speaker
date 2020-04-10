@@ -71,3 +71,13 @@ def load_best_checkpoint(checkpoint_dir):
     if len(checkpoints) != 0:
         return checkpoints[-1]
     return None
+
+
+def delete_older_checkpoints(checkpoint_dir, max_to_keep=5):
+    assert max_to_keep > 0
+    checkpoints = natsorted(glob(os.path.join(checkpoint_dir, '*.h5')))
+    checkpoints_to_keep = checkpoints[-max_to_keep:]
+    for checkpoint in checkpoints:
+        if checkpoint not in checkpoints_to_keep:
+            os.remove(checkpoint)
+
