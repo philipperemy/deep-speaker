@@ -7,9 +7,6 @@ TRAIN_TEST_RATIO = 0.8
 
 CHECKPOINTS_SOFTMAX_DIR = 'checkpoints-softmax'
 
-# Everything but the last softmax layer.
-PRE_TRAINING_WEIGHTS_FILE = 'pretraining-weights.pkl'
-
 CHECKPOINTS_TRIPLET_DIR = 'checkpoints-triplets'
 
 BATCH_SIZE = 32 * 3  # have to be a multiple of 3.

@@ -4,6 +4,7 @@ from glob import glob
 
 import click
 import pandas as pd
+from natsort import natsorted
 
 
 def find_files(directory, ext='wav'):
@@ -63,3 +64,10 @@ def parallel_function(f, sequence, num_threads=None):
     pool.close()
     pool.join()
     return cleaned
+
+
+def load_best_checkpoint(checkpoint_dir):
+    checkpoints = natsorted(glob(os.path.join(checkpoint_dir, '*.h5')))
+    if len(checkpoints) != 0:
+        return checkpoints[-1]
+    return None

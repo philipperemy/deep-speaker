@@ -1,20 +1,16 @@
 import logging
 import os
-import pickle
 from collections import deque
-from glob import glob
 
 import numpy as np
-from natsort import natsorted
-from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
 
 from batcher import KerasConverter, TripletBatcher
-from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS, \
-    PRE_TRAINING_WEIGHTS_FILE
+from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
 from conv_models import DeepSpeakerModel
 from triplet_loss import deep_speaker_loss
+from utils import load_best_checkpoint
 
 logger = logging.getLogger(__name__)
 
@@ -63,17 +59,6 @@ def fit_model(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test, batch
 
 def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test,
                       batch_size=BATCH_SIZE, max_epochs=1000, initial_epoch=0):
-    triplet_checkpoint_filename = PRE_TRAINING_WEIGHTS_FILE
-
-    # TODO: not really smart. It should be from the H5 file!
-    # Because we will always resume from the latest checkpoint and not the best one...
-    class ModelTripletCheckpoint(Callback):
-
-        def on_epoch_end(self, epoch, logs=None):
-            weights = dsm.get_weights()
-            with open(triplet_checkpoint_filename, 'wb') as w:
-                pickle.dump(weights, w)
-
     checkpoint_name = dsm.m.name + '_checkpoint'
     checkpoint_filename = os.path.join(CHECKPOINTS_SOFTMAX_DIR, checkpoint_name + '_{epoch}.h5')
     checkpoint = ModelCheckpoint(monitor='val_accuracy', filepath=checkpoint_filename, save_best_only=True)
@@ -83,8 +68,6 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
 
     # if the accuracy does not increase over 10 epochs, we reduce the learning rate by half.
     reduce_lr = ReduceLROnPlateau(monitor='val_accuracy', factor=0.5, patience=10, min_lr=0.0001, verbose=1)
-
-    triplet_checkpoint = ModelTripletCheckpoint()
 
     max_len_train = len(kx_train) - len(kx_train) % batch_size
     kx_train = kx_train[0:max_len_train]
@@ -101,7 +84,7 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
               verbose=1,
               shuffle=True,
               validation_data=(kx_test, ky_test),
-              callbacks=[early_stopping, reduce_lr, checkpoint, triplet_checkpoint])
+              callbacks=[early_stopping, reduce_lr, checkpoint])
 
 
 def start_training(working_dir, pre_training_phase=True):
@@ -119,30 +102,26 @@ def start_training(working_dir, pre_training_phase=True):
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
         dsm.m.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        checkpoints = natsorted(glob(os.path.join(CHECKPOINTS_SOFTMAX_DIR, '*.h5')))
-        initial_epoch = 0
-        if len(checkpoints) != 0:
-            checkpoint_file = checkpoints[-1]
-            initial_epoch = int(checkpoint_file.split('/')[-1].split('.')[0].split('_')[-1])
+        pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
+        if pre_training_checkpoint is not None:
+            initial_epoch = int(pre_training_checkpoint.split('/')[-1].split('.')[0].split('_')[-1])
             logger.info(f'Initial epoch is {initial_epoch}.')
-            logger.info(f'Loading softmax checkpoint: {checkpoint_file}.')
-            dsm.m.load_weights(checkpoint_file)  # latest one.
+            logger.info(f'Loading softmax checkpoint: {pre_training_checkpoint}.')
+            dsm.m.load_weights(pre_training_checkpoint)  # latest one.
+        else:
+            initial_epoch = 0
         fit_model_softmax(dsm, kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test, initial_epoch=initial_epoch)
     else:
         logger.info('Training with the triplet loss.')
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=False)
-        weights_file = PRE_TRAINING_WEIGHTS_FILE
-        checkpoints = natsorted(glob(os.path.join(CHECKPOINTS_TRIPLET_DIR, '*.h5')))
-        if len(checkpoints) != 0:
-            checkpoint_file = checkpoints[-1]
-            logger.info(f'Loading triplet checkpoint: {checkpoint_file}.')
-            dsm.m.load_weights(checkpoint_file)
-        elif os.path.isfile(weights_file):
-            logger.info(f'Loading pre-training weights from: {weights_file}.')
-            with open(weights_file, 'rb') as r:
-                w = pickle.load(r)
-            dsm.m.set_weights(w)
-            logger.info('Weights successfully loaded.')
+        pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
+        triplet_checkpoint = load_best_checkpoint(CHECKPOINTS_TRIPLET_DIR)
+        if triplet_checkpoint is not None:
+            logger.info(f'Loading triplet checkpoint: {triplet_checkpoint}.')
+            dsm.m.load_weights(triplet_checkpoint)
+        elif pre_training_checkpoint is not None:
+            logger.info(f'Loading pre-training checkpoint: {triplet_checkpoint}.')
+            dsm.m.load_weights(triplet_checkpoint, by_name=True, skip_mismatch=True)
         dsm.m.compile(optimizer=Adam(lr=0.01), loss=deep_speaker_loss)
         dsm.m.summary()
         kc = KerasConverter(working_dir)
