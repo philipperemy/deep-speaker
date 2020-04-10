@@ -103,7 +103,7 @@ def train_model(working_dir, pre_training_phase):
     # Merge: a11d13e b30e64e
     # Author: Philippe Remy <premy.enseirb@gmail.com>
     # Date:   Fri Apr 10 10:37:59 2020 +0900
-    # LibriSpeech train-clean-data360 (600, 100). 0.99 on test set.
+    # LibriSpeech train-clean-data360 (600, 100). 0.985 on test set (enough for pre-training).
     start_training(working_dir, pre_training_phase)
 
 

@@ -1,12 +1,13 @@
 import logging
+import os
 
 import numpy as np
 import tensorflow.keras.backend as K
-from tensorflow.keras.layers import Dropout
 from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import Input
 from tensorflow.keras.layers import Lambda, Dense
 from tensorflow.keras.layers import Reshape
@@ -17,6 +18,7 @@ from constants import NUM_FBANKS, NUM_FRAMES
 from triplet_loss import deep_speaker_loss
 
 logger = logging.getLogger(__name__)
+
 
 # TODO: Dropout has been added. Remove it later.
 
@@ -57,7 +59,7 @@ class DeepSpeakerModel:
         x = Reshape((-1, 2048))(x)
         # Temporal average layer. axis=1 is time.
         x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
-        x = Dropout(0.5)(x) # TODO: remove it but our dataset is too small.
+        x = Dropout(0.5)(x)  # TODO: remove it but our dataset is too small.
         x = Dense(512, name='affine')(x)
         if include_softmax:
             # Those weights are just when we train on softmax.
@@ -187,5 +189,13 @@ def train():
         print(dsm.m.train_on_batch(x, y))
 
 
+def test_checkpoint_compatibility():
+    dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=True, num_speakers_softmax=10)
+    dsm.m.save_weights('test.h5')
+    dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=False)
+    dsm.m.load_weights('test.h5', by_name=True)
+    os.remove('test.h5')
+
+
 if __name__ == '__main__':
-    train()
+    test_checkpoint_compatibility()

@@ -119,7 +119,10 @@ def start_training(working_dir, pre_training_phase=True):
             dsm.m.load_weights(triplet_checkpoint)
         elif pre_training_checkpoint is not None:
             logger.info(f'Loading pre-training checkpoint: {triplet_checkpoint}.')
-            dsm.m.load_weights(triplet_checkpoint, by_name=True, skip_mismatch=True)
+            # If `by_name` is True, weights are loaded into layers only if they share the
+            # same name. This is useful for fine-tuning or transfer-learning models where
+            # some of the layers have changed.
+            dsm.m.load_weights(triplet_checkpoint, by_name=True)
         dsm.m.compile(optimizer=Adam(lr=0.01), loss=deep_speaker_loss)
         dsm.m.summary()
         kc = KerasConverter(working_dir)
