@@ -112,18 +112,17 @@ def start_training(working_dir, pre_training_phase=True):
     else:
         logger.info('Training with the triplet loss.')
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=False)
-        pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         triplet_checkpoint = load_best_checkpoint(CHECKPOINTS_TRIPLET_DIR)
+        pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         if triplet_checkpoint is not None:
             logger.info(f'Loading triplet checkpoint: {triplet_checkpoint}.')
             dsm.m.load_weights(triplet_checkpoint)
         elif pre_training_checkpoint is not None:
-            logger.info(f'Loading pre-training checkpoint: {triplet_checkpoint}.')
+            logger.info(f'Loading pre-training checkpoint: {pre_training_checkpoint}.')
             # If `by_name` is True, weights are loaded into layers only if they share the
             # same name. This is useful for fine-tuning or transfer-learning models where
             # some of the layers have changed.
-            dsm.m.load_weights(triplet_checkpoint, by_name=True)
+            dsm.m.load_weights(pre_training_checkpoint, by_name=True)
         dsm.m.compile(optimizer=Adam(lr=0.01), loss=deep_speaker_loss)
-        dsm.m.summary()
         kc = KerasConverter(working_dir)
         fit_model(dsm, kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test)
