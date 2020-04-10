@@ -65,6 +65,8 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
                       batch_size=BATCH_SIZE, max_epochs=1000, initial_epoch=0):
     triplet_checkpoint_filename = PRE_TRAINING_WEIGHTS_FILE
 
+    # TODO: not really smart. It should be from the H5 file!
+    # Because we will always resume from the latest checkpoint and not the best one...
     class ModelTripletCheckpoint(Callback):
 
         def on_epoch_end(self, epoch, logs=None):
@@ -72,11 +74,12 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
             with open(triplet_checkpoint_filename, 'wb') as w:
                 pickle.dump(weights, w)
 
-    checkpoint_filename = CHECKPOINTS_SOFTMAX_DIR + '/unified_model_checkpoints_{epoch}.h5'
+    checkpoint_name = dsm.m.name + '_checkpoint'
+    checkpoint_filename = os.path.join(CHECKPOINTS_SOFTMAX_DIR, checkpoint_name + '_{epoch}.h5')
     checkpoint = ModelCheckpoint(monitor='val_accuracy', filepath=checkpoint_filename, save_best_only=True)
-    # if the accuracy does not increase by 1.0% over 10 epochs, we stop the training.
-    # 100 was the value before.
-    early_stopping = EarlyStopping(monitor='val_accuracy', min_delta=0.01, patience=100, verbose=1, mode='max')
+
+    # if the accuracy does not increase by 1.0% over 20 epochs, we stop the training.
+    early_stopping = EarlyStopping(monitor='val_accuracy', min_delta=0.01, patience=20, verbose=1, mode='max')
 
     # if the accuracy does not increase over 10 epochs, we reduce the learning rate by half.
     reduce_lr = ReduceLROnPlateau(monitor='val_accuracy', factor=0.5, patience=10, min_lr=0.0001, verbose=1)

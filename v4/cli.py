@@ -70,8 +70,9 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate):
 
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-def build_keras_inputs(working_dir):
-    counts_per_speaker = (600, 100)  # train, test (5000, 500) had good results.
+@click.option('--counts_per_speaker', default='600,100', show_default=True, type=str)  # train,test
+def build_keras_inputs(working_dir, counts_per_speaker):
+    counts_per_speaker = [int(b) for b in counts_per_speaker.split(',')]
     kc = KerasConverter(working_dir)
     kc.generate(max_length=NUM_FRAMES, counts_per_speaker=counts_per_speaker)
     kc.persist_to_disk()
@@ -98,6 +99,12 @@ def train_model(working_dir, pre_training_phase):
     # b2f145afef1d5d6ecedd1880e2b7a24a6e7ca33f (Thu Apr 9 00:09:58 2020 +0900).
     # Let's try with (5000, 500) and bigger frame 160, dropout 0.5. It gave 0.985 easily. more stable.
     start_training(working_dir, pre_training_phase)
+
+    # commit a5030dd7a1b53cd11d5ab7832fa2d43f2093a464
+    # Merge: a11d13e b30e64e
+    # Author: Philippe Remy <premy.enseirb@gmail.com>
+    # Date:   Fri Apr 10 10:37:59 2020 +0900
+    # LibriSpeech train-clean-data360 (600, 100). 0.99 on test set.
 
 
 @cli.command('libri-to-vctk-format', short_help='Converts Libri dataset to VCTK.')
