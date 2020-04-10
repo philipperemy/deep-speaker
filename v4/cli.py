@@ -71,7 +71,7 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate):
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 def build_keras_inputs(working_dir):
-    counts_per_speaker = (5000, 500)  # train, test (5000, 500) had good results.
+    counts_per_speaker = (600, 100)  # train, test (5000, 500) had good results.
     kc = KerasConverter(working_dir)
     kc.generate(max_length=NUM_FRAMES, counts_per_speaker=counts_per_speaker)
     kc.persist_to_disk()
