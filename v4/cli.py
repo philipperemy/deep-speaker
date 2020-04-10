@@ -81,8 +81,9 @@ def build_keras_inputs(working_dir, counts_per_speaker):
 
 @cli.command('test-model', short_help='Test a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-def test_model(working_dir):
-    test(working_dir)
+@click.option('--checkpoint_file', type=Ct.input_file())
+def test_model(working_dir, checkpoint_file=None):
+    test(working_dir, checkpoint_file)
 
 
 @cli.command('train-model', short_help='Train a Keras model.')

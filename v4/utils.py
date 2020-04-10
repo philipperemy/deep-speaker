@@ -1,8 +1,10 @@
 import os
+import random
 import shutil
 from glob import glob
 
 import click
+import numpy as np
 import pandas as pd
 from natsort import natsorted
 
@@ -81,3 +83,8 @@ def delete_older_checkpoints(checkpoint_dir, max_to_keep=5):
         if checkpoint not in checkpoints_to_keep:
             os.remove(checkpoint)
 
+
+def enable_deterministic():
+    print('Deterministic mode enabled.')
+    np.random.seed(123)
+    random.seed(123)
