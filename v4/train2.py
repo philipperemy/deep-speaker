@@ -10,7 +10,7 @@ from batcher import KerasConverter, TripletBatcher
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
 from conv_models import DeepSpeakerModel
 from triplet_loss import deep_speaker_loss
-from utils import load_best_checkpoint
+from utils import load_best_checkpoint, ensures_dir
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +88,8 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
 
 
 def start_training(working_dir, pre_training_phase=True):
-    if not os.path.exists(CHECKPOINTS_SOFTMAX_DIR):
-        os.makedirs(CHECKPOINTS_SOFTMAX_DIR)
-    if not os.path.exists(CHECKPOINTS_TRIPLET_DIR):
-        os.makedirs(CHECKPOINTS_TRIPLET_DIR)
+    ensures_dir(CHECKPOINTS_SOFTMAX_DIR)
+    ensures_dir(CHECKPOINTS_TRIPLET_DIR)
 
     # TODO: put back the diffs. Not sure they included them though.
     batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 1]
