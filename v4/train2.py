@@ -125,6 +125,6 @@ def start_training(working_dir, pre_training_phase=True):
             # same name. This is useful for fine-tuning or transfer-learning models where
             # some of the layers have changed.
             dsm.m.load_weights(pre_training_checkpoint, by_name=True)
-        dsm.m.compile(optimizer=Adam(lr=0.01), loss=deep_speaker_loss)
+        dsm.m.compile(optimizer='adam', loss=deep_speaker_loss)
         kc = KerasConverter(working_dir)
         fit_model(dsm, kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test)

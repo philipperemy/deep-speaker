@@ -46,5 +46,6 @@ def deep_speaker_loss(y_true, y_pred):
 if __name__ == '__main__':
     import numpy as np
 
-    y = np.array([[1.0], [1.0], [-1.0]])
+    y = np.random.uniform(low=-1, high=1, size=(3 * 4, 10))
+    y /= np.linalg.norm(y, 2, axis=1, keepdims=True)
     deep_speaker_loss(y_true=y, y_pred=y)
