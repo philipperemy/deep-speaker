@@ -20,8 +20,6 @@ from triplet_loss import deep_speaker_loss
 logger = logging.getLogger(__name__)
 
 
-# TODO: Dropout has been added. Remove it later.
-
 class DeepSpeakerModel:
 
     # I thought it was 3 but maybe energy is added at a 4th dimension.
@@ -59,7 +57,9 @@ class DeepSpeakerModel:
         x = Reshape((-1, 2048))(x)
         # Temporal average layer. axis=1 is time.
         x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
-        x = Dropout(0.5)(x)  # TODO: remove it but our dataset is too small.
+        if include_softmax:
+            logger.info('Including a Dropout layer to reduce overfitting.')
+            x = Dropout(0.5)(x) # used for softmax because the dataset we pre-train on might be too small. easy to overfit.
         x = Dense(512, name='affine')(x)
         if include_softmax:
             # Those weights are just when we train on softmax.
