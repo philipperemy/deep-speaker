@@ -321,7 +321,9 @@ class TripletBatcherSelectHardNegatives(TripletBatcher):
         super().__init__(kx_train, ky_train, kx_test, ky_test)
         self.model = model
 
-    def get_batch(self, batch_size, is_test=False):
+    def get_batch(self, batch_size, is_test=False, predict=None):
+        if predict is None:
+            predict = self.model.m.predict
         if is_test:
             return super().get_batch(batch_size, is_test)
         # only for train.
@@ -333,26 +335,28 @@ class TripletBatcherSelectHardNegatives(TripletBatcher):
             inputs.append(self.select_speaker_data(speaker, n=k, is_test=False))
         inputs = np.array(inputs)
         model_inputs = np.vstack(inputs)
-        embeddings = self.model.m.predict(model_inputs)
+        embeddings = predict(model_inputs)
         assert embeddings.shape[-1] == 512
-        embeddings = np.reshape(embeddings, (k, len(self.speakers_list), 512))
-        cs = batch_cosine_similarity(embeddings[0], embeddings[1])
+        # (speaker, utterance, 512)
+        embeddings = np.reshape(embeddings, (len(self.speakers_list), k, 512))
+        cs = batch_cosine_similarity(embeddings[:, 0], embeddings[:, 1])
         arg_sort = np.argsort(cs)
         assert len(arg_sort) > num_triplets
         anchor_speakers = arg_sort[0:num_triplets]
 
-        anchor_embeddings = embeddings[0, anchor_speakers]
+        anchor_embeddings = embeddings[anchor_speakers, 0]
         negative_speakers = sorted(set(self.speakers_list) - set(anchor_speakers))
-        negative_embeddings = embeddings[0, negative_speakers]
+        negative_embeddings = embeddings[negative_speakers, 0]
 
         selected_negative_speakers = []
         for anchor_embedding in anchor_embeddings:
-            anchor_to_negative_emb = [batch_cosine_similarity([anchor_embedding], neg) for neg in negative_embeddings]
-            selected_negative_speakers.append(np.argmax(anchor_to_negative_emb))
+            cs_negative = [batch_cosine_similarity([anchor_embedding], neg) for neg in negative_embeddings]
+            selected_negative_speakers.append(negative_speakers[int(np.argmax(cs_negative))])
 
         # anchor with frame 0.
         # positive with frame 1.
         # negative with frame 0.
+        assert len(set(selected_negative_speakers).intersection(anchor_speakers)) == 0
         negative = inputs[selected_negative_speakers, 0]
         positive = inputs[anchor_speakers, 1]
         anchor = inputs[anchor_speakers, 0]
