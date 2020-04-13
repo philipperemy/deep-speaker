@@ -52,6 +52,7 @@ def eval_model(working_dir: str, model: DeepSpeakerModel):
     y_true[:, 0] = 1.0
     print(np.matrix(y_true))
     print(np.matrix(y_pred))
+    print(np.min(y_pred), np.max(y_pred))
     fm, tpr, acc, eer = evaluate(y_pred, y_true)
     return fm, tpr, acc, eer
 
@@ -63,7 +64,7 @@ def test(working_dir, checkpoint_file=None):
         checkpoint_file = load_best_checkpoint(CHECKPOINTS_TRIPLET_DIR)
     if checkpoint_file is not None:
         logger.info(f'Found checkpoint [{checkpoint_file}]. Loading weights...')
-        dsm.m.load_weights(checkpoint_file)
+        dsm.m.load_weights(checkpoint_file, by_name=True)
     else:
         logger.info(f'Could not find any checkpoint in {checkpoint_file}.')
         exit(1)
