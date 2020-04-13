@@ -11,6 +11,8 @@ from tqdm import tqdm
 
 from audio import extract_speaker_id
 from constants import SAMPLE_RATE, TRAIN_TEST_RATIO, NUM_FRAMES, NUM_FBANKS
+from conv_models import DeepSpeakerModel
+from test import batch_cosine_similarity
 from utils import parallel_function, ensures_dir, find_files
 
 logger = logging.getLogger(__name__)
@@ -290,13 +292,13 @@ class TripletBatcher:
         assert sorted(sum([v for v in self.test_indices_per_speaker.values()], [])) == sorted(range(len(ky_test)))
         self.speakers_list = speakers_list
 
-    def select_speaker_data(self, x, speaker, batch_size, is_test):
+    def select_speaker_data(self, speaker, n, is_test):
+        x = self.kx_test if is_test else self.kx_train
         indices_per_speaker = self.test_indices_per_speaker if is_test else self.train_indices_per_speaker
-        indices = np.random.choice(indices_per_speaker[speaker], size=batch_size // 3)
+        indices = np.random.choice(indices_per_speaker[speaker], size=n)
         return x[indices]
 
     def get_batch(self, batch_size, is_test=False):
-        x = self.kx_test if is_test else self.kx_train
         # y = self.ky_test if is_test else self.ky_train
 
         two_different_speakers = np.random.choice(self.speakers_list, size=2, replace=False)
@@ -305,13 +307,54 @@ class TripletBatcher:
         assert negative_speaker != anchor_positive_speaker
 
         batch_x = np.vstack([
-            self.select_speaker_data(x, anchor_positive_speaker, batch_size, is_test),
-            self.select_speaker_data(x, anchor_positive_speaker, batch_size, is_test),
-            self.select_speaker_data(x, negative_speaker, batch_size, is_test)
+            self.select_speaker_data(anchor_positive_speaker, batch_size // 3, is_test),
+            self.select_speaker_data(anchor_positive_speaker, batch_size // 3, is_test),
+            self.select_speaker_data(negative_speaker, batch_size // 3, is_test)
         ])
 
         batch_y = np.zeros(shape=(len(batch_x), len(self.speakers_list)))
         return batch_x, batch_y
+
+
+class TripletBatcherSelectHardNegatives(TripletBatcher):
+
+    def __init__(self, kx_train, ky_train, kx_test, ky_test, model: DeepSpeakerModel):
+        super().__init__(kx_train, ky_train, kx_test, ky_test)
+        self.model = model
+
+    def selected_batch(self, batch_size):
+        num_triplets = batch_size // 3
+        inputs = []
+        k = 2  # do not change this.
+        for speaker in self.speakers_list:
+            inputs.append(self.select_speaker_data(speaker, n=k, is_test=False))
+        inputs = np.array(inputs)
+        model_inputs = np.vstack(inputs)
+        embeddings = self.model.m.predict(model_inputs)
+        assert embeddings.shape[-1] == 512
+        embeddings = np.reshape(embeddings, (k, len(self.speakers_list), 512))
+        cs = batch_cosine_similarity(embeddings[0], embeddings[1])
+        arg_sort = np.argsort(cs)
+        assert len(arg_sort) > num_triplets
+        anchor_speakers = arg_sort[0:num_triplets]
+
+        anchor_embeddings = embeddings[0, anchor_speakers]
+        negative_speakers = sorted(set(self.speakers_list) - set(anchor_speakers))
+        negative_embeddings = embeddings[0, negative_speakers]
+
+        selected_negative_speakers = []
+        for anchor_embedding in anchor_embeddings:
+            selected_negative = np.argmin(batch_cosine_similarity([anchor_embedding], negative_embeddings))
+            selected_negative_speakers.append(selected_negative)
+
+        # anchor with frame 0.
+        # positive with frame 1.
+        # negative with frame 0.
+        negative = inputs[selected_negative_speakers, 0]
+        positive = inputs[anchor_speakers, 1]
+        anchor = inputs[anchor_speakers, 0]
+        batch = np.vstack([anchor, positive, negative])
+        return batch
 
 
 class TripletEvaluator:

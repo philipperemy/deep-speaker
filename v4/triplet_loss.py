@@ -12,7 +12,7 @@ def batch_cosine_similarity(x1, x2):
     return dot
 
 
-def deep_speaker_loss(y_true, y_pred):
+def deep_speaker_loss(y_true, y_pred, alpha=ALPHA):
     # y_true is not used. we respect this convention:
     # y_true.shape = (batch_size, embedding_size) [not used]
     # y_pred.shape = (batch_size, embedding_size)
@@ -38,7 +38,7 @@ def deep_speaker_loss(y_true, y_pred):
     # Then sap = 1 and san = -1. loss = max(-1-1+0.1,0) = max(-1.9, 0) = 0.
     sap = batch_cosine_similarity(anchor, positive_ex)
     san = batch_cosine_similarity(anchor, negative_ex)
-    loss = K.maximum(san - sap + ALPHA, 0.0)
+    loss = K.maximum(san - sap + alpha, 0.0)
     total_loss = K.mean(loss)
     return total_loss
 
@@ -46,6 +46,17 @@ def deep_speaker_loss(y_true, y_pred):
 if __name__ == '__main__':
     import numpy as np
 
-    y = np.random.uniform(low=-1, high=1, size=(3 * 4, 10))
-    y /= np.linalg.norm(y, 2, axis=1, keepdims=True)
-    deep_speaker_loss(y_true=y, y_pred=y)
+    print(deep_speaker_loss(alpha=0.1, y_true=0, y_pred=np.array([[0.9], [1.0], [-1.0]])))
+    print(deep_speaker_loss(alpha=1, y_true=0, y_pred=np.array([[0.9], [1.0], [-1.0]])))
+    print(deep_speaker_loss(alpha=2, y_true=0, y_pred=np.array([[0.9], [1.0], [-1.0]])))
+    print('--------------')
+    print(deep_speaker_loss(alpha=2, y_true=0, y_pred=np.array([[0.6], [1.0], [0.0]])))
+    print(deep_speaker_loss(alpha=1, y_true=0, y_pred=np.array([[0.6], [1.0], [0.0]])))
+    print(deep_speaker_loss(alpha=0.1, y_true=0, y_pred=np.array([[0.6], [1.0], [0.0]])))
+    print(deep_speaker_loss(alpha=0.2, y_true=0, y_pred=np.array([[0.6], [1.0], [0.0]])))
+
+    print('--------------')
+    print(deep_speaker_loss(alpha=2, y_true=0, y_pred=np.array([[0.9], [1.0], [-1.0]])))
+    print(deep_speaker_loss(alpha=1, y_true=0, y_pred=np.array([[0.9], [1.0], [-1.0]])))
+    print(deep_speaker_loss(alpha=0.1, y_true=0, y_pred=np.array([[0.9], [1.0], [-1.0]])))
+    print(deep_speaker_loss(alpha=0.2, y_true=0, y_pred=np.array([[0.9], [1.0], [-1.0]])))

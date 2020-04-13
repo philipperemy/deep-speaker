@@ -13,6 +13,7 @@ from audio import Audio
 from batcher import KerasConverter, FBankProcessor
 from constants import SAMPLE_RATE, NUM_FRAMES
 from test import test
+from test2 import test2
 from train2 import start_training
 from utils import ClickType as Ct, ensures_dir, create_new_empty_dir, find_files
 from utils import init_pandas
@@ -84,6 +85,13 @@ def build_keras_inputs(working_dir, counts_per_speaker):
 @click.option('--checkpoint_file', type=Ct.input_file())
 def test_model(working_dir, checkpoint_file=None):
     test(working_dir, checkpoint_file)
+
+
+@cli.command('test-model-2', short_help='Test a Keras model.')
+@click.option('--working_dir', required=True, type=Ct.input_dir())
+@click.option('--checkpoint_file', type=Ct.input_file())
+def test_model(working_dir, checkpoint_file=None):
+    test2(working_dir, checkpoint_file)
 
 
 @cli.command('train-model', short_help='Train a Keras model.')
