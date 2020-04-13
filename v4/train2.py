@@ -4,9 +4,8 @@ from collections import deque
 
 import numpy as np
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.optimizers import Adam
 
-from batcher import KerasConverter, TripletBatcher
+from batcher import KerasConverter, TripletBatcherSelectHardNegatives
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
 from conv_models import DeepSpeakerModel
 from triplet_loss import deep_speaker_loss
@@ -19,7 +18,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def fit_model(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test, batch_size=BATCH_SIZE):
-    batcher = TripletBatcher(kx_train, ky_train, kx_test, ky_test)
+    batcher = TripletBatcherSelectHardNegatives(kx_train, ky_train, kx_test, ky_test, dsm)
 
     test_every = 10
     train_deque_size = 200
