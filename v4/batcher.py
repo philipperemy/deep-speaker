@@ -367,6 +367,7 @@ class TripletBatcherSelectHardNegatives(TripletBatcher):
         batch_y = np.zeros(shape=(len(batch_x), len(self.speakers_list)))
         return batch_x, batch_y
 
+
 class TripletEvaluator:
 
     def __init__(self, kx_test, ky_test):
