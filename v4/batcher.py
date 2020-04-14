@@ -17,6 +17,10 @@ from utils import parallel_function, ensures_dir, find_files
 logger = logging.getLogger(__name__)
 
 
+# TODO: try the random batcher. without any logic.
+# TODO: try to mine the hard triplets.
+
+
 def normalize_frames(m, epsilon=1e-12):
     return [(v - np.mean(v)) / max(np.std(v), epsilon) for v in m]
 
@@ -333,9 +337,8 @@ class TripletBatcherSelectHardNegatives(TripletBatcher):
         k = 2  # do not change this.
         for speaker in self.speakers_list:
             inputs.append(self.select_speaker_data(speaker, n=k, is_test=False))
-        inputs = np.array(inputs)
-        model_inputs = np.vstack(inputs)
-        embeddings = predict(model_inputs)
+        inputs = np.array(inputs)  # num_speakers * [k, num_frames, num_fbanks, 1].
+        embeddings = predict(np.vstack(inputs))
         assert embeddings.shape[-1] == 512
         # (speaker, utterance, 512)
         embeddings = np.reshape(embeddings, (len(self.speakers_list), k, 512))
@@ -363,7 +366,6 @@ class TripletBatcherSelectHardNegatives(TripletBatcher):
         batch_x = np.vstack([anchor, positive, negative])
         batch_y = np.zeros(shape=(len(batch_x), len(self.speakers_list)))
         return batch_x, batch_y
-
 
 class TripletEvaluator:
 
