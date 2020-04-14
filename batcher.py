@@ -328,15 +328,12 @@ class TripletBatcherSelectHardNegatives(TripletBatcher):
     def get_batch(self, batch_size, is_test=False, predict=None):
         if predict is None:
             predict = self.model.m.predict
-        if is_test:
-            return super().get_batch(batch_size, is_test)
-        # only for train.
         from test import batch_cosine_similarity
         num_triplets = batch_size // 3
         inputs = []
         k = 2  # do not change this.
         for speaker in self.speakers_list:
-            inputs.append(self.select_speaker_data(speaker, n=k, is_test=False))
+            inputs.append(self.select_speaker_data(speaker, n=k, is_test=is_test))
         inputs = np.array(inputs)  # num_speakers * [k, num_frames, num_fbanks, 1].
         embeddings = predict(np.vstack(inputs))
         assert embeddings.shape[-1] == 512

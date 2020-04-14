@@ -132,7 +132,7 @@ class Audio:
                 return
 
             audio = Audio.read(input_filename, self.sample_rate)
-            # TODO: could use trim_silence() here.
+            # TODO: could use trim_silence() here or a better VAD.
             energy = np.abs(audio)
             silence_threshold = np.percentile(energy, 95)
             offsets = np.where(energy > silence_threshold)[0]

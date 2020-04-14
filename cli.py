@@ -20,7 +20,7 @@ from utils import init_pandas
 
 logger = logging.getLogger(__name__)
 
-VERSION = '1.0b'
+VERSION = '1.0c'
 
 
 @click.group()
