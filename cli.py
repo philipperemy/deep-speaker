@@ -13,8 +13,8 @@ from audio import Audio
 from batcher import KerasConverter, FBankProcessor
 from constants import SAMPLE_RATE, NUM_FRAMES
 from test import test
-from test2 import test2
-from train2 import start_training
+from tests.test2 import test2
+from train import start_training
 from utils import ClickType as Ct, ensures_dir, create_new_empty_dir, find_files
 from utils import init_pandas
 
