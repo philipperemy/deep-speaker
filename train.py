@@ -64,8 +64,8 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
     checkpoint_filename = os.path.join(CHECKPOINTS_SOFTMAX_DIR, checkpoint_name + '_{epoch}.h5')
     checkpoint = ModelCheckpoint(monitor='val_accuracy', filepath=checkpoint_filename, save_best_only=True)
 
-    # if the accuracy does not increase by 1.0% over 20 epochs, we stop the training.
-    early_stopping = EarlyStopping(monitor='val_accuracy', min_delta=0.01, patience=20, verbose=1, mode='max')
+    # if the accuracy does not increase by 0.1% over 20 epochs, we stop the training.
+    early_stopping = EarlyStopping(monitor='val_accuracy', min_delta=0.001, patience=20, verbose=1, mode='max')
 
     # if the accuracy does not increase over 10 epochs, we reduce the learning rate by half.
     reduce_lr = ReduceLROnPlateau(monitor='val_accuracy', factor=0.5, patience=10, min_lr=0.0001, verbose=1)
