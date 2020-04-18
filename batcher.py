@@ -4,44 +4,17 @@ from random import choice
 
 import dill
 import numpy as np
-from tensorflow.keras.utils import to_categorical
 from tqdm import tqdm
 
 from audio import pad_mfcc, Audio
 from constants import NUM_FRAMES, NUM_FBANKS, TRAIN_TEST_RATIO
 from conv_models import DeepSpeakerModel
-from utils import ensures_dir
+from utils import ensures_dir, load_pickle, load_npy
 
 logger = logging.getLogger(__name__)
 
 
-def load_into_mat(utterance_file, categorical_speakers, speaker_id, max_length, kx, ky, i):
-    mfcc = np.load(utterance_file)
-    y = categorical_speakers.get_index(speaker_id)
-    if mfcc.shape[0] >= max_length:
-        r = choice(range(0, len(mfcc) - max_length + 1))
-        kx[i] = np.expand_dims(mfcc[r:r + max_length], axis=-1)
-    else:
-        kx[i] = np.expand_dims(pad_mfcc(mfcc, max_length), axis=-1)
-    ky[i] = y
-
-
-def load_pickle(file):
-    if not os.path.exists(file):
-        return None
-    logger.info(f'Loading PKL file: {file}.')
-    with open(file, 'rb') as r:
-        return dill.load(r)
-
-
-def load_npy(file):
-    if not os.path.exists(file):
-        return None
-    logger.info(f'Loading NPY file: {file}.')
-    return np.load(file)
-
-
-class KerasConverter:
+class KerasFormatConverter:
 
     def __init__(self, working_dir, load_test_only=False):
         self.working_dir = working_dir
@@ -74,7 +47,7 @@ class KerasConverter:
             train_test_sep = int(len(utterances_files) * TRAIN_TEST_RATIO)
             sp_to_utt[speaker_id] = utterances_files[train_test_sep:] if is_test else utterances_files[:train_test_sep]
 
-            # 64 fbanks 1 channels.
+        # 64 fbanks 1 channel(s).
         # float32
         kx = np.zeros((num_speakers * num_per_speaker, max_length, NUM_FBANKS, 1), dtype=np.float32)
         ky = np.zeros((num_speakers * num_per_speaker, 1), dtype=np.float32)
@@ -82,8 +55,8 @@ class KerasConverter:
         for i, speaker_id in enumerate(tqdm(self.audio.speaker_ids, desc='Converting to Keras format')):
             utterances_files = sp_to_utt[speaker_id]
             for j, utterance_file in enumerate(np.random.choice(utterances_files, size=num_per_speaker, replace=True)):
-                load_into_mat(utterance_file, self.categorical_speakers, speaker_id, max_length, kx, ky,
-                              i * num_per_speaker + j)
+                self.load_into_mat(utterance_file, self.categorical_speakers, speaker_id, max_length, kx, ky,
+                                   i * num_per_speaker + j)
         return kx, ky
 
     def generate(self, max_length=NUM_FRAMES, counts_per_speaker=(3000, 500)):
@@ -94,6 +67,17 @@ class KerasConverter:
         logger.info(f'kx_test.shape = {kx_test.shape}')
         logger.info(f'ky_test.shape = {ky_test.shape}')
         self.kx_train, self.ky_train, self.kx_test, self.ky_test = kx_train, ky_train, kx_test, ky_test
+
+    @staticmethod
+    def load_into_mat(utterance_file, categorical_speakers, speaker_id, max_length, kx, ky, i):
+        mfcc = np.load(utterance_file)
+        y = categorical_speakers.get_index(speaker_id)
+        if mfcc.shape[0] >= max_length:
+            r = choice(range(0, len(mfcc) - max_length + 1))
+            kx[i] = np.expand_dims(mfcc[r:r + max_length], axis=-1)
+        else:
+            kx[i] = np.expand_dims(pad_mfcc(mfcc, max_length), axis=-1)
+        ky[i] = y
 
 
 class SparseCategoricalSpeakers:
@@ -110,6 +94,7 @@ class SparseCategoricalSpeakers:
 class OneHotSpeakers:
 
     def __init__(self, speakers_list):
+        from tensorflow.keras.utils import to_categorical
         self.speaker_ids = sorted(speakers_list)
         self.int_speaker_ids = list(range(len(self.speaker_ids)))
         self.map_speakers_to_index = dict([(k, v) for (k, v) in zip(self.speaker_ids, self.int_speaker_ids)])

@@ -4,9 +4,12 @@ import shutil
 from glob import glob
 
 import click
+import dill
 import numpy as np
 import pandas as pd
 from natsort import natsorted
+
+from batcher import logger
 
 
 def find_files(directory, ext='wav'):
@@ -88,3 +91,18 @@ def enable_deterministic():
     print('Deterministic mode enabled.')
     np.random.seed(123)
     random.seed(123)
+
+
+def load_pickle(file):
+    if not os.path.exists(file):
+        return None
+    logger.info(f'Loading PKL file: {file}.')
+    with open(file, 'rb') as r:
+        return dill.load(r)
+
+
+def load_npy(file):
+    if not os.path.exists(file):
+        return None
+    logger.info(f'Loading NPY file: {file}.')
+    return np.load(file)

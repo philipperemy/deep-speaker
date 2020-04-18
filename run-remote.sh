@@ -5,7 +5,7 @@ set -e
 WORKING_DIR="/media/philippe/8TB/deep-speaker"
 AUDIO_DIR="/media/philippe/8TB/datasets/libri2"
 
-python cli.py build-audio-cache --working_dir "${WORKING_DIR}" --audio_dir "${AUDIO_DIR}"
+python cli.py build-mfcc-cache --working_dir "${WORKING_DIR}" --audio_dir "${AUDIO_DIR}"
 python cli.py build-keras-inputs --working_dir "${WORKING_DIR}"
 python cli.py train-model --working_dir "${WORKING_DIR}" --pre_training_phase
 python cli.py train-model --working_dir "${WORKING_DIR}"

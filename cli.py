@@ -10,7 +10,7 @@ import click
 from tqdm import tqdm
 
 from audio import Audio
-from batcher import KerasConverter
+from batcher import KerasFormatConverter
 from constants import SAMPLE_RATE, NUM_FRAMES
 from test import test
 from tests.test2 import test2
@@ -34,7 +34,7 @@ def version():
     print(f'Version is {VERSION}.')
 
 
-@cli.command('build-audio-cache', short_help='Build audio cache.')
+@cli.command('build-mfcc-cache', short_help='Build audio cache.')
 @click.option('--audio_dir', required=True, type=Ct.input_dir())
 @click.option('--working_dir', required=True, type=Ct.output_dir())
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
@@ -48,7 +48,7 @@ def build_audio_cache(audio_dir, working_dir, sample_rate):
 @click.option('--counts_per_speaker', default='600,100', show_default=True, type=str)  # train,test
 def build_keras_inputs(working_dir, counts_per_speaker):
     counts_per_speaker = [int(b) for b in counts_per_speaker.split(',')]
-    kc = KerasConverter(working_dir)
+    kc = KerasFormatConverter(working_dir)
     kc.generate(max_length=NUM_FRAMES, counts_per_speaker=counts_per_speaker)
     kc.persist_to_disk()
 

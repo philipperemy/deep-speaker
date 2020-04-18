@@ -3,20 +3,13 @@ import logging
 import numpy as np
 from tqdm import tqdm
 
-from batcher import KerasConverter, TripletEvaluator
+from batcher import KerasFormatConverter, TripletEvaluator
 from constants import NUM_FBANKS, NUM_FRAMES, CHECKPOINTS_TRIPLET_DIR, BATCH_SIZE
 from conv_models import DeepSpeakerModel
 from eval_metrics import evaluate
 from utils import load_best_checkpoint, enable_deterministic
 
 logger = logging.getLogger(__name__)
-
-
-# correct solution:
-def softmax(x):
-    """Compute softmax values for each sets of scores in x."""
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum(axis=0)  # only difference
 
 
 def batch_cosine_similarity(x1, x2):
@@ -33,7 +26,7 @@ def batch_cosine_similarity(x1, x2):
 
 def eval_model(working_dir: str, model: DeepSpeakerModel):
     enable_deterministic()
-    kc = KerasConverter(working_dir, load_test_only=True)
+    kc = KerasFormatConverter(working_dir, load_test_only=True)
     evaluator = TripletEvaluator(kc.kx_test, kc.ky_test)
     evaluator.speakers_list = evaluator.speakers_list
     num_negative_speakers = 99

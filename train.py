@@ -5,7 +5,7 @@ from collections import deque
 import numpy as np
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
 
-from batcher import KerasConverter, TripletBatcherMiner
+from batcher import KerasFormatConverter, TripletBatcherMiner
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
 from conv_models import DeepSpeakerModel
 from triplet_loss import deep_speaker_loss
@@ -97,7 +97,7 @@ def start_training(working_dir, pre_training_phase=True):
 
     if pre_training_phase:
         logger.info('Softmax pre-training.')
-        kc = KerasConverter(working_dir)
+        kc = KerasFormatConverter(working_dir)
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
         dsm.m.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
@@ -125,5 +125,5 @@ def start_training(working_dir, pre_training_phase=True):
             # some of the layers have changed.
             dsm.m.load_weights(pre_training_checkpoint, by_name=True)
         dsm.m.compile(optimizer='adam', loss=deep_speaker_loss)
-        kc = KerasConverter(working_dir)
+        kc = KerasFormatConverter(working_dir)
         fit_model(dsm, kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test)

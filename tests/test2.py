@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from batcher import KerasConverter, TripletBatcher
+from batcher import KerasFormatConverter, TripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, CHECKPOINTS_TRIPLET_DIR, BATCH_SIZE
 from conv_models import DeepSpeakerModel
 from triplet_loss import deep_speaker_loss
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def eval_model(working_dir: str, model: DeepSpeakerModel):
     enable_deterministic()
-    kc = KerasConverter(working_dir)
+    kc = KerasFormatConverter(working_dir)
     batcher = TripletBatcher(kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test)
     test_loss = []
     while True:
