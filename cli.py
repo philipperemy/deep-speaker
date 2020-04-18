@@ -10,7 +10,7 @@ import click
 from tqdm import tqdm
 
 from audio import Audio
-from batcher import KerasConverter, FBankProcessor
+from batcher import KerasConverter
 from constants import SAMPLE_RATE, NUM_FRAMES
 from test import test
 from tests.test2 import test2
@@ -38,36 +38,9 @@ def version():
 @click.option('--audio_dir', required=True, type=Ct.input_dir())
 @click.option('--working_dir', required=True, type=Ct.output_dir())
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-@click.option('--parallel/--no-parallel', default=False, show_default=True)
-def build_audio_cache(audio_dir, working_dir, sample_rate, parallel):
+def build_audio_cache(audio_dir, working_dir, sample_rate):
     ensures_dir(working_dir)
-    audio_reader = Audio(
-        input_audio_dir=audio_dir,
-        output_working_dir=working_dir,
-        sample_rate=sample_rate,
-        multi_threading=parallel
-    )
-    audio_reader.build_cache()
-
-
-@cli.command('build-mfcc-cache', short_help='Build model inputs cache.')
-@click.option('--audio_dir', required=True, type=Ct.input_dir())
-@click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-def build_inputs_cache(audio_dir, working_dir, sample_rate):
-    audio_reader = Audio(
-        input_audio_dir=audio_dir,
-        output_working_dir=working_dir,
-        sample_rate=sample_rate,
-        multi_threading=False
-    )
-    inputs_generator = FBankProcessor(
-        working_dir=working_dir,
-        audio_reader=audio_reader,
-        speakers_sub_list=None,
-        parallel=False
-    )
-    inputs_generator.generate()
+    Audio(cache_dir=working_dir, audio_dir=audio_dir, sample_rate=sample_rate)
 
 
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')

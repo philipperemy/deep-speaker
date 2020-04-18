@@ -100,7 +100,7 @@ def start_training(working_dir, pre_training_phase=True):
         kc = KerasConverter(working_dir)
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
         dsm = DeepSpeakerModel(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
-        dsm.m.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        dsm.m.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         if pre_training_checkpoint is not None:
             initial_epoch = int(pre_training_checkpoint.split('/')[-1].split('.')[0].split('_')[-1])
