@@ -4,13 +4,13 @@ from random import choice
 
 import dill
 import numpy as np
-from keras.utils import to_categorical
+from tensorflow.keras.utils import to_categorical
 from tqdm import tqdm
 
 from audio import pad_mfcc, Audio
 from constants import NUM_FRAMES, NUM_FBANKS, TRAIN_TEST_RATIO
 from conv_models import DeepSpeakerModel
-from utils import ensures_dir, find_files
+from utils import ensures_dir
 
 logger = logging.getLogger(__name__)
 
