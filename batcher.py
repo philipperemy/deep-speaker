@@ -319,6 +319,27 @@ class TripletBatcher:
         return batch_x, batch_y
 
 
+class TripletBatcherMiner(TripletBatcher):
+
+    def __init__(self, kx_train, ky_train, kx_test, ky_test, model: DeepSpeakerModel):
+        super().__init__(kx_train, ky_train, kx_test, ky_test)
+        self.model = model
+        self.num_evaluations_to_find_best_batch = 10
+
+    def get_batch(self, batch_size, is_test=False):
+        if is_test:
+            return super().get_batch(batch_size, is_test)
+        max_loss = 0
+        max_batch = None, None
+        for i in range(self.num_evaluations_to_find_best_batch):
+            bx, by = super().get_batch(batch_size, is_test=False)  # only train here.
+            loss = self.model.m.evaluate(bx, by, batch_size=batch_size, verbose=0)
+            if loss > max_loss:
+                max_loss = loss
+                max_batch = bx, by
+        return max_batch
+
+
 class TripletBatcherSelectHardNegatives(TripletBatcher):
 
     def __init__(self, kx_train, ky_train, kx_test, ky_test, model: DeepSpeakerModel):
