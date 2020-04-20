@@ -19,5 +19,5 @@ tar xvzf train-clean-100.tar.gz
 tar xvzf train-clean-360.tar.gz
 tar xvzf train-other-500.tar.gz
 
-# LibriSpeech/train-clean-360*
-# LibriSpeech/train-other-500*
+python cli.py libri-to-vctk-format --libri LibriSpeech --output deep-speaker-pre-training --subset train-clean-360
+python cli.py libri-to-vctk-format --libri LibriSpeech --output deep-speaker-all
