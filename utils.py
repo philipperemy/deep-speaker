@@ -128,4 +128,4 @@ def libri_to_vctk_format(libri, subset, output):
                 output_filename = os.path.join(output_speaker_dir, f'{speaker}_{speaker_counter[speaker]}.wav')
                 shutil.copy(speaker_wav_file, output_filename)
                 speaker_counter[speaker] += 1
-            logger.info(f'Speaker: {speaker}, {len(speaker_wav_files)} utterances. Processed...')
+            logger.info(f'Speaker: {speaker}, {len(speaker_wav_files)} utterances. Copied...')
