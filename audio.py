@@ -14,7 +14,7 @@ from utils import find_files, ensures_dir
 logger = logging.getLogger(__name__)
 
 
-def extract_speaker_and_utterance_id(filename: str):  # LIBRI.
+def extract_speaker_and_utterance_ids(filename: str):  # LIBRI.
     # 'audio/dev-other/116/288045/116-288045-0000.flac'
     speaker, _, basename = Path(filename).parts[-3:]
     filename.split('-')
@@ -76,9 +76,9 @@ class Audio:
                 self.cache_audio_file(audio_filename, sample_rate)
 
     def cache_audio_file(self, input_filename, sample_rate):
-        sp, utt = extract_speaker_and_utterance_id(input_filename)
-        npy_filename = os.path.join(self.cache_dir, f'{sp}_{utt}.npy')
-        if not os.path.isfile(npy_filename):
+        sp, utt = extract_speaker_and_utterance_ids(input_filename)
+        cache_filename = os.path.join(self.cache_dir, f'{sp}_{utt}.npy')
+        if not os.path.isfile(cache_filename):
             try:
                 audio = Audio.read(input_filename, sample_rate)
                 energy = np.abs(audio)
@@ -89,7 +89,7 @@ class Audio:
                 # TODO: could use trim_silence() here or a better VAD.
                 audio_voice_only = audio[offsets[0]:offsets[-1]]
                 mfcc = mfcc_fbank(audio_voice_only, sample_rate)
-                np.save(npy_filename, mfcc)
+                np.save(cache_filename, mfcc)
             except librosa.util.exceptions.ParameterError as e:
                 logger.error(e)
 
