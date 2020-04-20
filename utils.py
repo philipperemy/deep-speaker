@@ -11,7 +11,6 @@ import dill
 import numpy as np
 import pandas as pd
 from natsort import natsorted
-from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +124,8 @@ def libri_to_vctk_format(libri, subset, output):
             output_speaker_dir = os.path.join(output, speaker)
             ensures_dir(output_speaker_dir)
             speaker_wav_files = find_files(str(s / speaker), ext='flac')
-            for speaker_wav_file in tqdm(speaker_wav_files, desc=f'Speaker {speaker}'):
+            for speaker_wav_file in speaker_wav_files:
                 output_filename = os.path.join(output_speaker_dir, f'{speaker}_{speaker_counter[speaker]}.wav')
                 shutil.copy(speaker_wav_file, output_filename)
                 speaker_counter[speaker] += 1
+            logger.info(f'Speaker: {speaker}, {len(speaker_wav_files)} utterances. Processed...')
