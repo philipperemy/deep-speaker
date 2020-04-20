@@ -19,6 +19,7 @@ def extract_speaker_and_utterance_ids(filename: str):  # LIBRI.
     speaker, _, basename = Path(filename).parts[-3:]
     filename.split('-')
     utterance = os.path.splitext(basename.split('-', 1)[-1])[0]
+    assert basename.split('-')[0] == speaker
     return speaker, utterance
 
 
