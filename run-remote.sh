@@ -2,11 +2,14 @@
 
 set -e
 
-WORKING_DIR="/media/philippe/8TB/deep-speaker"
+WORKING_DIR="/media/philippe/8TB/ds-test"
 PRE_TRAINING_WORKING_DIR="${WORKING_DIR}/pre-training"
 TRIPLET_TRAINING_WORKING_DIR="${WORKING_DIR}/triplet-training"
 
+mkdir -p "${WORKING_DIR}"
+
 # WORKING_DIR/LibriSpeech
+cp download_librispeech.sh "${WORKING_DIR}"
 cd "${WORKING_DIR}" && bash download_librispeech.sh && cd -
 
 # LIBRI_SPEECH_DATASET="${WORKING_DIR}/LibriSpeech"
