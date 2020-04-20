@@ -1,15 +1,19 @@
+import logging
 import os
 import random
 import shutil
+from collections import Counter
 from glob import glob
+from pathlib import Path
 
 import click
 import dill
 import numpy as np
 import pandas as pd
 from natsort import natsorted
+from tqdm import tqdm
 
-from batcher import logger
+logger = logging.getLogger(__name__)
 
 
 def find_files(directory, ext='wav'):
@@ -106,3 +110,22 @@ def load_npy(file):
         return None
     logger.info(f'Loading NPY file: {file}.')
     return np.load(file)
+
+
+def libri_to_vctk_format(libri, subset, output):
+    # INPUT: LibriSpeech/subset/speaker/utterance/utterance.wav
+    # OUTPUT: Dataset/speaker/speaker_utterance.wav
+    create_new_empty_dir(output)
+    subsets = [p for p in Path(libri).iterdir() if p.is_dir()]
+    speaker_counter = Counter()
+    for s in subsets:
+        if subset is not None and s.name != subset:
+            continue
+        for speaker in [a.name for a in s.iterdir()]:
+            output_speaker_dir = os.path.join(output, speaker)
+            ensures_dir(output_speaker_dir)
+            speaker_wav_files = find_files(str(s / speaker), ext='flac')
+            for speaker_wav_file in tqdm(speaker_wav_files, desc=f'Speaker {speaker}'):
+                output_filename = os.path.join(output_speaker_dir, f'{speaker}_{speaker_counter[speaker]}.wav')
+                shutil.copy(speaker_wav_file, output_filename)
+                speaker_counter[speaker] += 1
