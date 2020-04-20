@@ -8,16 +8,16 @@ TRIPLET_TRAINING_WORKING_DIR="${WORKING_DIR}/triplet-training"
 
 # WORKING_DIR/LibriSpeech
 cd "${WORKING_DIR}" && bash download_librispeech.sh && cd -
-LIBRI_SPEECH_DATASET="${WORKING_DIR}/LibriSpeech"
 
-python cli.py libri-to-vctk-format --libri "${LIBRI_SPEECH_DATASET}" --output "${PRE_TRAINING_WORKING_DIR}/audio" --subset train-clean-360
-python cli.py libri-to-vctk-format --libri "${LIBRI_SPEECH_DATASET}" --output "${TRIPLET_TRAINING_WORKING_DIR}/audio"
+# LIBRI_SPEECH_DATASET="${WORKING_DIR}/LibriSpeech"
+#python cli.py libri-to-vctk-format --libri "${LIBRI_SPEECH_DATASET}" --output "${PRE_TRAINING_WORKING_DIR}/audio" --subset train-clean-360
+#python cli.py libri-to-vctk-format --libri "${LIBRI_SPEECH_DATASET}" --output "${TRIPLET_TRAINING_WORKING_DIR}/audio"
 
-# Pre-training
+# Pre-training (0.92k speakers).
 python cli.py build-mfcc-cache --working_dir "${PRE_TRAINING_WORKING_DIR}"
 python cli.py build-keras-inputs --working_dir "${PRE_TRAINING_WORKING_DIR}"
 python cli.py train-model --working_dir "${PRE_TRAINING_WORKING_DIR}" --pre_training_phase
 
-# Triplet-training
+# Triplet-training (2.48k speakers).
 python cli.py build-mfcc-cache --working_dir "${TRIPLET_TRAINING_WORKING_DIR}"
 python cli.py train-model --working_dir "${TRIPLET_TRAINING_WORKING_DIR}"

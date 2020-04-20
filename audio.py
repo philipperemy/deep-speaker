@@ -14,9 +14,18 @@ from utils import find_files, ensures_dir
 logger = logging.getLogger(__name__)
 
 
+def extract_speaker_and_utterance_id(filename: str):  # LIBRI.
+    # 'audio/dev-other/116/288045/116-288045-0000.flac'
+    speaker, _, basename = Path(filename).parts[-3:]
+    filename.split('-')
+    utterance = os.path.splitext(basename.split('-', 1)[-1])[0]
+    return speaker, utterance
+
+
 class Audio:
 
-    def __init__(self, cache_dir: str, audio_dir: str = None, sample_rate: int = SAMPLE_RATE):
+    def __init__(self, cache_dir: str, audio_dir: str = None, sample_rate: int = SAMPLE_RATE, ext='flac'):
+        self.ext = ext
         self.cache_dir = os.path.join(cache_dir, 'audio-fbanks')
         ensures_dir(self.cache_dir)
         if audio_dir is not None:
@@ -56,10 +65,10 @@ class Audio:
 
     def build_cache(self, audio_dir, sample_rate):
         logger.info(f'audio_dir: {audio_dir}.')
-        logger.info(f'sample_rate: {sample_rate} hz.')
-        audio_files = find_files(audio_dir, ext='wav')
+        logger.info(f'sample_rate: {sample_rate:,} hz.')
+        audio_files = find_files(audio_dir, ext=self.ext)
         audio_files_count = len(audio_files)
-        assert audio_files_count != 0, f'Could not find any WAV files in {audio_dir}.'
+        assert audio_files_count != 0, f'Could not find any {self.ext} files in {audio_dir}.'
         logger.info(f'Found {audio_files_count:,} files in {audio_dir}.')
         with tqdm(audio_files) as bar:
             for audio_filename in bar:
@@ -67,8 +76,8 @@ class Audio:
                 self.cache_audio_file(audio_filename, sample_rate)
 
     def cache_audio_file(self, input_filename, sample_rate):
-        cache_filename = os.path.splitext(os.path.basename(input_filename))[0]
-        npy_filename = os.path.join(self.cache_dir, cache_filename) + '.npy'
+        sp, utt = extract_speaker_and_utterance_id(input_filename)
+        npy_filename = os.path.join(self.cache_dir, f'{sp}_{utt}.npy')
         if not os.path.isfile(npy_filename):
             try:
                 audio = Audio.read(input_filename, sample_rate)
