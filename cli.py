@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 
 import click
 
@@ -31,11 +32,11 @@ def version():
 
 
 @cli.command('build-mfcc-cache', short_help='Build audio cache.')
-@click.option('--audio_dir', required=True, type=Ct.input_dir())
 @click.option('--working_dir', required=True, type=Ct.output_dir())
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-def build_audio_cache(audio_dir, working_dir, sample_rate):
+def build_audio_cache(working_dir, sample_rate):
     ensures_dir(working_dir)
+    audio_dir = os.path.join(working_dir, 'audio')
     Audio(cache_dir=working_dir, audio_dir=audio_dir, sample_rate=sample_rate)
 
 
