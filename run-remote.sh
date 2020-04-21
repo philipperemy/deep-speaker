@@ -3,24 +3,51 @@
 set -e
 
 WORKING_DIR="/media/philippe/8TB/ds-test"
+
+if [ $# -lt 1 ]; then
+  echo "Usage : $0 Task [download_librispeech, build_mfcc, build_model_inputs, train_softmax, train_triplet]"
+  exit
+fi
+
 PRE_TRAINING_WORKING_DIR="${WORKING_DIR}/pre-training"
 TRIPLET_TRAINING_WORKING_DIR="${WORKING_DIR}/triplet-training"
 
 mkdir -p "${WORKING_DIR}"
 
-# WORKING_DIR/LibriSpeech
-cp download_librispeech.sh "${WORKING_DIR}"
-cd "${WORKING_DIR}" && bash download_librispeech.sh && cd -
+case "$1" in
 
-# LIBRI_SPEECH_DATASET="${WORKING_DIR}/LibriSpeech"
-#python cli.py libri-to-vctk-format --libri "${LIBRI_SPEECH_DATASET}" --output "${PRE_TRAINING_WORKING_DIR}/audio" --subset train-clean-360
-#python cli.py libri-to-vctk-format --libri "${LIBRI_SPEECH_DATASET}" --output "${TRIPLET_TRAINING_WORKING_DIR}/audio"
+download_librispeech)
+  echo "[download_librispeech] selected."
+  # WORKING_DIR/LibriSpeech
+  cp download_librispeech.sh "${WORKING_DIR}"
+  cd "${WORKING_DIR}" && bash download_librispeech.sh && cd -
+  ;;
 
-# Pre-training (0.92k speakers).
-python cli.py build-mfcc-cache --working_dir "${PRE_TRAINING_WORKING_DIR}" --audio_dir "${WORKING_DIR}/LibriSpeech/train-clean-360"
-python cli.py build-keras-inputs --working_dir "${PRE_TRAINING_WORKING_DIR}"
-python cli.py train-model --working_dir "${PRE_TRAINING_WORKING_DIR}" --pre_training_phase
+build_mfcc)
+  echo "[build_mfcc] selected."
+  python cli.py build-mfcc-cache --working_dir "${PRE_TRAINING_WORKING_DIR}" --audio_dir "${WORKING_DIR}/LibriSpeech/train-clean-360"
+  python cli.py build-mfcc-cache --working_dir "${TRIPLET_TRAINING_WORKING_DIR}" --audio_dir "${WORKING_DIR}/LibriSpeech"
+  ;;
 
-# Triplet-training (2.48k speakers).
-python cli.py build-mfcc-cache --working_dir "${TRIPLET_TRAINING_WORKING_DIR}" --audio_dir "${WORKING_DIR}/LibriSpeech"
-python cli.py train-model --working_dir "${TRIPLET_TRAINING_WORKING_DIR}"
+build_model_inputs)
+  echo "[build_model_inputs] selected."
+  python cli.py build-keras-inputs --working_dir "${PRE_TRAINING_WORKING_DIR}"
+  ;;
+
+train_softmax)
+  # Pre-training (0.92k speakers).
+  echo "[train_softmax] selected."
+  python cli.py train-model --working_dir "${PRE_TRAINING_WORKING_DIR}" --pre_training_phase
+  ;;
+
+train_triplet)
+  # Triplet-training (2.48k speakers).
+  echo "[train_triplet] selected."
+  python cli.py train-model --working_dir "${TRIPLET_TRAINING_WORKING_DIR}"
+  ;;
+
+*)
+  echo "Unknown option."
+  ;;
+
+esac
