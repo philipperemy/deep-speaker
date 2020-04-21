@@ -9,9 +9,9 @@ import numpy as np
 from tqdm import tqdm
 
 from audio import pad_mfcc, Audio
-from constants import NUM_FRAMES, NUM_FBANKS, TRAIN_TEST_RATIO
+from constants import NUM_FRAMES, NUM_FBANKS
 from conv_models import DeepSpeakerModel
-from utils import ensures_dir, load_pickle, load_npy
+from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +57,7 @@ class KerasFormatConverter:
     def generate_per_phase(self, max_length=NUM_FRAMES, num_per_speaker=3000, is_test=False):
         # train OR test.
         num_speakers = len(self.audio.speaker_ids)
-        sp_to_utt = {}
-        for speaker_id, utterances in self.audio.speakers_to_utterances.items():
-            utterances_files = sorted(utterances.values())
-            train_test_sep = int(len(utterances_files) * TRAIN_TEST_RATIO)
-            sp_to_utt[speaker_id] = utterances_files[train_test_sep:] if is_test else utterances_files[:train_test_sep]
+        sp_to_utt = train_test_sp_to_utt(self.audio, is_test)
 
         # 64 fbanks 1 channel(s).
         # float32
@@ -123,20 +119,24 @@ class OneHotSpeakers:
 class LazyTripletBatcher:
     def __init__(self, working_dir: str, max_length: int, model: DeepSpeakerModel):
         self.audio = Audio(cache_dir=working_dir)
+        self.sp_to_utt_train = train_test_sp_to_utt(self.audio, is_test=False)
+        self.sp_to_utt_test = train_test_sp_to_utt(self.audio, is_test=True)
         self.max_length = max_length
         self.model = model
         self.nb_per_speaker = 2
         self.nb_speakers = 640
         self.history_length = 20
         self.total_history_length = self.nb_speakers * self.nb_per_speaker * self.history_length  # 25,600
-        self.history_embeddings = deque(maxlen=self.total_history_length)
-        self.history_utterances = deque(maxlen=self.total_history_length)
-        self.history_model_inputs = deque(maxlen=self.total_history_length)
+
+        self.history_embeddings_train = deque(maxlen=self.total_history_length)
+        self.history_utterances_train = deque(maxlen=self.total_history_length)
+        self.history_model_inputs_train = deque(maxlen=self.total_history_length)
+
         self.batch_count = 0
         for _ in range(self.history_length):  # init history.
-            self.search_for_best_triplet()
+            self.search_for_best_training_triplet()
 
-    def search_for_best_triplet(self):
+    def search_for_best_training_triplet(self):
         print('Reload history.')
         model_inputs = []
         speakers = list(self.audio.speakers_to_utterances.keys())
@@ -144,31 +144,61 @@ class LazyTripletBatcher:
         selected_speakers = speakers[: self.nb_speakers]
         embeddings_utterances = []
         for speaker_id in selected_speakers:
-            utterances = self.audio.speakers_to_utterances[speaker_id]
-            for selected_utterance in np.random.choice(a=list(utterances.values()),
-                                                       size=self.nb_per_speaker, replace=False):
+            train_utterances = self.sp_to_utt_train[speaker_id]
+            for selected_utterance in np.random.choice(a=train_utterances, size=self.nb_per_speaker, replace=False):
                 mfcc = sample_from_mfcc(selected_utterance, self.max_length)
                 embeddings_utterances.append(selected_utterance)
                 model_inputs.append(mfcc)
         embeddings = self.model.m.predict(np.array(model_inputs))
         assert embeddings.shape[-1] == 512
         embeddings = np.reshape(embeddings, (len(selected_speakers), self.nb_per_speaker, 512))
-        self.history_embeddings.extend(list(embeddings.reshape((-1, 512))))
-        self.history_utterances.extend(embeddings_utterances)
-        self.history_model_inputs.extend(model_inputs)
+        self.history_embeddings_train.extend(list(embeddings.reshape((-1, 512))))
+        self.history_utterances_train.extend(embeddings_utterances)
+        self.history_model_inputs_train.extend(model_inputs)
 
     def get_batch(self, batch_size, is_test=False):
+        return self.get_batch_test(batch_size) if is_test else self.get_batch_train(batch_size)
+
+    def get_batch_test(self, batch_size):
+        speakers = list(self.audio.speakers_to_utterances.keys())
+        two_different_speakers = np.random.choice(speakers, size=2, replace=False)
+        anchor_positive_speaker = two_different_speakers[0]
+        negative_speaker = two_different_speakers[1]
+        assert negative_speaker != anchor_positive_speaker
+
+        pos_utterances = np.array([
+            np.random.choice(self.sp_to_utt_test[anchor_positive_speaker], 2, replace=False)
+            for _ in range(batch_size // 3)
+        ])
+        neg_utterances = np.random.choice(self.sp_to_utt_test[negative_speaker], batch_size // 3, replace=True)
+
+        anchor_utterances = pos_utterances[:, 0]
+        positive_utterances = pos_utterances[:, 1]
+
+        # anchor and positive should have difference utterances (but same speaker!).
+        assert np.all(pos_utterances[:, 0] != pos_utterances[:, 1])
+
+        batch_x = np.vstack([
+            [sample_from_mfcc(u, self.max_length) for u in anchor_utterances],
+            [sample_from_mfcc(u, self.max_length) for u in positive_utterances],
+            [sample_from_mfcc(u, self.max_length) for u in neg_utterances]
+        ])
+
+        batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
+        return batch_x, batch_y
+
+    def get_batch_train(self, batch_size):
         # TODO: is_test to implement with the softmax pre-training.
         # we should persist it in keras at the same time.
         self.batch_count += 1
         if self.batch_count % self.history_length == 0:
-            self.search_for_best_triplet()
+            self.search_for_best_training_triplet()
 
         from test import batch_cosine_similarity
-        history_embeddings = np.array(self.history_embeddings)
-        history_utterances = np.array(self.history_utterances)
-        history_model_inputs = np.array(self.history_model_inputs)
-        all_indexes = range(len(self.history_embeddings))
+        history_embeddings = np.array(self.history_embeddings_train)
+        history_utterances = np.array(self.history_utterances_train)
+        history_model_inputs = np.array(self.history_model_inputs_train)
+        all_indexes = range(len(self.history_embeddings_train))
         anchor_indexes = np.random.choice(a=all_indexes, size=batch_size // 3, replace=False)
 
         similar_negative_indexes = []
@@ -371,4 +401,5 @@ if __name__ == '__main__':
     ltb = LazyTripletBatcher('/Users/premy/deep-speaker', max_length=160, model=DeepSpeakerModel())
     for i in range(1000):
         print(i)
-        ltb.get_batch(batch_size=96)
+        ltb.get_batch_test(batch_size=96)
+        # ltb.get_batch(batch_size=96)

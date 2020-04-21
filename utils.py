@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 from natsort import natsorted
 
+from constants import TRAIN_TEST_RATIO
+
 logger = logging.getLogger(__name__)
 
 
@@ -130,3 +132,12 @@ def libri_to_vctk_format(libri, subset, output):
                 shutil.copy(speaker_wav_file, output_filename)
                 speaker_counter[speaker] += 1
             logger.info(f'Speaker: {speaker}, {len(speaker_wav_files)} utterances. Copied...')
+
+
+def train_test_sp_to_utt(audio, is_test):
+    sp_to_utt = {}
+    for speaker_id, utterances in audio.speakers_to_utterances.items():
+        utterances_files = sorted(utterances.values())
+        train_test_sep = int(len(utterances_files) * TRAIN_TEST_RATIO)
+        sp_to_utt[speaker_id] = utterances_files[train_test_sep:] if is_test else utterances_files[:train_test_sep]
+    return sp_to_utt
