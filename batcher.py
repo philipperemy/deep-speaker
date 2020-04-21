@@ -1,8 +1,8 @@
 import logging
 import os
 from collections import deque
-from pathlib import Path
 from random import choice
+from time import time
 
 import dill
 import numpy as np
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_speaker(utt_file):
-    return Path(utt_file).stem.split('_')[0]
+    return utt_file.split('/')[-1].split('_')[0]
 
 
 def sample_from_mfcc(utterance_file, max_length):
@@ -119,25 +119,30 @@ class OneHotSpeakers:
 class LazyTripletBatcher:
     def __init__(self, working_dir: str, max_length: int, model: DeepSpeakerModel):
         self.audio = Audio(cache_dir=working_dir)
+        logger.info(f'Picking audio from {working_dir}.')
         self.sp_to_utt_train = train_test_sp_to_utt(self.audio, is_test=False)
         self.sp_to_utt_test = train_test_sp_to_utt(self.audio, is_test=True)
         self.max_length = max_length
         self.model = model
         self.nb_per_speaker = 2
         self.nb_speakers = 640
-        self.history_length = 20
+        self.history_length = 4
+        self.history_every = 100  # batches.
         self.total_history_length = self.nb_speakers * self.nb_per_speaker * self.history_length  # 25,600
 
         self.history_embeddings_train = deque(maxlen=self.total_history_length)
         self.history_utterances_train = deque(maxlen=self.total_history_length)
         self.history_model_inputs_train = deque(maxlen=self.total_history_length)
 
+        self.history_embeddings = None
+        self.history_utterances = None
+        self.history_model_inputs = None
+
         self.batch_count = 0
-        for _ in range(self.history_length):  # init history.
+        for _ in tqdm(range(self.history_length), desc='Initializing the batcher'):  # init history.
             self.search_for_best_training_triplet()
 
     def search_for_best_training_triplet(self):
-        print('Reload history.')
         model_inputs = []
         speakers = list(self.audio.speakers_to_utterances.keys())
         np.random.shuffle(speakers)
@@ -155,6 +160,11 @@ class LazyTripletBatcher:
         self.history_embeddings_train.extend(list(embeddings.reshape((-1, 512))))
         self.history_utterances_train.extend(embeddings_utterances)
         self.history_model_inputs_train.extend(model_inputs)
+
+        # reason: can't index a deque with a np.array.
+        self.history_embeddings = np.array(self.history_embeddings_train)
+        self.history_utterances = np.array(self.history_utterances_train)
+        self.history_model_inputs = np.array(self.history_model_inputs_train)
 
     def get_batch(self, batch_size, is_test=False):
         return self.get_batch_test(batch_size) if is_test else self.get_batch_train(batch_size)
@@ -188,65 +198,91 @@ class LazyTripletBatcher:
         return batch_x, batch_y
 
     def get_batch_train(self, batch_size):
-        # TODO: is_test to implement with the softmax pre-training.
-        # we should persist it in keras at the same time.
+        from test import batch_cosine_similarity
+        s1 = time()
         self.batch_count += 1
-        if self.batch_count % self.history_length == 0:
+        if self.batch_count % self.history_every == 0:
             self.search_for_best_training_triplet()
 
-        from test import batch_cosine_similarity
-        history_embeddings = np.array(self.history_embeddings_train)
-        history_utterances = np.array(self.history_utterances_train)
-        history_model_inputs = np.array(self.history_model_inputs_train)
         all_indexes = range(len(self.history_embeddings_train))
         anchor_indexes = np.random.choice(a=all_indexes, size=batch_size // 3, replace=False)
 
+        s2 = time()
         similar_negative_indexes = []
         dissimilar_positive_indexes = []
+        # could be made parallel.
         for anchor_index in anchor_indexes:
-            anchor_embedding = history_embeddings[anchor_index]
-            anchor_speaker = extract_speaker(history_utterances[anchor_index])
+            s21 = time()
+            anchor_embedding = self.history_embeddings[anchor_index]
+            anchor_speaker = extract_speaker(self.history_utterances[anchor_index])
 
-            negative_indexes = [j for (j, a) in enumerate(history_utterances) if
-                                extract_speaker(a) != anchor_speaker]
+            # why self.nb_speakers // 2? not too much.
+            negative_indexes = [j for (j, a) in enumerate(self.history_utterances) if
+                                extract_speaker(a) != anchor_speaker][0:self.nb_speakers // 2]
+
+            s22 = time()
+
             anchor_embedding_tile = [anchor_embedding] * len(negative_indexes)
-            anchor_cos = batch_cosine_similarity(anchor_embedding_tile, history_embeddings[negative_indexes])
+            anchor_cos = batch_cosine_similarity(anchor_embedding_tile, self.history_embeddings[negative_indexes])
+
+            s23 = time()
             similar_negative_index = negative_indexes[np.argsort(anchor_cos)[-1]]  # [-1:]
             similar_negative_indexes.append(similar_negative_index)
 
-            positive_indexes = [j for (j, a) in enumerate(history_utterances) if
+            s24 = time()
+            positive_indexes = [j for (j, a) in enumerate(self.history_utterances) if
                                 extract_speaker(a) == anchor_speaker and j != anchor_index]
+            s25 = time()
             anchor_embedding_tile = [anchor_embedding] * len(positive_indexes)
-            anchor_cos = batch_cosine_similarity(anchor_embedding_tile, history_embeddings[positive_indexes])
+            s26 = time()
+            anchor_cos = batch_cosine_similarity(anchor_embedding_tile, self.history_embeddings[positive_indexes])
             dissimilar_positive_index = positive_indexes[np.argsort(anchor_cos)[0]]  # [:1]
             dissimilar_positive_indexes.append(dissimilar_positive_index)
+            s27 = time()
 
+        s3 = time()
         batch_x = np.vstack([
-            history_model_inputs[anchor_indexes],
-            history_model_inputs[dissimilar_positive_indexes],
-            history_model_inputs[similar_negative_indexes]
+            self.history_model_inputs[anchor_indexes],
+            self.history_model_inputs[dissimilar_positive_indexes],
+            self.history_model_inputs[similar_negative_indexes]
         ])
 
-        for anchor, positive, negative in zip(history_utterances[anchor_indexes],
-                                              history_utterances[dissimilar_positive_indexes],
-                                              history_utterances[similar_negative_indexes]):
-            print('anchor', os.path.basename(anchor),
-                  'positive', os.path.basename(positive),
-                  'negative', os.path.basename(negative))
-        print('_' * 80)
+        s4 = time()
+
+        # for anchor, positive, negative in zip(history_utterances[anchor_indexes],
+        #                                       history_utterances[dissimilar_positive_indexes],
+        #                                       history_utterances[similar_negative_indexes]):
+        # print('anchor', os.path.basename(anchor),
+        #       'positive', os.path.basename(positive),
+        #       'negative', os.path.basename(negative))
+        # print('_' * 80)
 
         # assert utterances as well positive != anchor.
-        anchor_speakers = [extract_speaker(a) for a in history_utterances[anchor_indexes]]
-        positive_speakers = [extract_speaker(a) for a in history_utterances[dissimilar_positive_indexes]]
-        negative_speakers = [extract_speaker(a) for a in history_utterances[similar_negative_indexes]]
+        anchor_speakers = [extract_speaker(a) for a in self.history_utterances[anchor_indexes]]
+        positive_speakers = [extract_speaker(a) for a in self.history_utterances[dissimilar_positive_indexes]]
+        negative_speakers = [extract_speaker(a) for a in self.history_utterances[similar_negative_indexes]]
 
         assert len(anchor_indexes) == len(dissimilar_positive_indexes)
         assert len(similar_negative_indexes) == len(dissimilar_positive_indexes)
-        assert list(history_utterances[dissimilar_positive_indexes]) != list(history_utterances[anchor_indexes])
+        assert list(self.history_utterances[dissimilar_positive_indexes]) != list(
+            self.history_utterances[anchor_indexes])
         assert anchor_speakers == positive_speakers
         assert negative_speakers != anchor_speakers
 
         batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
+
+        s5 = time()
+        # print('1-2', s2 - s1)
+        # print('2-3', s3 - s2)
+        # print('3-4', s4 - s3)
+        # print('4-5', s5 - s4)
+        # print('21-22', (s22 - s21) * (batch_size // 3))
+        # print('22-23', (s23 - s22) * (batch_size // 3))
+        # print('23-24', (s24 - s23) * (batch_size // 3))
+        # print('24-25', (s25 - s24) * (batch_size // 3))
+        # print('25-26', (s26 - s25) * (batch_size // 3))
+        # print('26-27', (s27 - s26) * (batch_size // 3))
+
         return batch_x, batch_y
 
 
@@ -398,8 +434,12 @@ class TripletEvaluator:
 
 if __name__ == '__main__':
     np.random.seed(123)
-    ltb = LazyTripletBatcher('/Users/premy/deep-speaker', max_length=160, model=DeepSpeakerModel())
+    ltb = LazyTripletBatcher(working_dir='/Users/premy/deep-speaker/',
+                             max_length=NUM_FRAMES,
+                             model=DeepSpeakerModel())
     for i in range(1000):
         print(i)
-        ltb.get_batch_test(batch_size=96)
+        start = time()
+        ltb.get_batch_train(batch_size=96)
+        print(time() - start)
         # ltb.get_batch(batch_size=96)
