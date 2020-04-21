@@ -171,27 +171,35 @@ class LazyTripletBatcher:
 
     def get_batch_test(self, batch_size):
         speakers = list(self.audio.speakers_to_utterances.keys())
-        two_different_speakers = np.random.choice(speakers, size=2, replace=False)
-        anchor_positive_speaker = two_different_speakers[0]
-        negative_speaker = two_different_speakers[1]
-        assert negative_speaker != anchor_positive_speaker
+        anchor_speakers = np.random.choice(speakers, size=batch_size // 3, replace=False)
 
-        pos_utterances = np.array([
-            np.random.choice(self.sp_to_utt_test[anchor_positive_speaker], 2, replace=False)
-            for _ in range(batch_size // 3)
-        ])
-        neg_utterances = np.random.choice(self.sp_to_utt_test[negative_speaker], batch_size // 3, replace=True)
-
-        anchor_utterances = pos_utterances[:, 0]
-        positive_utterances = pos_utterances[:, 1]
+        anchor_utterances = []
+        positive_utterances = []
+        negative_utterances = []
+        for anchor_speaker in anchor_speakers:
+            negative_speaker = np.random.choice(list(set(speakers) - {anchor_speaker}), size=1)[0]
+            assert negative_speaker != anchor_speaker
+            pos_utterances = np.random.choice(self.sp_to_utt_test[anchor_speaker], 2, replace=False)
+            neg_utterance = np.random.choice(self.sp_to_utt_test[negative_speaker], 1, replace=True)[0]
+            anchor_utterances.append(pos_utterances[0])
+            positive_utterances.append(pos_utterances[1])
+            negative_utterances.append(neg_utterance)
 
         # anchor and positive should have difference utterances (but same speaker!).
-        assert np.all(pos_utterances[:, 0] != pos_utterances[:, 1])
+        anc_pos = np.array([positive_utterances, anchor_utterances])
+        assert np.all(anc_pos[0, :] != anc_pos[1, :])
+        assert np.all(np.array([extract_speaker(s) for s in anc_pos[0, :]]) == np.array(
+            [extract_speaker(s) for s in anc_pos[1, :]]))
+
+        pos_neg = np.array([positive_utterances, negative_utterances])
+        assert np.all(pos_neg[0, :] != pos_neg[1, :])
+        assert np.all(np.array([extract_speaker(s) for s in pos_neg[0, :]]) != np.array(
+            [extract_speaker(s) for s in pos_neg[1, :]]))
 
         batch_x = np.vstack([
             [sample_from_mfcc(u, self.max_length) for u in anchor_utterances],
             [sample_from_mfcc(u, self.max_length) for u in positive_utterances],
-            [sample_from_mfcc(u, self.max_length) for u in neg_utterances]
+            [sample_from_mfcc(u, self.max_length) for u in negative_utterances]
         ])
 
         batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
@@ -441,6 +449,6 @@ if __name__ == '__main__':
     for i in range(1000):
         print(i)
         start = time()
-        ltb.get_batch_train(batch_size=96)
+        ltb.get_batch_test(batch_size=9)
         print(time() - start)
         # ltb.get_batch(batch_size=96)

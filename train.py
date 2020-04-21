@@ -20,16 +20,14 @@ def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRA
     batcher = LazyTripletBatcher(working_dir, max_length, dsm)
 
     # build small test set.
-    bx_test, by_test = [], []
-    for _ in tqdm(range(200), desc='Build test set'):
-        bx, by = batcher.get_batch_test(batch_size)
-        bx_test.append(bx)
-        by_test.append(by)
+    test_batches = []
+    for _ in tqdm(range(400), desc='Build test set'):
+        test_batches.append(batcher.get_batch_test(batch_size))
 
     def test_generator():
         while True:
-            for ba, bb in zip(bx_test, by_test):
-                yield ba, bb
+            for bb in test_batches:
+                yield bb
 
     def train_generator():
         while True:
@@ -39,59 +37,8 @@ def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRA
     checkpoint_filename = os.path.join(CHECKPOINTS_TRIPLET_DIR, checkpoint_name + '_{epoch}.h5')
     checkpoint = ModelCheckpoint(monitor='val_loss', filepath=checkpoint_filename, save_best_only=True)
     dsm.m.fit(x=train_generator(), y=None, steps_per_epoch=2000, shuffle=False,
-              epochs=1000, validation_data=test_generator(), validation_steps=len(bx_test),
+              epochs=1000, validation_data=test_generator(), validation_steps=len(test_batches),
               callbacks=[checkpoint])
-
-    # batcher = LazyTripletBatcher(working_dir, max_length, dsm)
-    # for grad_step in range(int(1e12)):
-    #     batch_x, batch_y = batcher.get_batch(batch_size, is_test=True)
-    #     test_loss = dsm.m.test_on_batch(x=batch_x, y=batch_y)
-    #
-    #     batch_x, batch_y = batcher.get_batch(batch_size, is_test=False)
-    #     train_loss = dsm.m.train_on_batch(x=batch_x, y=batch_y)
-    #     format_str = 'step: {0:,}, train_loss: {1:.4f}, test_loss: {2:.4f}.'
-    #     logger.info(format_str.format(grad_step, train_loss, test_loss))
-    #
-    #     if grad_step % 100 == 0:
-    #         logger.info('Saving...')
-    #         checkpoint_name = dsm.m.name + '_checkpoint'
-    #         checkpoint_filename = os.path.join(CHECKPOINTS_TRIPLET_DIR, checkpoint_name + f'_{grad_step}.h5')
-    #         dsm.m.save_weights(checkpoint_filename, overwrite=True)
-
-    # test_every = 10
-    # train_deque_size = 200
-    # train_overall_loss_emb = deque(maxlen=train_deque_size)
-    # test_overall_loss_emb = deque(maxlen=train_deque_size // test_every)
-    # loss_file = open(os.path.join(CHECKPOINTS_TRIPLET_DIR, 'losses.txt'), 'w')
-    #
-    # for grad_step in range(int(1e12)):
-    #
-    #     if grad_step % test_every == 0:  # test step.
-    #         batch_x, batch_y = batcher.get_batch(batch_size, is_test=True)
-    #         test_loss = dsm.m.test_on_batch(x=batch_x, y=batch_y)
-    #         test_overall_loss_emb.append(test_loss)  # ['embeddings_loss'])
-    #
-    #     # train step.
-    #     batch_x, batch_y = batcher.get_batch(batch_size, is_test=False)
-    #     train_loss = dsm.m.train_on_batch(x=batch_x, y=batch_y)
-    #     train_overall_loss_emb.append(train_loss)  # ['embeddings_loss'])
-    #
-    #     if grad_step % 10 == 0:
-    #         format_str = 'step: {0:,}, train_loss: {1:.4f}, test_loss: {2:.4f}.'
-    #         tr_mean_loss = np.mean(train_overall_loss_emb)
-    #         te_mean_loss = np.mean(test_overall_loss_emb)
-    #         logger.info(format_str.format(grad_step, tr_mean_loss, te_mean_loss))
-    #         loss_file.write(','.join([str(grad_step), f'{tr_mean_loss:.4f}', f'{te_mean_loss:.4f}']) + '\n')
-    #         loss_file.flush()
-    #
-    #     if grad_step % 1000 == 0:
-    #         logger.info('Saving...')
-    #         delete_older_checkpoints(CHECKPOINTS_TRIPLET_DIR, max_to_keep=10)
-    #         checkpoint_name = dsm.m.name + '_checkpoint'
-    #         checkpoint_filename = os.path.join(CHECKPOINTS_TRIPLET_DIR, checkpoint_name + f'_{grad_step}.h5')
-    #         dsm.m.save_weights(checkpoint_filename, overwrite=True)
-    #
-    # loss_file.close()
 
 
 def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test,
