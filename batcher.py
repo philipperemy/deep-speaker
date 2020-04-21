@@ -3,6 +3,7 @@ import os
 from collections import deque
 from pathlib import Path
 from random import choice
+from time import time
 
 import dill
 import numpy as np
@@ -17,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 def extract_speaker(utt_file):
-    return Path(utt_file).stem.split('_')[0]
+    # return Path(utt_file).stem.split('_')[0]
+    return utt_file.split('/')[-1].split('_')[0]
 
 
 def sample_from_mfcc(utterance_file, max_length):
@@ -119,6 +121,7 @@ class OneHotSpeakers:
 class LazyTripletBatcher:
     def __init__(self, working_dir: str, max_length: int, model: DeepSpeakerModel):
         self.audio = Audio(cache_dir=working_dir)
+        logger.info(f'Picking audio from {working_dir}.')
         self.sp_to_utt_train = train_test_sp_to_utt(self.audio, is_test=False)
         self.sp_to_utt_test = train_test_sp_to_utt(self.audio, is_test=True)
         self.max_length = max_length
@@ -133,11 +136,11 @@ class LazyTripletBatcher:
         self.history_model_inputs_train = deque(maxlen=self.total_history_length)
 
         self.batch_count = 0
-        for _ in range(self.history_length):  # init history.
+        for _ in tqdm(range(4), desc='Initializing the batcher'):  # init history.
             self.search_for_best_training_triplet()
 
     def search_for_best_training_triplet(self):
-        print('Reload history.')
+        # print('Reload history.')
         model_inputs = []
         speakers = list(self.audio.speakers_to_utterances.keys())
         np.random.shuffle(speakers)
@@ -188,16 +191,22 @@ class LazyTripletBatcher:
         return batch_x, batch_y
 
     def get_batch_train(self, batch_size):
+        s1 = time()
         # TODO: is_test to implement with the softmax pre-training.
         # we should persist it in keras at the same time.
         self.batch_count += 1
         if self.batch_count % self.history_length == 0:
+            # logger.info('Updating history...')
             self.search_for_best_training_triplet()
 
         from test import batch_cosine_similarity
+
+        s2 = time()
         history_embeddings = np.array(self.history_embeddings_train)
         history_utterances = np.array(self.history_utterances_train)
         history_model_inputs = np.array(self.history_model_inputs_train)
+        s3 = time()
+
         all_indexes = range(len(self.history_embeddings_train))
         anchor_indexes = np.random.choice(a=all_indexes, size=batch_size // 3, replace=False)
 
@@ -221,20 +230,24 @@ class LazyTripletBatcher:
             dissimilar_positive_index = positive_indexes[np.argsort(anchor_cos)[0]]  # [:1]
             dissimilar_positive_indexes.append(dissimilar_positive_index)
 
+        s4 = time()
         batch_x = np.vstack([
             history_model_inputs[anchor_indexes],
             history_model_inputs[dissimilar_positive_indexes],
             history_model_inputs[similar_negative_indexes]
         ])
 
-        for anchor, positive, negative in zip(history_utterances[anchor_indexes],
-                                              history_utterances[dissimilar_positive_indexes],
-                                              history_utterances[similar_negative_indexes]):
-            print('anchor', os.path.basename(anchor),
-                  'positive', os.path.basename(positive),
-                  'negative', os.path.basename(negative))
-        print('_' * 80)
+        s5 = time()
 
+        # for anchor, positive, negative in zip(history_utterances[anchor_indexes],
+        #                                       history_utterances[dissimilar_positive_indexes],
+        #                                       history_utterances[similar_negative_indexes]):
+        # print('anchor', os.path.basename(anchor),
+        #       'positive', os.path.basename(positive),
+        #       'negative', os.path.basename(negative))
+        # print('_' * 80)
+
+        s6 = time()
         # assert utterances as well positive != anchor.
         anchor_speakers = [extract_speaker(a) for a in history_utterances[anchor_indexes]]
         positive_speakers = [extract_speaker(a) for a in history_utterances[dissimilar_positive_indexes]]
@@ -247,6 +260,16 @@ class LazyTripletBatcher:
         assert negative_speakers != anchor_speakers
 
         batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
+
+        s7 = time()
+        # print('12', s2 - s1)
+        # print('23', s3 - s2)
+        # print('34', s4 - s3)
+        # print('45', s5 - s4)
+        # print('56', s6 - s5)
+        # print('67', s7 - s6)
+        # print('17', s7 - s1)
+
         return batch_x, batch_y
 
 
@@ -398,8 +421,13 @@ class TripletEvaluator:
 
 if __name__ == '__main__':
     np.random.seed(123)
-    ltb = LazyTripletBatcher('/Users/premy/deep-speaker', max_length=160, model=DeepSpeakerModel())
+    ltb = LazyTripletBatcher(working_dir='/media/philippe/8TB/ds-test/triplet-training/',
+                             max_length=NUM_FRAMES,
+                             model=DeepSpeakerModel())
     for i in range(1000):
         print(i)
-        ltb.get_batch_test(batch_size=96)
+        start = time()
+        ltb.get_batch_train(batch_size=96)
+        print(time() - start)
         # ltb.get_batch(batch_size=96)
+
