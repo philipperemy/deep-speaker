@@ -127,7 +127,7 @@ class LazyTripletBatcher:
         self.nb_per_speaker = 2
         self.nb_speakers = 640
         self.history_length = 4
-        self.history_every = 100  # batches.
+        self.history_every = 300  # batches.
         self.total_history_length = self.nb_speakers * self.nb_per_speaker * self.history_length  # 25,600
 
         self.history_embeddings_train = deque(maxlen=self.total_history_length)
@@ -140,9 +140,9 @@ class LazyTripletBatcher:
 
         self.batch_count = 0
         for _ in tqdm(range(self.history_length), desc='Initializing the batcher'):  # init history.
-            self.search_for_best_training_triplet()
+            self.update_triplets_history()
 
-    def search_for_best_training_triplet(self):
+    def update_triplets_history(self):
         model_inputs = []
         speakers = list(self.audio.speakers_to_utterances.keys())
         np.random.shuffle(speakers)
@@ -202,7 +202,7 @@ class LazyTripletBatcher:
         s1 = time()
         self.batch_count += 1
         if self.batch_count % self.history_every == 0:
-            self.search_for_best_training_triplet()
+            self.update_triplets_history()
 
         all_indexes = range(len(self.history_embeddings_train))
         anchor_indexes = np.random.choice(a=all_indexes, size=batch_size // 3, replace=False)
@@ -216,9 +216,10 @@ class LazyTripletBatcher:
             anchor_embedding = self.history_embeddings[anchor_index]
             anchor_speaker = extract_speaker(self.history_utterances[anchor_index])
 
-            # why self.nb_speakers // 2? not too much.
-            negative_indexes = [j for (j, a) in enumerate(self.history_utterances) if
-                                extract_speaker(a) != anchor_speaker][0:self.nb_speakers // 2]
+            # why self.nb_speakers // 4? just random. because it is fast. otherwise it's too much.
+            negative_indexes = [j for (j, a) in enumerate(self.history_utterances)
+                                if extract_speaker(a) != anchor_speaker]
+            negative_indexes = np.random.choice(negative_indexes, size=self.nb_speakers // 4)
 
             s22 = time()
 
