@@ -1,6 +1,7 @@
+import json
 import logging
 import os
-from collections import deque
+from collections import deque, Counter
 from random import choice
 from time import time
 
@@ -118,6 +119,7 @@ class OneHotSpeakers:
 
 class LazyTripletBatcher:
     def __init__(self, working_dir: str, max_length: int, model: DeepSpeakerModel):
+        self.working_dir = working_dir
         self.audio = Audio(cache_dir=working_dir)
         logger.info(f'Picking audio from {working_dir}.')
         self.sp_to_utt_train = train_test_sp_to_utt(self.audio, is_test=False)
@@ -127,8 +129,10 @@ class LazyTripletBatcher:
         self.nb_per_speaker = 2
         self.nb_speakers = 640
         self.history_length = 4
-        self.history_every = 300  # batches.
+        self.history_every = 100  # batches.
         self.total_history_length = self.nb_speakers * self.nb_per_speaker * self.history_length  # 25,600
+        self.metadata_train_speakers = Counter()
+        self.metadata_output_file = os.path.join(self.working_dir, 'debug_batcher.json')
 
         self.history_embeddings_train = deque(maxlen=self.total_history_length)
         self.history_utterances_train = deque(maxlen=self.total_history_length)
@@ -166,10 +170,17 @@ class LazyTripletBatcher:
         self.history_utterances = np.array(self.history_utterances_train)
         self.history_model_inputs = np.array(self.history_model_inputs_train)
 
+        with open(self.metadata_output_file, 'w') as w:
+            json.dump(obj=dict(self.metadata_train_speakers), fp=w, indent=2)
+
     def get_batch(self, batch_size, is_test=False):
-        return self.get_batch_test(batch_size) if is_test else self.get_batch_train(batch_size)
+        return self.get_batch_test(batch_size) if is_test else self.get_random_batch(batch_size, is_test=False)
 
     def get_batch_test(self, batch_size):
+        return self.get_random_batch(batch_size, is_test=True)
+
+    def get_random_batch(self, batch_size, is_test=False):
+        sp_to_utt = self.sp_to_utt_test if is_test else self.sp_to_utt_train
         speakers = list(self.audio.speakers_to_utterances.keys())
         anchor_speakers = np.random.choice(speakers, size=batch_size // 3, replace=False)
 
@@ -179,8 +190,8 @@ class LazyTripletBatcher:
         for anchor_speaker in anchor_speakers:
             negative_speaker = np.random.choice(list(set(speakers) - {anchor_speaker}), size=1)[0]
             assert negative_speaker != anchor_speaker
-            pos_utterances = np.random.choice(self.sp_to_utt_test[anchor_speaker], 2, replace=False)
-            neg_utterance = np.random.choice(self.sp_to_utt_test[negative_speaker], 1, replace=True)[0]
+            pos_utterances = np.random.choice(sp_to_utt[anchor_speaker], 2, replace=False)
+            neg_utterance = np.random.choice(sp_to_utt[negative_speaker], 1, replace=True)[0]
             anchor_utterances.append(pos_utterances[0])
             positive_utterances.append(pos_utterances[1])
             negative_utterances.append(neg_utterance)
@@ -224,10 +235,10 @@ class LazyTripletBatcher:
             anchor_embedding = self.history_embeddings[anchor_index]
             anchor_speaker = extract_speaker(self.history_utterances[anchor_index])
 
-            # why self.nb_speakers // 4? just random. because it is fast. otherwise it's too much.
+            # why self.nb_speakers // 2? just random. because it is fast. otherwise it's too much.
             negative_indexes = [j for (j, a) in enumerate(self.history_utterances)
                                 if extract_speaker(a) != anchor_speaker]
-            negative_indexes = np.random.choice(negative_indexes, size=self.nb_speakers // 4)
+            negative_indexes = np.random.choice(negative_indexes, size=self.nb_speakers // 2)
 
             s22 = time()
 
@@ -279,6 +290,13 @@ class LazyTripletBatcher:
         assert negative_speakers != anchor_speakers
 
         batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
+
+        for a in anchor_speakers:
+            self.metadata_train_speakers[a] += 1
+        for a in positive_speakers:
+            self.metadata_train_speakers[a] += 1
+        for a in negative_speakers:
+            self.metadata_train_speakers[a] += 1
 
         s5 = time()
         # print('1-2', s2 - s1)
@@ -449,6 +467,7 @@ if __name__ == '__main__':
     for i in range(1000):
         print(i)
         start = time()
-        ltb.get_batch_test(batch_size=9)
+        ltb.get_batch_train(batch_size=9)
         print(time() - start)
         # ltb.get_batch(batch_size=96)
+

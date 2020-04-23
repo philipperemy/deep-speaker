@@ -2,6 +2,7 @@ import logging
 import os
 
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
+from tensorflow.keras.optimizers import SGD
 from tqdm import tqdm
 
 from batcher import KerasFormatConverter, LazyTripletBatcher
@@ -21,7 +22,7 @@ def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRA
 
     # build small test set.
     test_batches = []
-    for _ in tqdm(range(400), desc='Build test set'):
+    for _ in tqdm(range(200), desc='Build test set'):
         test_batches.append(batcher.get_batch_test(batch_size))
 
     def test_generator():
@@ -31,7 +32,7 @@ def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRA
 
     def train_generator():
         while True:
-            yield batcher.get_batch_train(batch_size)
+            yield batcher.get_random_batch(batch_size, is_test=False)
 
     checkpoint_name = dsm.m.name + '_checkpoint'
     checkpoint_filename = os.path.join(CHECKPOINTS_TRIPLET_DIR, checkpoint_name + '_{epoch}.h5')
@@ -107,5 +108,6 @@ def start_training(working_dir, pre_training_phase=True):
             # same name. This is useful for fine-tuning or transfer-learning models where
             # some of the layers have changed.
             dsm.m.load_weights(pre_training_checkpoint, by_name=True)
-        dsm.m.compile(optimizer='adam', loss=deep_speaker_loss)
+        dsm.m.compile(optimizer=SGD(), loss=deep_speaker_loss)
         fit_model(dsm, working_dir, NUM_FRAMES)
+

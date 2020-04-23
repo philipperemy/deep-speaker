@@ -2,7 +2,7 @@
 
 set -e
 
-WORKING_DIR="/media/philippe/8TB/ds-test"
+WORKING_DIR="/home/philippe/ds-test" # temporary for triplet training.
 
 if [ $# -lt 1 ]; then
   echo "Usage : $0 Task [download_librispeech, build_mfcc, build_model_inputs, train_softmax, train_triplet]"
