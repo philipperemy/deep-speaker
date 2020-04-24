@@ -3,7 +3,6 @@ import unittest
 import keras.backend as K
 import numpy as np
 import tensorflow as tf
-
 from last.triplet_loss import deep_speaker_loss
 
 BATCH_SIZE = 3

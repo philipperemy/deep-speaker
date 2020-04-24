@@ -26,7 +26,7 @@ class DeepSpeakerModel:
     # would be better to have 4 dimensions:
     # MFCC, DIFF(MFCC), DIFF(DIFF(MFCC)), ENERGIES (probably tiled across the frequency domain).
     # this seems to help match the parameter counts.
-    def __init__(self, batch_input_shape=(None, NUM_FRAMES, NUM_FBANKS, 4), include_softmax=False,
+    def __init__(self, batch_input_shape=(None, NUM_FRAMES, NUM_FBANKS, 1), include_softmax=False,
                  num_speakers_softmax=None):
         self.include_softmax = include_softmax
         if self.include_softmax:

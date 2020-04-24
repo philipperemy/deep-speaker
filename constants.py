@@ -3,6 +3,7 @@
 SAMPLE_RATE = 16000  # not higher than that otherwise we may have errors when computing the fbanks.
 
 # Train/Test sets share the same speakers. They contain different utterances.
+# 0.8 means 20% of the utterances of each speaker will be held out and placed in the test set.
 TRAIN_TEST_RATIO = 0.8
 
 CHECKPOINTS_SOFTMAX_DIR = 'checkpoints-softmax'

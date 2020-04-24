@@ -3,19 +3,16 @@
 
 import logging
 import os
-import shutil
-from pathlib import Path
 
 import click
-from tqdm import tqdm
 
 from audio import Audio
-from batcher import KerasConverter, FBankProcessor
+from batcher import KerasFormatConverter
 from constants import SAMPLE_RATE, NUM_FRAMES
 from test import test
 from tests.test2 import test2
 from train import start_training
-from utils import ClickType as Ct, ensures_dir, create_new_empty_dir, find_files
+from utils import ClickType as Ct, ensures_dir, libri_to_vctk_format
 from utils import init_pandas
 
 logger = logging.getLogger(__name__)
@@ -34,40 +31,15 @@ def version():
     print(f'Version is {VERSION}.')
 
 
-@cli.command('build-audio-cache', short_help='Build audio cache.')
-@click.option('--audio_dir', required=True, type=Ct.input_dir())
+@cli.command('build-mfcc-cache', short_help='Build audio cache.')
 @click.option('--working_dir', required=True, type=Ct.output_dir())
+@click.option('--audio_dir', default=None)
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-@click.option('--parallel/--no-parallel', default=False, show_default=True)
-def build_audio_cache(audio_dir, working_dir, sample_rate, parallel):
+def build_audio_cache(working_dir, audio_dir, sample_rate):
     ensures_dir(working_dir)
-    audio_reader = Audio(
-        input_audio_dir=audio_dir,
-        output_working_dir=working_dir,
-        sample_rate=sample_rate,
-        multi_threading=parallel
-    )
-    audio_reader.build_cache()
-
-
-@cli.command('build-mfcc-cache', short_help='Build model inputs cache.')
-@click.option('--audio_dir', required=True, type=Ct.input_dir())
-@click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-def build_inputs_cache(audio_dir, working_dir, sample_rate):
-    audio_reader = Audio(
-        input_audio_dir=audio_dir,
-        output_working_dir=working_dir,
-        sample_rate=sample_rate,
-        multi_threading=False
-    )
-    inputs_generator = FBankProcessor(
-        working_dir=working_dir,
-        audio_reader=audio_reader,
-        speakers_sub_list=None,
-        parallel=False
-    )
-    inputs_generator.generate()
+    if audio_dir is None:
+        audio_dir = os.path.join(working_dir, 'LibriSpeech')
+    Audio(cache_dir=working_dir, audio_dir=audio_dir, sample_rate=sample_rate)
 
 
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')
@@ -75,14 +47,14 @@ def build_inputs_cache(audio_dir, working_dir, sample_rate):
 @click.option('--counts_per_speaker', default='600,100', show_default=True, type=str)  # train,test
 def build_keras_inputs(working_dir, counts_per_speaker):
     counts_per_speaker = [int(b) for b in counts_per_speaker.split(',')]
-    kc = KerasConverter(working_dir)
+    kc = KerasFormatConverter(working_dir)
     kc.generate(max_length=NUM_FRAMES, counts_per_speaker=counts_per_speaker)
     kc.persist_to_disk()
 
 
 @cli.command('test-model', short_help='Test a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--checkpoint_file', type=Ct.input_file())
+@click.option('--checkpoint_file', required=True, type=Ct.input_file())
 def test_model(working_dir, checkpoint_file=None):
     test(working_dir, checkpoint_file)
 
@@ -125,24 +97,12 @@ def train_model(working_dir, pre_training_phase):
 
 @cli.command('libri-to-vctk-format', short_help='Converts Libri dataset to VCTK.')
 @click.option('--libri', required=True, type=Ct.input_dir())
+@click.option('--subset', default=None)  # train-clean-360
 @click.option('--output', required=True, type=Ct.output_dir())
-def libri_to_vctk(libri, output):
-    create_new_empty_dir(output)
-    while True:
-        sub_dirs = [d for d in Path(libri).iterdir() if d.is_dir()]
-        if len(sub_dirs) > 1:
-            break
-        libri = Path(sub_dirs[0])
-    logger.info(libri)
-    for speaker in sorted(os.listdir(libri)):
-        speaker_wav_files = find_files(os.path.join(libri, speaker))
-        output_speaker_dir = os.path.join(output, speaker)
-        ensures_dir(output_speaker_dir)
-        for i, speaker_wav_file in tqdm(enumerate(speaker_wav_files), desc=f'Speaker {speaker}'):
-            output_filename = os.path.join(output_speaker_dir, f'{speaker}_{i}.wav')
-            # logger.info(f'{speaker_wav_file} -> {output_filename}.')
-            shutil.copy(speaker_wav_file, output_filename)
+def libri_to_vctk(libri, subset, output):
+    libri_to_vctk_format(libri, subset, output)
 
 
 if __name__ == '__main__':
     cli()
+

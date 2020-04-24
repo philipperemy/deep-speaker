@@ -3,7 +3,7 @@ import sys
 import numpy as np
 
 import triplet_loss
-from batcher import KerasConverter, TripletBatcherSelectHardNegatives, TripletBatcher
+from batcher import KerasFormatConverter, TripletBatcherSelectHardNegatives, TripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, CHECKPOINTS_TRIPLET_DIR, CHECKPOINTS_SOFTMAX_DIR, BATCH_SIZE
 from conv_models import DeepSpeakerModel
 from triplet_loss import deep_speaker_loss
@@ -70,7 +70,7 @@ def main():
         # some of the layers have changed.
         dsm.m.load_weights(pre_training_checkpoint, by_name=True)
     dsm.m.compile(optimizer='adam', loss=deep_speaker_loss)
-    kc = KerasConverter(working_dir)
+    kc = KerasFormatConverter(working_dir)
     if select:
         print('TripletBatcherSelectHardNegatives()')
         batcher = TripletBatcherSelectHardNegatives(kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test, dsm)
