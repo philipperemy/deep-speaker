@@ -4,7 +4,7 @@ Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/
 ### Sample Results
 
 
- *Model name* | *Training dataset* | *Num speakers* | *ACC* | *EER* | Download model
+ *Model name* | *Testing dataset* | *Num speakers* | *ACC* | *EER* | Download model
  | :--- | :--- | :--- | :--- | :--- | :--- |
 ResCNN Softmax trained          | LibriSpeech all | 2484 | 0.997 | 0.043 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
 ResCNN Softmax+Triplet trained  | LibriSpeech all | 2484 | 0.996 | 0.025 | [Click](https://drive.google.com/open?id=1wCeoa99XfO5r0OX1K5VjJUaCbpvEx9cc)
