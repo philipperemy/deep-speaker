@@ -498,5 +498,3 @@ if __name__ == '__main__':
         ltb.get_batch_train(batch_size=9)
         print(time() - start)
         # ltb.get_batch(batch_size=96)
-
-

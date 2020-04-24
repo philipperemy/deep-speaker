@@ -50,10 +50,7 @@ class DeepSpeakerModel:
         # num_frames = K.shape() - do it dynamically after.
         inputs = Input(batch_shape=batch_input_shape, name='input')
         x = self.cnn_component(inputs)
-        # TODO: not sure about this. But one thing for sure is that any result of a Conv will be a 4D shape.
-        # TODO: it's either this or run:
-        # Flatten() and FC()-it, re-run the model several times. And averages to have it at utterance level.
-        # One way to do that is to pass everything in the batch dim, run and reshape.
+
         x = Reshape((-1, 2048))(x)
         # Temporal average layer. axis=1 is time.
         x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
@@ -155,7 +152,7 @@ def main():
     # plot_model(dsm.m, to_file='model.png', dpi=300, show_shapes=True, expand_nested=True)
 
 
-def train():
+def _train():
     # x = np.random.uniform(size=(6, 32, 64, 4))  # 6 is multiple of 3.
     # y_softmax = np.random.uniform(size=(6, 100))
     # dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=True, num_speakers_softmax=100)
@@ -190,7 +187,7 @@ def train():
         print(dsm.m.train_on_batch(x, y))
 
 
-def test_checkpoint_compatibility():
+def _test_checkpoint_compatibility():
     dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=True, num_speakers_softmax=10)
     dsm.m.save_weights('test.h5')
     dsm = DeepSpeakerModel(batch_input_shape=(None, 32, 64, 4), include_softmax=False)
@@ -199,4 +196,4 @@ def test_checkpoint_compatibility():
 
 
 if __name__ == '__main__':
-    test_checkpoint_compatibility()
+    _test_checkpoint_compatibility()

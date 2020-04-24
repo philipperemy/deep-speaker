@@ -25,33 +25,6 @@ def batch_cosine_similarity(x1, x2):
     return s
 
 
-#
-# def eval_model_old(working_dir: str, model: DeepSpeakerModel):
-#     enable_deterministic()
-#     kc = KerasFormatConverter(working_dir, load_test_only=True)
-#     evaluator = TripletEvaluator(kc.kx_test, kc.ky_test)
-#     evaluator.speakers_list = evaluator.speakers_list
-#     num_negative_speakers = 99
-#     num_speakers = len(evaluator.speakers_list)
-#     y_pred = np.zeros(shape=(num_speakers, num_negative_speakers + 1))  # negatives + positive
-#     for i, positive_speaker in tqdm(enumerate(evaluator.speakers_list), desc='test', total=num_speakers):
-#         # convention id[0] is anchor speaker, id[1] is positive, id[2:] are negative.
-#         input_data = evaluator.get_speaker_verification_data(positive_speaker, num_negative_speakers)
-#         pred = model.m.predict(input_data, batch_size=BATCH_SIZE)
-#         anchor_embedding = pred[0]
-#         for j, other_than_anchor_embedding in enumerate(pred[1:]):  # positive + negatives
-#             y_pred[i][j] = batch_cosine_similarity([anchor_embedding], [other_than_anchor_embedding])[0]
-#         # y_pred[i] = softmax(y_pred[i])
-#     # could apply softmax here.
-#     y_true = np.zeros_like(y_pred)  # positive is at index 0.
-#     y_true[:, 0] = 1.0
-#     print(np.matrix(y_true))
-#     print(np.matrix(y_pred))
-#     print(np.min(y_pred), np.max(y_pred))
-#     fm, tpr, acc, eer = evaluate(y_pred, y_true)
-#     return fm, tpr, acc, eer
-
-
 def eval_model(working_dir: str, model: DeepSpeakerModel):
     enable_deterministic()
     audio = Audio(working_dir)
@@ -94,4 +67,3 @@ def test(working_dir, checkpoint_file=None):
     fm, tpr, acc, eer = eval_model(working_dir, model=dsm)
     logger.info(f'f-measure = {fm:.3f}, true positive rate = {tpr:.3f}, '
                 f'accuracy = {acc:.3f}, equal error rate = {eer:.3f}')
-

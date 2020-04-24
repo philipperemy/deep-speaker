@@ -10,14 +10,13 @@ from audio import Audio
 from batcher import KerasFormatConverter
 from constants import SAMPLE_RATE, NUM_FRAMES
 from test import test
-from tests.test2 import test2
 from train import start_training
-from utils import ClickType as Ct, ensures_dir, libri_to_vctk_format
+from utils import ClickType as Ct, ensures_dir
 from utils import init_pandas
 
 logger = logging.getLogger(__name__)
 
-VERSION = '1.0c'
+VERSION = '3.0a'
 
 
 @click.group()
@@ -56,53 +55,42 @@ def build_keras_inputs(working_dir, counts_per_speaker):
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--checkpoint_file', required=True, type=Ct.input_file())
 def test_model(working_dir, checkpoint_file=None):
+    # export CUDA_VISIBLE_DEVICES=0; python cli.py test-model
+    # --working_dir /home/philippe/ds-test/triplet-training/
+    # --checkpoint_file ../ds-test/checkpoints-softmax/ResCNN_checkpoint_102.h5
+    # f-measure = 0.789, true positive rate = 0.733, accuracy = 0.996, equal error rate = 0.043
+
+    # export CUDA_VISIBLE_DEVICES=0; python cli.py test-model
+    # --working_dir /home/philippe/ds-test/triplet-training/
+    # --checkpoint_file ../ds-test/checkpoints-triplets/ResCNN_checkpoint_175.h5
+    # f-measure = 0.849, true positive rate = 0.798, accuracy = 0.997, equal error rate = 0.025
     test(working_dir, checkpoint_file)
-
-
-@cli.command('test-model-2', short_help='Test a Keras model.')
-@click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--checkpoint_file', type=Ct.input_file())
-def test_model(working_dir, checkpoint_file=None):
-    test2(working_dir, checkpoint_file)
 
 
 @cli.command('train-model', short_help='Train a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--pre_training_phase/--no_pre_training_phase', default=False, show_default=True)
 def train_model(working_dir, pre_training_phase):
-    # Default parameters: 0.97 accuracy on test set with [--loss_on_softmax].
-    # p225 p226 p227 p228 p229 p230 p231 p232 p233 p234 p236 p237 p238 p239
-    # 1/ --loss_on_softmax
-    # 2/ --loss_on_embeddings --normalize_embeddings
-    # We can easily get:
-    # 011230, train(emb, last 100) = 0.37317 test(emb, last 100) = 0.37739
-
-    # (5000, 500) gives great results. (1000, 100) we stall at 0.965. Patience is only 10.
-    # On all VCTK Corpus with LeNet, 0.98 without doing much.
-
-    # (5000, 500) gives good results (for first try). Frame is 128.
-    # With the complicated model, we get 0.96 accuracy (epoch 10) which is not too bad.
-    # We obviously over-fit on the dataset.
-
-    # b2f145afef1d5d6ecedd1880e2b7a24a6e7ca33f (Thu Apr 9 00:09:58 2020 +0900).
-    # Let's try with (5000, 500) and bigger frame 160, dropout 0.5. It gave 0.985 easily. more stable.
+    # PRE TRAINING
 
     # commit a5030dd7a1b53cd11d5ab7832fa2d43f2093a464
     # Merge: a11d13e b30e64e
     # Author: Philippe Remy <premy.enseirb@gmail.com>
     # Date:   Fri Apr 10 10:37:59 2020 +0900
     # LibriSpeech train-clean-data360 (600, 100). 0.985 on test set (enough for pre-training).
+
+    # TRIPLET TRAINING
+    # [...]
+    # Epoch 175/1000
+    # 2000/2000 [==============================] - 919s 459ms/step - loss: 0.0077 - val_loss: 0.0058
+    # Epoch 176/1000
+    # 2000/2000 [==============================] - 917s 458ms/step - loss: 0.0075 - val_loss: 0.0059
+    # Epoch 177/1000
+    # 2000/2000 [==============================] - 927s 464ms/step - loss: 0.0075 - val_loss: 0.0059
+    # Epoch 178/1000
+    # 2000/2000 [==============================] - 948s 474ms/step - loss: 0.0073 - val_loss: 0.0058
     start_training(working_dir, pre_training_phase)
-
-
-@cli.command('libri-to-vctk-format', short_help='Converts Libri dataset to VCTK.')
-@click.option('--libri', required=True, type=Ct.input_dir())
-@click.option('--subset', default=None)  # train-clean-360
-@click.option('--output', required=True, type=Ct.output_dir())
-def libri_to_vctk(libri, subset, output):
-    libri_to_vctk_format(libri, subset, output)
 
 
 if __name__ == '__main__':
     cli()
-

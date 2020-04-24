@@ -25,4 +25,3 @@ echo "extracting train-clean-360..."
 tar xzf train-clean-360.tar.gz
 echo "extracting train-other-500..."
 tar xzf train-other-500.tar.gz
-

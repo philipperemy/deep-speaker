@@ -75,10 +75,7 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
 def start_training(working_dir, pre_training_phase=True):
     ensures_dir(CHECKPOINTS_SOFTMAX_DIR)
     ensures_dir(CHECKPOINTS_TRIPLET_DIR)
-
-    # TODO: put back the diffs. Not sure they included them though.
     batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 1]
-
     if pre_training_phase:
         logger.info('Softmax pre-training.')
         kc = KerasFormatConverter(working_dir)
@@ -110,4 +107,3 @@ def start_training(working_dir, pre_training_phase=True):
             dsm.m.load_weights(pre_training_checkpoint, by_name=True)
         dsm.m.compile(optimizer=SGD(), loss=deep_speaker_loss)
         fit_model(dsm, working_dir, NUM_FRAMES)
-
