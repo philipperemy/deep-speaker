@@ -54,7 +54,7 @@ ResCNN Softmax+Triplet trained  | LibriSpeech all | 2484 | [Click](https://drive
 
 ```python
 import numpy as np
-
+import random
 from audio import read_mfcc
 from batcher import sample_from_mfcc
 from constants import SAMPLE_RATE, NUM_FRAMES
@@ -63,6 +63,7 @@ from test import batch_cosine_similarity
 
 # Reproducible results.
 np.random.seed(123)
+random.seed(123)
 
 # Define the model here.
 model = DeepSpeakerModel()
