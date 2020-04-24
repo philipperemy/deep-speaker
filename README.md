@@ -1,5 +1,5 @@
 ## Deep Speaker: An End-to-End Neural Speaker Embedding System.
-Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/1705.02304.pdf) | [Pretrained Model](https://drive.google.com/open?id=18h2bmsAWrqoUMsh_FQHDDxp7ioGpcNBa) | [Supplementary](https://youtu.be/HI8MzpY8KMI)
+Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/1705.02304.pdf) | [Pretrained Models](https://drive.google.com/open?id=18h2bmsAWrqoUMsh_FQHDDxp7ioGpcNBa)
 
 ### Sample Results
 
