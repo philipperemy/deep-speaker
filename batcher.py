@@ -21,14 +21,18 @@ def extract_speaker(utt_file):
     return utt_file.split('/')[-1].split('_')[0]
 
 
-def sample_from_mfcc(utterance_file, max_length):
-    mfcc = np.load(utterance_file)
+def sample_from_mfcc(mfcc, max_length):
     if mfcc.shape[0] >= max_length:
         r = choice(range(0, len(mfcc) - max_length + 1))
         s = mfcc[r:r + max_length]
     else:
         s = pad_mfcc(mfcc, max_length)
     return np.expand_dims(s, axis=-1)
+
+
+def sample_from_mfcc_file(utterance_file, max_length):
+    mfcc = np.load(utterance_file)
+    return sample_from_mfcc(mfcc, max_length)
 
 
 class KerasFormatConverter:
@@ -84,7 +88,7 @@ class KerasFormatConverter:
 
     @staticmethod
     def load_into_mat(utterance_file, categorical_speakers, speaker_id, max_length, kx, ky, i):
-        kx[i] = sample_from_mfcc(utterance_file, max_length)
+        kx[i] = sample_from_mfcc_file(utterance_file, max_length)
         ky[i] = categorical_speakers.get_index(speaker_id)
 
 
@@ -155,7 +159,7 @@ class LazyTripletBatcher:
         for speaker_id in selected_speakers:
             train_utterances = self.sp_to_utt_train[speaker_id]
             for selected_utterance in np.random.choice(a=train_utterances, size=self.nb_per_speaker, replace=False):
-                mfcc = sample_from_mfcc(selected_utterance, self.max_length)
+                mfcc = sample_from_mfcc_file(selected_utterance, self.max_length)
                 embeddings_utterances.append(selected_utterance)
                 model_inputs.append(mfcc)
         embeddings = self.model.m.predict(np.array(model_inputs))
@@ -208,9 +212,9 @@ class LazyTripletBatcher:
             [extract_speaker(s) for s in pos_neg[1, :]]))
 
         batch_x = np.vstack([
-            [sample_from_mfcc(u, self.max_length) for u in anchor_utterances],
-            [sample_from_mfcc(u, self.max_length) for u in positive_utterances],
-            [sample_from_mfcc(u, self.max_length) for u in negative_utterances]
+            [sample_from_mfcc_file(u, self.max_length) for u in anchor_utterances],
+            [sample_from_mfcc_file(u, self.max_length) for u in positive_utterances],
+            [sample_from_mfcc_file(u, self.max_length) for u in negative_utterances]
         ])
 
         batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
@@ -332,9 +336,9 @@ class LazyTripletBatcher:
             [extract_speaker(s) for s in anc_pos[1, :]]))
 
         batch_x = np.vstack([
-            [sample_from_mfcc(u, self.max_length) for u in anchor_utterances],
-            [sample_from_mfcc(u, self.max_length) for u in positive_utterances],
-            [sample_from_mfcc(u, self.max_length) for u in negative_utterances]
+            [sample_from_mfcc_file(u, self.max_length) for u in anchor_utterances],
+            [sample_from_mfcc_file(u, self.max_length) for u in positive_utterances],
+            [sample_from_mfcc_file(u, self.max_length) for u in negative_utterances]
         ])
 
         batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.

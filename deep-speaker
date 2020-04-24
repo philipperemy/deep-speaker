@@ -2,7 +2,8 @@
 
 set -e
 
-WORKING_DIR="/home/philippe/ds-test" # temporary for triplet training.
+HOME_DIR=$(eval echo "~")
+WORKING_DIR="${HOME_DIR}/.deep-speaker-wd"
 
 if [ $# -lt 1 ]; then
   echo "Usage : $0 Task [download_librispeech, build_mfcc, build_model_inputs, train_softmax, train_triplet]"
