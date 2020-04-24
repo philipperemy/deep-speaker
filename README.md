@@ -72,7 +72,7 @@ random.seed(123)
 model = DeepSpeakerModel()
 
 # Load the checkpoint.
-model.m.load_weights('/Users/premy/deep-speaker/checkpoints/ResCNN_triplet_training_checkpoint_175.h5', by_name=True)
+model.m.load_weights('ResCNN_triplet_training_checkpoint_175.h5', by_name=True)
 
 # Sample some inputs for WAV/FLAC files for the same speaker.
 mfcc_001 = sample_from_mfcc(read_mfcc('samples/PhilippeRemy/PhilippeRemy_001.wav', SAMPLE_RATE), NUM_FRAMES)
