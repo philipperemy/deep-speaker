@@ -54,8 +54,10 @@ ResCNN Softmax+Triplet trained  | [LibriSpeech](http://www.openslr.org/12/) all 
 * Run with pretrained model
 
 ```python
-import numpy as np
 import random
+
+import numpy as np
+
 from audio import read_mfcc
 from batcher import sample_from_mfcc
 from constants import SAMPLE_RATE, NUM_FRAMES
