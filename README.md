@@ -26,10 +26,10 @@ pip install -r requirements.txt
 
 ### Training
 
-The code for training is available in this repository. 
+The code for training is available in this repository. It takes a bit less than a week with a GTX1070 to train the models.
 
 System requirements for a complete training are:
-- At least 100GB of free disk space.
+- At least 100GB of free disk space on a fast SSD.
 - 32GB of memory.
 - A NVIDIA GPU such as the 1080Ti.
 
