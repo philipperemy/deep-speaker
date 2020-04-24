@@ -47,8 +47,8 @@ System requirements for a complete training are:
 
  *Model name* | *Used datasets for training* | *Num speakers* | *Model Link* | 
  | :--- | :--- | :--- | :--- |
-ResCNN Softmax trained  | LibriSpeech train-clean-360 | 921 | [Click](https://drive.google.com/open?id=1wCeoa99XfO5r0OX1K5VjJUaCbpvEx9cc)
-ResCNN Softmax+Triplet trained  | LibriSpeech all | 2484 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
+ResCNN Softmax trained  | LibriSpeech train-clean-360 | 921 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
+ResCNN Softmax+Triplet trained  | LibriSpeech all | 2484 | [Click](https://drive.google.com/open?id=1wCeoa99XfO5r0OX1K5VjJUaCbpvEx9cc)
 
 * Run with pretrained model
 
