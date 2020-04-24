@@ -312,6 +312,34 @@ class LazyTripletBatcher:
 
         return batch_x, batch_y
 
+    def get_speaker_verification_data(self, anchor_speaker, num_different_speakers):
+        speakers = list(self.audio.speakers_to_utterances.keys())
+        anchor_utterances = []
+        positive_utterances = []
+        negative_utterances = []
+        negative_speakers = np.random.choice(list(set(speakers) - {anchor_speaker}), size=num_different_speakers)
+        assert [negative_speaker != anchor_speaker for negative_speaker in negative_speakers]
+        pos_utterances = np.random.choice(self.sp_to_utt_test[anchor_speaker], 2, replace=False)
+        neg_utterances = [np.random.choice(self.sp_to_utt_test[neg], 1, replace=True)[0] for neg in negative_speakers]
+        anchor_utterances.append(pos_utterances[0])
+        positive_utterances.append(pos_utterances[1])
+        negative_utterances.extend(neg_utterances)
+
+        # anchor and positive should have difference utterances (but same speaker!).
+        anc_pos = np.array([positive_utterances, anchor_utterances])
+        assert np.all(anc_pos[0, :] != anc_pos[1, :])
+        assert np.all(np.array([extract_speaker(s) for s in anc_pos[0, :]]) == np.array(
+            [extract_speaker(s) for s in anc_pos[1, :]]))
+
+        batch_x = np.vstack([
+            [sample_from_mfcc(u, self.max_length) for u in anchor_utterances],
+            [sample_from_mfcc(u, self.max_length) for u in positive_utterances],
+            [sample_from_mfcc(u, self.max_length) for u in negative_utterances]
+        ])
+
+        batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
+        return batch_x, batch_y
+
 
 class TripletBatcher:
 
@@ -470,4 +498,5 @@ if __name__ == '__main__':
         ltb.get_batch_train(batch_size=9)
         print(time() - start)
         # ltb.get_batch(batch_size=96)
+
 

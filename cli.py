@@ -54,7 +54,7 @@ def build_keras_inputs(working_dir, counts_per_speaker):
 
 @cli.command('test-model', short_help='Test a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--checkpoint_file', type=Ct.input_file())
+@click.option('--checkpoint_file', required=True, type=Ct.input_file())
 def test_model(working_dir, checkpoint_file=None):
     test(working_dir, checkpoint_file)
 
@@ -105,3 +105,4 @@ def libri_to_vctk(libri, subset, output):
 
 if __name__ == '__main__':
     cli()
+
