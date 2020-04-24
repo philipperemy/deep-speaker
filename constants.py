@@ -1,35 +1,18 @@
-import json
-import logging
-import os
+# Constants.
 
-import namedtupled
+SAMPLE_RATE = 16000  # not higher than that otherwise we may have errors when computing the fbanks.
 
-logger = logging.getLogger(__name__)
+# Train/Test sets share the same speakers. They contain different utterances.
+# 0.8 means 20% of the utterances of each speaker will be held out and placed in the test set.
+TRAIN_TEST_RATIO = 0.8
 
-CONFIGURATION_FILENAME = 'conf.json'
+CHECKPOINTS_SOFTMAX_DIR = 'checkpoints-softmax'
 
+CHECKPOINTS_TRIPLET_DIR = 'checkpoints-triplets'
 
-def filename_to_named_tuple(filename):
-    with open(filename) as data_file:
-        c_ = json.load(data_file)
-        # pprint(c_)
-        return namedtupled.map(c_)
+BATCH_SIZE = 32 * 3  # have to be a multiple of 3.
 
-
-def load_constants():
-    c_ = None
-    try:
-        c_ = filename_to_named_tuple(CONFIGURATION_FILENAME)
-    except FileNotFoundError as e:
-        try:
-            c_ = filename_to_named_tuple(os.path.join('..', CONFIGURATION_FILENAME))
-        except FileNotFoundError as e:
-            try:
-                c_ = filename_to_named_tuple(os.path.join('..', '..', CONFIGURATION_FILENAME))
-            except:
-                logger.error(e)
-                logger.error('Please execute this command: cp conf.json.example conf.json')
-    return c_
-
-
-c = load_constants()
+# Input to the model will be a 4D image: (batch_size, num_frames, num_fbanks, 3)
+# Where the 3 channels are: FBANK, DIFF(FBANK), DIFF(DIFF(FBANK)).
+NUM_FRAMES = 160  # 1 second ~ 100 frames with default params winlen=0.025,winstep=0.01
+NUM_FBANKS = 64
