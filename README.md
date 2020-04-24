@@ -6,9 +6,10 @@ Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/
 
  *Model name* | *Testing dataset* | *Num speakers* | *ACC* | *EER* | Download model
  | :--- | :--- | :--- | :--- | :--- | :--- |
-ResCNN Softmax trained          | LibriSpeech all | 2484 | 0.997 | 0.043 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
-ResCNN Softmax+Triplet trained  | LibriSpeech all | 2484 | 0.996 | 0.025 | [Click](https://drive.google.com/open?id=1wCeoa99XfO5r0OX1K5VjJUaCbpvEx9cc)
+ResCNN Softmax trained          | [LibriSpeech](http://www.openslr.org/12/) all(*) | 2484 | 0.997 | 0.043 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
+ResCNN Softmax+Triplet trained  | [LibriSpeech](http://www.openslr.org/12/) all(*) | 2484 | 0.996 | 0.025 | [Click](https://drive.google.com/open?id=1wCeoa99XfO5r0OX1K5VjJUaCbpvEx9cc)
 
+(*) all includes: dev-clean, dev-other, test-clean, test-other, train-clean-100, train-clean-360, train-other-500.
 
 ### Overview
 
@@ -47,8 +48,8 @@ System requirements for a complete training are:
 
  *Model name* | *Used datasets for training* | *Num speakers* | *Model Link* | 
  | :--- | :--- | :--- | :--- |
-ResCNN Softmax trained  | LibriSpeech train-clean-360 | 921 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
-ResCNN Softmax+Triplet trained  | LibriSpeech all | 2484 | [Click](https://drive.google.com/open?id=1wCeoa99XfO5r0OX1K5VjJUaCbpvEx9cc)
+ResCNN Softmax trained  | [LibriSpeech](http://www.openslr.org/12/) train-clean-360 | 921 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
+ResCNN Softmax+Triplet trained  | [LibriSpeech](http://www.openslr.org/12/) all | 2484 | [Click](https://drive.google.com/open?id=1wCeoa99XfO5r0OX1K5VjJUaCbpvEx9cc)
 
 * Run with pretrained model
 
