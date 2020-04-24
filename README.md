@@ -89,14 +89,13 @@ print('DIFF SPEAKER', batch_cosine_similarity(predict_001, predict_003)) # DIFF 
 
 * Commands to reproduce the test results after the training
 
-
 ```bash
-$ export CUDA_VISIBLE_DEVICES=0; python cli.py test-model --working_dir /home/philippe/ds-test/triplet-training/ --
-checkpoint_file ../ds-test/checkpoints-softmax/ResCNN_checkpoint_102.h5
+$ export CUDA_VISIBLE_DEVICES=0; python cli.py test-model --working_dir ~/.deep-speaker-wd/triplet-training/ --
+checkpoint_file checkpoints-softmax/ResCNN_checkpoint_102.h5
 f-measure = 0.789, true positive rate = 0.733, accuracy = 0.996, equal error rate = 0.043
 ```
 
 ```bash
-$ export CUDA_VISIBLE_DEVICES=0; python cli.py test-model --working_dir /home/philippe/ds-test/triplet-training/ --checkpoint_file ../ds-test/checkpoints-triplets/ResCNN_checkpoint_175.h5
+$ export CUDA_VISIBLE_DEVICES=0; python cli.py test-model --working_dir ~/.deep-speaker-wd/triplet-training/ --checkpoint_file checkpoints-triplets/ResCNN_checkpoint_175.h5
 f-measure = 0.849, true positive rate = 0.798, accuracy = 0.997, equal error rate = 0.025
 ```
