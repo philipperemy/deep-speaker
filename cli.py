@@ -17,7 +17,7 @@ from utils import init_pandas
 
 logger = logging.getLogger(__name__)
 
-VERSION = '3.0a'
+VERSION = '3.0b'
 
 
 @click.group()
