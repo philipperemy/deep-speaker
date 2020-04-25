@@ -5,7 +5,7 @@ import numpy as np
 import triplet_loss
 from batcher import KerasFormatConverter, TripletBatcherSelectHardNegatives, TripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, CHECKPOINTS_TRIPLET_DIR, CHECKPOINTS_SOFTMAX_DIR, BATCH_SIZE
-from conv_models import DeepSpeakerModel
+from conv_models import ResCNNModel
 from triplet_loss import deep_speaker_loss
 from utils import load_best_checkpoint
 
@@ -57,7 +57,7 @@ def main():
     # we select batches this way.
     batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 1]
     print('Testing with the triplet losses.')
-    dsm = DeepSpeakerModel(batch_input_shape, include_softmax=False)
+    dsm = ResCNNModel(batch_input_shape, include_softmax=False)
     triplet_checkpoint = load_best_checkpoint(CHECKPOINTS_TRIPLET_DIR)
     pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
     if triplet_checkpoint is not None:

@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from audio import pad_mfcc, Audio
 from constants import NUM_FRAMES, NUM_FBANKS
-from conv_models import DeepSpeakerModel
+from conv_models import ResCNNModel, DeepSpeakerModel
 from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
 
 logger = logging.getLogger(__name__)
@@ -495,7 +495,7 @@ if __name__ == '__main__':
     np.random.seed(123)
     ltb = LazyTripletBatcher(working_dir='/Users/premy/deep-speaker/',
                              max_length=NUM_FRAMES,
-                             model=DeepSpeakerModel())
+                             model=ResCNNModel())
     for i in range(1000):
         print(i)
         start = time()

@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from batcher import KerasFormatConverter, LazyTripletBatcher
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
-from conv_models import DeepSpeakerModel
+from conv_models import ResCNNModel, DeepSpeakerModel
 from triplet_loss import deep_speaker_loss
 from utils import load_best_checkpoint, ensures_dir
 
@@ -80,7 +80,7 @@ def start_training(working_dir, pre_training_phase=True):
         logger.info('Softmax pre-training.')
         kc = KerasFormatConverter(working_dir)
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
-        dsm = DeepSpeakerModel(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
+        dsm = ResCNNModel(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
         dsm.m.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         if pre_training_checkpoint is not None:
@@ -93,7 +93,7 @@ def start_training(working_dir, pre_training_phase=True):
         fit_model_softmax(dsm, kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test, initial_epoch=initial_epoch)
     else:
         logger.info('Training with the triplet loss.')
-        dsm = DeepSpeakerModel(batch_input_shape, include_softmax=False)
+        dsm = ResCNNModel(batch_input_shape, include_softmax=False)
         triplet_checkpoint = load_best_checkpoint(CHECKPOINTS_TRIPLET_DIR)
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         if triplet_checkpoint is not None:

@@ -6,7 +6,7 @@ from tqdm import tqdm
 from audio import Audio
 from batcher import LazyTripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, CHECKPOINTS_TRIPLET_DIR, BATCH_SIZE
-from conv_models import DeepSpeakerModel
+from conv_models import ResCNNModel
 from eval_metrics import evaluate
 from utils import load_best_checkpoint, enable_deterministic
 
@@ -25,7 +25,7 @@ def batch_cosine_similarity(x1, x2):
     return s
 
 
-def eval_model(working_dir: str, model: DeepSpeakerModel):
+def eval_model(working_dir: str, model: ResCNNModel):
     enable_deterministic()
     audio = Audio(working_dir)
     batcher = LazyTripletBatcher(working_dir, NUM_FRAMES, model)
@@ -54,7 +54,7 @@ def eval_model(working_dir: str, model: DeepSpeakerModel):
 
 def test(working_dir, checkpoint_file=None):
     batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 1]
-    dsm = DeepSpeakerModel(batch_input_shape)
+    dsm = ResCNNModel(batch_input_shape)
     if checkpoint_file is None:
         checkpoint_file = load_best_checkpoint(CHECKPOINTS_TRIPLET_DIR)
     if checkpoint_file is not None:
