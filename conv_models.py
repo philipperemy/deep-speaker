@@ -52,7 +52,6 @@ class DeepSpeakerModel:
 
     def graph_with_avg_softmax_and_ln(self, inputs):
         x = self.graph(inputs)
-
         # Temporal average layer. axis=1 is time.
         x = Lambda(lambda y: K.mean(y, axis=1), name='average')(x)
         if self.include_softmax:

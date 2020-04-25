@@ -54,7 +54,7 @@ def build_keras_inputs(working_dir, counts_per_speaker):
 
 @cli.command('test-model', short_help='Test a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--model_name', required=True, choices=[RES_CNN_NAME, GRU_NAME])
+@click.option('--model_name', required=True, type=click.Choice([RES_CNN_NAME, GRU_NAME]))
 @click.option('--checkpoint_file', required=True, type=Ct.input_file())
 def test_model(working_dir, model_name, checkpoint_file):
     # export CUDA_VISIBLE_DEVICES=0; python cli.py test-model
@@ -71,7 +71,7 @@ def test_model(working_dir, model_name, checkpoint_file):
 
 @cli.command('train-model', short_help='Train a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--model_name', required=True, choices=[RES_CNN_NAME, GRU_NAME])
+@click.option('--model_name', required=True, type=click.Choice([RES_CNN_NAME, GRU_NAME]))
 @click.option('--pre_training_phase/--no_pre_training_phase', default=False, show_default=True)
 def train_model(working_dir, model_name, pre_training_phase):
     # PRE TRAINING
