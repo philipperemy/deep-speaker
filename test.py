@@ -5,10 +5,10 @@ from tqdm import tqdm
 
 from audio import Audio
 from batcher import LazyTripletBatcher
-from constants import NUM_FBANKS, NUM_FRAMES, CHECKPOINTS_TRIPLET_DIR, BATCH_SIZE
-from conv_models import ResCNNModel
+from constants import NUM_FBANKS, NUM_FRAMES, BATCH_SIZE
+from conv_models import ResCNNModel, select_model_class
 from eval_metrics import evaluate
-from utils import load_best_checkpoint, enable_deterministic
+from utils import enable_deterministic
 
 logger = logging.getLogger(__name__)
 
@@ -41,22 +41,15 @@ def eval_model(working_dir: str, model: ResCNNModel):
         anchor_embedding = predictions[0]
         for j, other_than_anchor_embedding in enumerate(predictions[1:]):  # positive + negatives
             y_pred[i][j] = batch_cosine_similarity([anchor_embedding], [other_than_anchor_embedding])[0]
-        # y_pred[i] = softmax(y_pred[i])
-    # could apply softmax here.
     y_true = np.zeros_like(y_pred)  # positive is at index 0.
     y_true[:, 0] = 1.0
-    print(np.matrix(y_true))
-    print(np.matrix(y_pred))
-    print(np.min(y_pred), np.max(y_pred))
     fm, tpr, acc, eer = evaluate(y_pred, y_true)
     return fm, tpr, acc, eer
 
 
-def test(working_dir, checkpoint_file=None):
+def test(working_dir, model_name, checkpoint_file):
     batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 1]
-    dsm = ResCNNModel(batch_input_shape)
-    if checkpoint_file is None:
-        checkpoint_file = load_best_checkpoint(CHECKPOINTS_TRIPLET_DIR)
+    dsm = select_model_class(model_name)(batch_input_shape)
     if checkpoint_file is not None:
         logger.info(f'Found checkpoint [{checkpoint_file}]. Loading weights...')
         dsm.m.load_weights(checkpoint_file, by_name=True)

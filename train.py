@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from batcher import KerasFormatConverter, LazyTripletBatcher
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
-from conv_models import ResCNNModel, DeepSpeakerModel
+from conv_models import ResCNNModel, DeepSpeakerModel, select_model_class
 from triplet_loss import deep_speaker_loss
 from utils import load_best_checkpoint, ensures_dir
 
@@ -72,15 +72,16 @@ def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_tes
               callbacks=[early_stopping, reduce_lr, checkpoint])
 
 
-def start_training(working_dir, pre_training_phase=True):
+def start_training(working_dir, model_name, pre_training_phase=True):
     ensures_dir(CHECKPOINTS_SOFTMAX_DIR)
     ensures_dir(CHECKPOINTS_TRIPLET_DIR)
     batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 1]
+    model_class = select_model_class(model_name)
     if pre_training_phase:
         logger.info('Softmax pre-training.')
         kc = KerasFormatConverter(working_dir)
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
-        dsm = ResCNNModel(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
+        dsm = model_class(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
         dsm.m.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         if pre_training_checkpoint is not None:
@@ -93,7 +94,7 @@ def start_training(working_dir, pre_training_phase=True):
         fit_model_softmax(dsm, kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test, initial_epoch=initial_epoch)
     else:
         logger.info('Training with the triplet loss.')
-        dsm = ResCNNModel(batch_input_shape, include_softmax=False)
+        dsm = model_class(batch_input_shape, include_softmax=False)
         triplet_checkpoint = load_best_checkpoint(CHECKPOINTS_TRIPLET_DIR)
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         if triplet_checkpoint is not None:

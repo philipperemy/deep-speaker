@@ -17,6 +17,18 @@ from constants import NUM_FBANKS, NUM_FRAMES
 
 logger = logging.getLogger(__name__)
 
+RES_CNN_NAME = 'ResCNN'
+GRU_NAME = 'GRU'
+
+
+def select_model_class(name: str):
+    if name == RES_CNN_NAME:
+        return ResCNNModel
+    elif name == GRU_NAME:
+        return GRUModel
+    else:
+        raise Exception(f'Unknown model name: {name}.')
+
 
 class DeepSpeakerModel:
 
@@ -24,7 +36,7 @@ class DeepSpeakerModel:
                  batch_input_shape=(None, NUM_FRAMES, NUM_FBANKS, 1),
                  include_softmax=False,
                  num_speakers_softmax=None,
-                 name='ResCNN'):
+                 name=RES_CNN_NAME):
         self.include_softmax = include_softmax
         self.num_speakers_softmax = num_speakers_softmax
         if self.include_softmax:
@@ -83,7 +95,7 @@ class ResCNNModel(DeepSpeakerModel):
                  batch_input_shape=(None, NUM_FRAMES, NUM_FBANKS, 1),
                  include_softmax=False,
                  num_speakers_softmax=None):
-        super().__init__(batch_input_shape, include_softmax, num_speakers_softmax, 'ResCNN')
+        super().__init__(batch_input_shape, include_softmax, num_speakers_softmax, RES_CNN_NAME)
 
     def graph(self, inputs):
         x = self.conv_and_res_block(inputs, 64, stage=1)
@@ -146,7 +158,7 @@ class GRUModel(DeepSpeakerModel):
                  batch_input_shape=(None, NUM_FRAMES, NUM_FBANKS, 1),
                  include_softmax=False,
                  num_speakers_softmax=None):
-        super().__init__(batch_input_shape, include_softmax, num_speakers_softmax, 'GRU')
+        super().__init__(batch_input_shape, include_softmax, num_speakers_softmax, GRU_NAME)
 
     def graph(self, inputs):
         x = Conv2D(64, kernel_size=5, strides=2, padding='same', kernel_initializer='glorot_uniform',
