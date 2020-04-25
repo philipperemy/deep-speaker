@@ -4,10 +4,10 @@ Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/
 ### Sample Results
 
 
- *Model name* | *Testing dataset* | *Num speakers* | *F* | *TPR* | *ACC* | *EER* | Download model
- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-ResCNN Softmax trained          | [LibriSpeech](http://www.openslr.org/12/) all(*) | 2484 | 0.789 | 0.733 | 0.996 | 0.043 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
-ResCNN Softmax+Triplet trained  | [LibriSpeech](http://www.openslr.org/12/) all(*) | 2484 | 0.843 | 0.825 | 0.997 | 0.025 | [Click](https://drive.google.com/file/d/1F9NvdrarWZNktdX9KlRYWWHDwRkip_aP)
+ *Model name* | *Testing dataset* | *Num speakers* | *F* | *TPR* | *ACC* | *EER* | Training Logs | Download model
+ | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+ResCNN Softmax trained          | [LibriSpeech](http://www.openslr.org/12/) all(*) | 2484 | 0.789 | 0.733 | 0.996 | 0.043 | [Click](https://docs.google.com/document/d/1ZZjBk5TgFgaY9GgOcHaieOpiyB9lB6oTRSdk6g8FPRs) | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
+ResCNN Softmax+Triplet trained  | [LibriSpeech](http://www.openslr.org/12/) all(*) | 2484 | 0.843 | 0.825 | 0.997 | 0.025 | [Click](https://docs.google.com/document/d/1mL0Jb8IpA7DOzFci71RT1OYTq7Kkw2DjTkI4BRpEzKc) | [Click](https://drive.google.com/file/d/1F9NvdrarWZNktdX9KlRYWWHDwRkip_aP)
 
 (*) all includes: dev-clean, dev-other, test-clean, test-other, train-clean-100, train-clean-360, train-other-500.
 
