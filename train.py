@@ -83,7 +83,7 @@ def start_training(working_dir, model_name, pre_training_phase=True):
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
         dsm = model_class(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
         # ResCNN can train with default Adam LR of 0.001. GRU is more sensitive.
-        lr = 0.001 if model_name == RES_CNN_NAME else 0.0003
+        lr = 0.001 if model_name == RES_CNN_NAME else 0.0001
         logger.info(f'Initial learning rate set to {lr}.')
         dsm.m.compile(optimizer=Adam(learning_rate=lr), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
