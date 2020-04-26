@@ -6,7 +6,7 @@ from tqdm import tqdm
 from audio import Audio
 from batcher import LazyTripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, BATCH_SIZE
-from conv_models import ResCNNModel, select_model_class
+from models import ResCNNModel, select_model_class
 from eval_metrics import evaluate
 from utils import enable_deterministic
 

@@ -9,7 +9,7 @@ import click
 from audio import Audio
 from batcher import KerasFormatConverter
 from constants import SAMPLE_RATE, NUM_FRAMES
-from conv_models import GRU_NAME, RES_CNN_NAME
+from models import GRU_NAME, RES_CNN_NAME
 from test import test
 from train import start_training
 from utils import ClickType as Ct, ensures_dir

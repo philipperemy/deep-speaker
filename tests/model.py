@@ -3,7 +3,7 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adam
 
 from constants import NUM_FRAMES, NUM_FBANKS
-from conv_models import ResCNNModel, GRUModel
+from models import ResCNNModel, GRUModel
 from triplet_loss import deep_speaker_loss
 
 

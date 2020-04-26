@@ -2,7 +2,7 @@ import numpy as np
 
 from batcher import LazyTripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES
-from conv_models import ResCNNModel
+from models import ResCNNModel
 from triplet_loss import deep_speaker_loss
 
 

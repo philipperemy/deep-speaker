@@ -5,7 +5,7 @@ import numpy as np
 import triplet_loss
 from batcher import KerasFormatConverter, TripletBatcherSelectHardNegatives, TripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, CHECKPOINTS_TRIPLET_DIR, CHECKPOINTS_SOFTMAX_DIR, BATCH_SIZE
-from conv_models import ResCNNModel
+from models import ResCNNModel
 from triplet_loss import deep_speaker_loss
 from utils import load_best_checkpoint
 

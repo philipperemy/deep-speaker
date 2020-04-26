@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from batcher import KerasFormatConverter, LazyTripletBatcher
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
-from conv_models import ResCNNModel, DeepSpeakerModel, select_model_class, RES_CNN_NAME
+from models import ResCNNModel, DeepSpeakerModel, select_model_class, RES_CNN_NAME
 from triplet_loss import deep_speaker_loss
 from utils import load_best_checkpoint, ensures_dir
 

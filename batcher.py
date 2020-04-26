@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from audio import pad_mfcc, Audio
 from constants import NUM_FRAMES, NUM_FBANKS
-from conv_models import DeepSpeakerModel
+from models import DeepSpeakerModel
 from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
 
 logger = logging.getLogger(__name__)
