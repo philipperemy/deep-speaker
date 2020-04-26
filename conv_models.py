@@ -57,6 +57,7 @@ class DeepSpeakerModel:
         if self.include_softmax:
             logger.info('Including a Dropout layer to reduce overfitting.')
             # used for softmax because the dataset we pre-train on might be too small. easy to overfit.
+            # x = Dropout(0.25)(x) # was for GRU. Does 0.5 work with GRU as well?
             x = Dropout(0.5)(x)
         x = Dense(512, name='affine')(x)
         if self.include_softmax:
@@ -163,7 +164,7 @@ class GRUModel(DeepSpeakerModel):
         x = Conv2D(64, kernel_size=5, strides=2, padding='same', kernel_initializer='glorot_uniform',
                    name='conv1', kernel_regularizer=regularizers.l2(l=0.0001))(inputs)
         # shape = (BATCH_SIZE , num_frames/2, 64/2, 64)
-        x = BatchNormalization(name='bn1')(x)
+        x = BatchNormalization(name='bn1')(x) # does it work with BN?
         x = self.clipped_relu(x)
 
         # 4d -> 3d.

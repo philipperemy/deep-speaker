@@ -2,12 +2,12 @@ import logging
 import os
 
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import SGD, Adam
 from tqdm import tqdm
 
 from batcher import KerasFormatConverter, LazyTripletBatcher
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
-from conv_models import ResCNNModel, DeepSpeakerModel, select_model_class
+from conv_models import ResCNNModel, DeepSpeakerModel, select_model_class, RES_CNN_NAME
 from triplet_loss import deep_speaker_loss
 from utils import load_best_checkpoint, ensures_dir
 
@@ -82,13 +82,16 @@ def start_training(working_dir, model_name, pre_training_phase=True):
         kc = KerasFormatConverter(working_dir)
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
         dsm = model_class(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
-        dsm.m.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        # ResCNN can train with default Adam LR of 0.001. GRU is more sensitive.
+        lr = 0.001 if model_name == RES_CNN_NAME else 0.0003
+        logger.info(f'Initial learning rate set to {lr}.')
+        dsm.m.compile(optimizer=Adam(learning_rate=lr), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         if pre_training_checkpoint is not None:
             initial_epoch = int(pre_training_checkpoint.split('/')[-1].split('.')[0].split('_')[-1])
             logger.info(f'Initial epoch is {initial_epoch}.')
             logger.info(f'Loading softmax checkpoint: {pre_training_checkpoint}.')
-            dsm.m.load_weights(pre_training_checkpoint)  # latest one.
+            dsm.m.load_weights(pre_training_checkpoint, by_name=True)  # latest one.
         else:
             initial_epoch = 0
         fit_model_softmax(dsm, kc.kx_train, kc.ky_train, kc.kx_test, kc.ky_test, initial_epoch=initial_epoch)
