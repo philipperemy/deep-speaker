@@ -38,13 +38,13 @@ build_model_inputs)
 train_softmax)
   # Pre-training (0.92k speakers).
   echo "[train_softmax] selected."
-  python cli.py train-model --working_dir "${PRE_TRAINING_WORKING_DIR}" --pre_training_phase
+  python cli.py train-model --model_name "$2" --working_dir "${PRE_TRAINING_WORKING_DIR}" --pre_training_phase
   ;;
 
 train_triplet)
   # Triplet-training (2.48k speakers).
   echo "[train_triplet] selected."
-  python cli.py train-model --working_dir "${TRIPLET_TRAINING_WORKING_DIR}"
+  python cli.py train-model --model_name "$2" --working_dir "${TRIPLET_TRAINING_WORKING_DIR}"
   ;;
 
 *)
