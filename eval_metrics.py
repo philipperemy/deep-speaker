@@ -10,7 +10,6 @@ def evaluate(sims, labels):
 
 
 def calculate_roc(thresholds, sims, labels):
-    nrof_pairs = min(len(labels), len(sims))
     nrof_thresholds = len(thresholds)
 
     tprs = np.zeros((nrof_thresholds))
@@ -18,10 +17,6 @@ def calculate_roc(thresholds, sims, labels):
     acc_train = np.zeros((nrof_thresholds))
     precisions = np.zeros((nrof_thresholds))
     fms = np.zeros((nrof_thresholds))
-    accuracy = 0.0
-
-    indices = np.arange(nrof_pairs)
-
     # Find the best threshold for the fold
 
     for threshold_idx, threshold in enumerate(thresholds):

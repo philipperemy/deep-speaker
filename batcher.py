@@ -147,8 +147,9 @@ class LazyTripletBatcher:
         self.history_model_inputs = None
 
         self.batch_count = 0
-        for _ in tqdm(range(self.history_length), desc='Initializing the batcher'):  # init history.
-            self.update_triplets_history()
+        if self.model is not None:
+            for _ in tqdm(range(self.history_length), desc='Initializing the batcher'):  # init history.
+                self.update_triplets_history()
 
     def update_triplets_history(self):
         model_inputs = []

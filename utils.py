@@ -118,3 +118,17 @@ def train_test_sp_to_utt(audio, is_test):
         train_test_sep = int(len(utterances_files) * TRAIN_TEST_RATIO)
         sp_to_utt[speaker_id] = utterances_files[train_test_sep:] if is_test else utterances_files[:train_test_sep]
     return sp_to_utt
+
+
+def embedding_fusion(embeddings_1: np.array, embeddings_2: np.array):
+    assert len(embeddings_1.shape) == 2  # (batch_size, 512).
+    assert embeddings_1.shape == embeddings_2.shape
+    fusion = np.linalg.norm(embeddings_1 + embeddings_2, ord=2, axis=1)
+    return fusion
+
+
+def score_fusion(scores_1: np.array, scores_2: np.array):
+    def normalize_scores(m, epsilon=1e-12):
+        return (m - np.mean(m)) / max(np.std(m), epsilon)
+
+    return normalize_scores(scores_1) + normalize_scores(scores_2)

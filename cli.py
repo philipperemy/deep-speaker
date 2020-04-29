@@ -3,6 +3,7 @@
 
 import logging
 import os
+import sys
 
 import click
 
@@ -22,7 +23,9 @@ VERSION = '3.0b'
 
 @click.group()
 def cli():
-    logging.basicConfig(format='%(asctime)12s - %(levelname)s - %(message)s', level=logging.INFO)
+    logging.basicConfig(format='%(asctime)12s - %(levelname)s - %(message)s',
+                        level=logging.INFO,
+                        stream=sys.stdout)
     init_pandas()
 
 
@@ -54,8 +57,8 @@ def build_keras_inputs(working_dir, counts_per_speaker):
 
 @cli.command('test-model', short_help='Test a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
-@click.option('--model_name', required=True, type=click.Choice([RES_CNN_NAME, GRU_NAME]))
-@click.option('--checkpoint_file', required=True, type=Ct.input_file())
+@click.option('--model_name', multiple=True, type=click.Choice([RES_CNN_NAME, GRU_NAME]))
+@click.option('--checkpoint_file', multiple=True, required=True, type=Ct.input_file())
 def test_model(working_dir, model_name, checkpoint_file):
     # export CUDA_VISIBLE_DEVICES=0; python cli.py test-model
     # --working_dir /home/philippe/ds-test/triplet-training/
@@ -66,6 +69,7 @@ def test_model(working_dir, model_name, checkpoint_file):
     # --working_dir /home/philippe/ds-test/triplet-training/
     # --checkpoint_file ../ds-test/checkpoints-triplets/ResCNN_checkpoint_175.h5
     # f-measure = 0.849, true positive rate = 0.798, accuracy = 0.997, equal error rate = 0.025
+    assert len(model_name) == len(checkpoint_file)
     test(working_dir, model_name, checkpoint_file)
 
 
