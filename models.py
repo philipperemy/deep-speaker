@@ -174,6 +174,11 @@ class GRUModel(DeepSpeakerModel):
 
         # shape = (BATCH_SIZE , num_frames/2, 1024)
         x = GRU(1024, name='GRU1', return_sequences=True)(x)
+        if self.include_softmax:
+            x = Dropout(0.2)(x)
         x = GRU(1024, name='GRU2', return_sequences=True)(x)
+        if self.include_softmax:
+            x = Dropout(0.2)(x)
         x = GRU(1024, name='GRU3', return_sequences=True)(x)
         return x
+
