@@ -110,4 +110,5 @@ def start_training(working_dir, model_name, pre_training_phase=True):
             # some of the layers have changed.
             dsm.m.load_weights(pre_training_checkpoint, by_name=True)
         dsm.m.compile(optimizer=SGD(), loss=deep_speaker_loss)
+        dsm.m.summary()
         fit_model(dsm, working_dir, NUM_FRAMES)
