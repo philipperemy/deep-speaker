@@ -58,5 +58,5 @@ def test(working_dir, model_name, checkpoint_file):
         exit(1)
 
     fm, tpr, acc, eer = eval_model(working_dir, model=dsm)
-    logger.info(f'f-measure = {fm:.3f}, true positive rate = {tpr:.3f}, '
-                f'accuracy = {acc:.3f}, equal error rate = {eer:.3f}')
+    logger.info(f'f-measure = {fm:.5f}, true positive rate = {tpr:.5f}, '
+                f'accuracy = {acc:.5f}, equal error rate = {eer:.5f}')
