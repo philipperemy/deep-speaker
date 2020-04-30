@@ -7,7 +7,7 @@ from tqdm import tqdm
 from audio import Audio
 from batcher import LazyTripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, BATCH_SIZE
-from eval_metrics import evaluate2
+from eval_metrics import evaluate2, evaluate
 from models import ResCNNModel, select_model_class
 from utils import score_fusion, embedding_fusion
 
@@ -29,7 +29,7 @@ def batch_cosine_similarity(x1, x2):
     return s
 
 
-def eval_models(working_dir: str, models: List[ResCNNModel], eval=evaluate2):
+def eval_models(working_dir: str, models: List[ResCNNModel], eval=evaluate):
     if isinstance(models, list) and len(models) > 1:  # multiple models -> fusion of results.
         y_pred_score_fusion = score_fusion(*[run_speaker_verification_task(working_dir, m) for m in models])
         y_pred_emb_fusion = run_speaker_verification_task(working_dir, models)

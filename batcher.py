@@ -31,7 +31,7 @@ def sample_from_mfcc(mfcc, max_length, seed=None):
     return np.expand_dims(s, axis=-1)
 
 
-def sample_from_mfcc_file(utterance_file, max_length, seed):
+def sample_from_mfcc_file(utterance_file, max_length, seed=None):
     mfcc = np.load(utterance_file)
     return sample_from_mfcc(mfcc, max_length, seed)
 

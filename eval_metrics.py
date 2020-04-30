@@ -11,8 +11,6 @@ def evaluate2(y_pred, y_true):
     eer2 = fnr[np.nanargmin(np.absolute((fnr - fpr)))]
     eer3 = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
 
-    fpr, tpr, thresholds = roc_curve(y_true, y_pred, pos_label=1)
-
     thresholds = np.arange(-1, 1, 0.01)
     best_index = np.argmax([f1_score(y_true, y_pred > t) for t in thresholds])
     t = thresholds[best_index]
