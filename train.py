@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from batcher import KerasFormatConverter, LazyTripletBatcher
 from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
-from models import ResCNNModel, DeepSpeakerModel, select_model_class, RES_CNN_NAME
+from models import DeepSpeakerModel, select_model_class, RES_CNN_NAME
 from triplet_loss import deep_speaker_loss
 from utils import load_best_checkpoint, ensures_dir
 
@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
-def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRAMES, batch_size=BATCH_SIZE):
+def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRAMES,
+              batch_size: int = BATCH_SIZE, initial_epoch: int = 0):
     batcher = LazyTripletBatcher(working_dir, max_length, dsm)
 
     # build small test set.
@@ -37,9 +38,10 @@ def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRA
     checkpoint_name = dsm.m.name + '_checkpoint'
     checkpoint_filename = os.path.join(CHECKPOINTS_TRIPLET_DIR, checkpoint_name + '_{epoch}.h5')
     checkpoint = ModelCheckpoint(monitor='val_loss', filepath=checkpoint_filename, save_best_only=True)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-4, verbose=1)
     dsm.m.fit(x=train_generator(), y=None, steps_per_epoch=2000, shuffle=False,
               epochs=1000, validation_data=test_generator(), validation_steps=len(test_batches),
-              callbacks=[checkpoint])
+              callbacks=[reduce_lr, checkpoint], initial_epoch=initial_epoch)
 
 
 def fit_model_softmax(dsm: DeepSpeakerModel, kx_train, ky_train, kx_test, ky_test,
@@ -83,7 +85,7 @@ def start_training(working_dir, model_name, pre_training_phase=True):
         num_speakers_softmax = len(kc.categorical_speakers.speaker_ids)
         dsm = model_class(batch_input_shape, include_softmax=True, num_speakers_softmax=num_speakers_softmax)
         # ResCNN can train with default Adam LR of 0.001. GRU is more sensitive.
-        lr = 0.001 if model_name == RES_CNN_NAME else 0.00005
+        lr = 0.001 if model_name == RES_CNN_NAME else 0.00003
         logger.info(f'Initial learning rate set to {lr}.')
         dsm.m.compile(optimizer=Adam(learning_rate=lr), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
@@ -102,13 +104,19 @@ def start_training(working_dir, model_name, pre_training_phase=True):
         pre_training_checkpoint = load_best_checkpoint(CHECKPOINTS_SOFTMAX_DIR)
         if triplet_checkpoint is not None:
             logger.info(f'Loading triplet checkpoint: {triplet_checkpoint}.')
+            initial_epoch = int(triplet_checkpoint.split('/')[-1].split('.')[0].split('_')[-1])
             dsm.m.load_weights(triplet_checkpoint)
         elif pre_training_checkpoint is not None:
             logger.info(f'Loading pre-training checkpoint: {pre_training_checkpoint}.')
             # If `by_name` is True, weights are loaded into layers only if they share the
             # same name. This is useful for fine-tuning or transfer-learning models where
             # some of the layers have changed.
+            initial_epoch = 0
             dsm.m.load_weights(pre_training_checkpoint, by_name=True)
-        dsm.m.compile(optimizer=SGD(), loss=deep_speaker_loss)
+        else:
+            initial_epoch = 0
+        # dsm.m.compile(optimizer=SGD(learning_rate=0.05, momentum=0.99), loss=deep_speaker_loss)
         dsm.m.summary()
-        fit_model(dsm, working_dir, NUM_FRAMES)
+        dsm.m.compile(optimizer=SGD(), loss=deep_speaker_loss)
+        fit_model(dsm, working_dir, max_length=NUM_FRAMES, initial_epoch=initial_epoch)
+
