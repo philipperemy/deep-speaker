@@ -346,8 +346,7 @@ class LazyTripletBatcher:
             [sample_from_mfcc_file(u, self.max_length, seed) for u in negative_utterances]
         ])
 
-        batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
-        return batch_x, batch_y
+        return batch_x
 
 
 class TripletBatcher:

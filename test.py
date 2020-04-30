@@ -64,6 +64,8 @@ def run_speaker_verification_task(working_dir, model):
     for i, positive_speaker in tqdm(enumerate(audio.speaker_ids), desc='test', total=num_speakers):
         # convention id[0] is anchor speaker, id[1] is positive, id[2:] are negative.
         input_data = batcher.get_speaker_verification_data(positive_speaker, num_negative_speakers, seed=i * seed)
+        input_data_2 = batcher.get_speaker_verification_data(positive_speaker, num_negative_speakers, seed=i * seed)
+        np.testing.assert_array_equal(input_data, input_data_2)
         # batch size is not relevant. just making sure we don't push too much on the GPU.
         if embeddings_fusion_cond:
             predictions = embedding_fusion(model[0].m.predict(input_data, batch_size=BATCH_SIZE),
