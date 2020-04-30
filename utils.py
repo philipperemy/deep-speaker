@@ -90,10 +90,9 @@ def delete_older_checkpoints(checkpoint_dir, max_to_keep=5):
             os.remove(checkpoint)
 
 
-def enable_deterministic():
-    print('Deterministic mode enabled.')
-    np.random.seed(123)
-    random.seed(123)
+def enable_deterministic(seed=123):
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def load_pickle(file):
@@ -129,6 +128,7 @@ def embedding_fusion(embeddings_1: np.array, embeddings_2: np.array):
     assert np.all(abs(np.sum(fusion ** 2, axis=1) - 1) < 1e-6)
     return fusion
 
+
 def score_fusion(scores_1: np.array, scores_2: np.array):
     def normalize_scores(m, epsilon=1e-12):
         return (m - np.mean(m)) / max(np.std(m), epsilon)
@@ -138,5 +138,4 @@ def score_fusion(scores_1: np.array, scores_2: np.array):
 
 
 if __name__ == '__main__':
-    score_fusion(np.ones((5, 100)), np.ones((5, 100)))
-
+    score_fusion(np.random.uniform(low=-1, high=1, size=(5, 100)), np.random.uniform(low=-1, high=1, size=(5, 100)))

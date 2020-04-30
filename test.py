@@ -7,9 +7,9 @@ from tqdm import tqdm
 from audio import Audio
 from batcher import LazyTripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, BATCH_SIZE
-from eval_metrics import evaluate
+from eval_metrics import evaluate2
 from models import ResCNNModel, select_model_class
-from utils import enable_deterministic, score_fusion, embedding_fusion
+from utils import score_fusion, embedding_fusion
 
 logger = logging.getLogger(__name__)
 
@@ -29,30 +29,30 @@ def batch_cosine_similarity(x1, x2):
     return s
 
 
-def eval_models(working_dir: str, models: List[ResCNNModel]):
+def eval_models(working_dir: str, models: List[ResCNNModel], eval=evaluate2):
     if isinstance(models, list) and len(models) > 1:  # multiple models -> fusion of results.
         y_pred_score_fusion = score_fusion(*[run_speaker_verification_task(working_dir, m) for m in models])
         y_pred_emb_fusion = run_speaker_verification_task(working_dir, models)
         assert y_pred_score_fusion.shape == y_pred_emb_fusion.shape
         y_true = np.zeros_like(y_pred_score_fusion)  # positive is at index 0.
         y_true[:, 0] = 1.0
-        fm_1, tpr_1, acc_1, eer_1 = evaluate(y_pred_score_fusion, y_true)
-        fm_2, tpr_2, acc_2, eer_2 = evaluate(y_pred_emb_fusion, y_true)
+        fm_1, tpr_1, acc_1, eer_1 = eval(y_pred_score_fusion, y_true)
+        fm_2, tpr_2, acc_2, eer_2 = eval(y_pred_emb_fusion, y_true)
         logger.info(f'[score fusion] f-measure = {fm_1:.5f}, true positive rate = {tpr_1:.5f}, '
-                    f'accuracy = {acc_1:.5f}, equal error rate = {eer_1:.5f}')
+                    f'accuracy = {acc_1:.3f}, equal error rate = {eer_1:.3f}')
         logger.info(f'[emb fusion] f-measure = {fm_2:.5f}, true positive rate = {tpr_2:.5f}, '
-                    f'accuracy = {acc_2:.5f}, equal error rate = {eer_2:.5f}')
+                    f'accuracy = {acc_2:.3f}, equal error rate = {eer_2:.3f}')
     else:
         y_pred = run_speaker_verification_task(working_dir, models)
         y_true = np.zeros_like(y_pred)  # positive is at index 0.
         y_true[:, 0] = 1.0
-        fm, tpr, acc, eer = evaluate(y_pred, y_true)
+        fm, tpr, acc, eer = eval(y_pred, y_true)
         logger.info(f'[single] f-measure = {fm:.5f}, true positive rate = {tpr:.5f}, '
                     f'accuracy = {acc:.5f}, equal error rate = {eer:.5f}')
 
 
 def run_speaker_verification_task(working_dir, model):
-    enable_deterministic()
+    seed = 123
     embeddings_fusion_cond = isinstance(model, list)
     if embeddings_fusion_cond:
         assert len(model) == 2
@@ -63,7 +63,7 @@ def run_speaker_verification_task(working_dir, model):
     y_pred = np.zeros(shape=(num_speakers, num_negative_speakers + 1))  # negatives + positive
     for i, positive_speaker in tqdm(enumerate(audio.speaker_ids), desc='test', total=num_speakers):
         # convention id[0] is anchor speaker, id[1] is positive, id[2:] are negative.
-        input_data = batcher.get_speaker_verification_data(positive_speaker, num_negative_speakers)
+        input_data = batcher.get_speaker_verification_data(positive_speaker, num_negative_speakers, seed=i * seed)
         # batch size is not relevant. just making sure we don't push too much on the GPU.
         if embeddings_fusion_cond:
             predictions = embedding_fusion(model[0].m.predict(input_data, batch_size=BATCH_SIZE),

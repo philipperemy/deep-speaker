@@ -12,7 +12,7 @@ from tqdm import tqdm
 from audio import pad_mfcc, Audio
 from constants import NUM_FRAMES, NUM_FBANKS
 from models import DeepSpeakerModel
-from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
+from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt, enable_deterministic
 
 logger = logging.getLogger(__name__)
 
@@ -317,14 +317,17 @@ class LazyTripletBatcher:
 
         return batch_x, batch_y
 
-    def get_speaker_verification_data(self, anchor_speaker, num_different_speakers):
-        speakers = list(self.audio.speakers_to_utterances.keys())
+    def get_speaker_verification_data(self, anchor_speaker, num_different_speakers, seed=123):
+        speakers = list(self.audio.speaker_ids)
         anchor_utterances = []
         positive_utterances = []
         negative_utterances = []
+        np.random.seed(seed)
         negative_speakers = np.random.choice(list(set(speakers) - {anchor_speaker}), size=num_different_speakers)
         assert [negative_speaker != anchor_speaker for negative_speaker in negative_speakers]
+        np.random.seed(seed)
         pos_utterances = np.random.choice(self.sp_to_utt_test[anchor_speaker], 2, replace=False)
+        np.random.seed(seed)
         neg_utterances = [np.random.choice(self.sp_to_utt_test[neg], 1, replace=True)[0] for neg in negative_speakers]
         anchor_utterances.append(pos_utterances[0])
         positive_utterances.append(pos_utterances[1])
