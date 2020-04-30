@@ -21,9 +21,12 @@ def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRA
               batch_size: int = BATCH_SIZE, initial_epoch: int = 0):
     batcher = LazyTripletBatcher(working_dir, max_length, dsm)
 
+    steps_per_epoch = 2000  # arbitrary.
     # build small test set.
+    steps_train_test_ratio = 5
+
     test_batches = []
-    for _ in tqdm(range(200), desc='Build test set'):
+    for _ in tqdm(range(steps_per_epoch // steps_train_test_ratio), desc='Build test set'):
         test_batches.append(batcher.get_batch_test(batch_size))
 
     def test_generator():
@@ -33,13 +36,13 @@ def fit_model(dsm: DeepSpeakerModel, working_dir: str, max_length: int = NUM_FRA
 
     def train_generator():
         while True:
-            yield batcher.get_random_batch(batch_size, is_test=False)
+            yield batcher.get_batch_train(batch_size)
 
     checkpoint_name = dsm.m.name + '_checkpoint'
     checkpoint_filename = os.path.join(CHECKPOINTS_TRIPLET_DIR, checkpoint_name + '_{epoch}.h5')
     checkpoint = ModelCheckpoint(monitor='val_loss', filepath=checkpoint_filename, save_best_only=True)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-4, verbose=1)
-    dsm.m.fit(x=train_generator(), y=None, steps_per_epoch=2000, shuffle=False,
+    dsm.m.fit(x=train_generator(), y=None, steps_per_epoch=steps_per_epoch, shuffle=False,
               epochs=1000, validation_data=test_generator(), validation_steps=len(test_batches),
               callbacks=[reduce_lr, checkpoint], initial_epoch=initial_epoch)
 
@@ -119,4 +122,3 @@ def start_training(working_dir, model_name, pre_training_phase=True):
         dsm.m.summary()
         dsm.m.compile(optimizer=SGD(), loss=deep_speaker_loss)
         fit_model(dsm, working_dir, max_length=NUM_FRAMES, initial_epoch=initial_epoch)
-
