@@ -7,7 +7,7 @@ from tqdm import tqdm
 from audio import Audio
 from batcher import LazyTripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, BATCH_SIZE
-from eval_metrics import evaluate2, evaluate
+from eval_metrics import evaluate
 from models import ResCNNModel, select_model_class
 from utils import score_fusion, embedding_fusion
 
@@ -39,9 +39,9 @@ def eval_models(working_dir: str, models: List[ResCNNModel], eval=evaluate):
         fm_1, tpr_1, acc_1, eer_1 = eval(y_pred_score_fusion, y_true)
         fm_2, tpr_2, acc_2, eer_2 = eval(y_pred_emb_fusion, y_true)
         logger.info(f'[score fusion] f-measure = {fm_1:.5f}, true positive rate = {tpr_1:.5f}, '
-                    f'accuracy = {acc_1:.3f}, equal error rate = {eer_1:.3f}')
+                    f'accuracy = {acc_1:.5f}, equal error rate = {eer_1:.5f}')
         logger.info(f'[emb fusion] f-measure = {fm_2:.5f}, true positive rate = {tpr_2:.5f}, '
-                    f'accuracy = {acc_2:.3f}, equal error rate = {eer_2:.3f}')
+                    f'accuracy = {acc_2:.5f}, equal error rate = {eer_2:.5f}')
     else:
         y_pred = run_speaker_verification_task(working_dir, models)
         y_true = np.zeros_like(y_pred)  # positive is at index 0.
