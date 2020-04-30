@@ -1,8 +1,8 @@
 import json
 import logging
 import os
+import random
 from collections import deque, Counter
-from random import choice
 from time import time
 
 import dill
@@ -12,7 +12,7 @@ from tqdm import tqdm
 from audio import pad_mfcc, Audio
 from constants import NUM_FRAMES, NUM_FBANKS
 from models import DeepSpeakerModel
-from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt, enable_deterministic
+from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +21,19 @@ def extract_speaker(utt_file):
     return utt_file.split('/')[-1].split('_')[0]
 
 
-def sample_from_mfcc(mfcc, max_length):
+def sample_from_mfcc(mfcc, max_length, seed=None):
     if mfcc.shape[0] >= max_length:
-        r = choice(range(0, len(mfcc) - max_length + 1))
+        random.seed(seed)
+        r = random.choice(range(0, len(mfcc) - max_length + 1))
         s = mfcc[r:r + max_length]
     else:
         s = pad_mfcc(mfcc, max_length)
     return np.expand_dims(s, axis=-1)
 
 
-def sample_from_mfcc_file(utterance_file, max_length):
+def sample_from_mfcc_file(utterance_file, max_length, seed):
     mfcc = np.load(utterance_file)
-    return sample_from_mfcc(mfcc, max_length)
+    return sample_from_mfcc(mfcc, max_length, seed)
 
 
 class KerasFormatConverter:
@@ -340,9 +341,9 @@ class LazyTripletBatcher:
             [extract_speaker(s) for s in anc_pos[1, :]]))
 
         batch_x = np.vstack([
-            [sample_from_mfcc_file(u, self.max_length) for u in anchor_utterances],
-            [sample_from_mfcc_file(u, self.max_length) for u in positive_utterances],
-            [sample_from_mfcc_file(u, self.max_length) for u in negative_utterances]
+            [sample_from_mfcc_file(u, self.max_length, seed) for u in anchor_utterances],
+            [sample_from_mfcc_file(u, self.max_length, seed) for u in positive_utterances],
+            [sample_from_mfcc_file(u, self.max_length, seed) for u in negative_utterances]
         ])
 
         batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
