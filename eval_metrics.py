@@ -5,6 +5,7 @@ from sklearn.metrics import roc_curve, f1_score, precision_score, accuracy_score
 
 
 def evaluate2(y_pred, y_true):
+    # TODO: still not perfect.
     fpr, tpr, threshold = roc_curve(y_true, y_pred, pos_label=1)
     fnr = 1 - tpr
     eer1 = fpr[np.nanargmin(np.absolute((fnr - fpr)))]

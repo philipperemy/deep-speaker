@@ -10,9 +10,9 @@ import numpy as np
 from tqdm import tqdm
 
 from audio import pad_mfcc, Audio
-from constants import NUM_FRAMES, NUM_FBANKS
+from constants import NUM_FRAMES, NUM_FBANKS, TRAIN_TEST_RATIO
 from models import DeepSpeakerModel
-from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
+from utils import ensures_dir, load_pickle, load_npy
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,15 @@ def sample_from_mfcc(mfcc, max_length, seed=None):
 def sample_from_mfcc_file(utterance_file, max_length, seed=None):
     mfcc = np.load(utterance_file)
     return sample_from_mfcc(mfcc, max_length, seed)
+
+
+def train_test_sp_to_utt(audio, is_test):
+    sp_to_utt = {}
+    for speaker_id, utterances in audio.speakers_to_utterances.items():
+        utterances_files = sorted(utterances.values())
+        train_test_sep = int(len(utterances_files) * TRAIN_TEST_RATIO)
+        sp_to_utt[speaker_id] = utterances_files[train_test_sep:] if is_test else utterances_files[:train_test_sep]
+    return sp_to_utt
 
 
 class KerasFormatConverter:

@@ -18,14 +18,12 @@ from utils import init_pandas
 
 logger = logging.getLogger(__name__)
 
-VERSION = '3.0b'
+VERSION = '4.0a'
 
 
 @click.group()
 def cli():
-    logging.basicConfig(format='%(asctime)12s - %(levelname)s - %(message)s',
-                        level=logging.INFO,
-                        stream=sys.stdout)
+    logging.basicConfig(format='%(asctime)12s - %(levelname)s - %(message)s', level=logging.INFO, stream=sys.stdout)
     init_pandas()
 
 
@@ -38,7 +36,7 @@ def version():
 @click.option('--working_dir', required=True, type=Ct.output_dir())
 @click.option('--audio_dir', default=None)
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-def build_audio_cache(working_dir, audio_dir, sample_rate):
+def build_audio_cache(working_dir: str, audio_dir: str, sample_rate: int):
     ensures_dir(working_dir)
     if audio_dir is None:
         audio_dir = os.path.join(working_dir, 'LibriSpeech')
@@ -48,7 +46,7 @@ def build_audio_cache(working_dir, audio_dir, sample_rate):
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--counts_per_speaker', default='600,100', show_default=True, type=str)  # train,test
-def build_keras_inputs(working_dir, counts_per_speaker):
+def build_keras_inputs(working_dir: str, counts_per_speaker: str):
     counts_per_speaker = [int(b) for b in counts_per_speaker.split(',')]
     kc = KerasFormatConverter(working_dir)
     kc.generate(max_length=NUM_FRAMES, counts_per_speaker=counts_per_speaker)
@@ -59,7 +57,7 @@ def build_keras_inputs(working_dir, counts_per_speaker):
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--model_name', multiple=True, type=click.Choice([RES_CNN_NAME, GRU_NAME]))
 @click.option('--checkpoint_file', multiple=True, required=True, type=Ct.input_file())
-def test_model(working_dir, model_name, checkpoint_file):
+def test_model(working_dir: str, model_name: tuple, checkpoint_file: tuple):
     # export CUDA_VISIBLE_DEVICES=0; python cli.py test-model
     # --working_dir /home/philippe/ds-test/triplet-training/
     # --checkpoint_file ../ds-test/checkpoints-softmax/ResCNN_checkpoint_102.h5
@@ -77,11 +75,10 @@ def test_model(working_dir, model_name, checkpoint_file):
 @click.option('--working_dir', required=True, type=Ct.input_dir())
 @click.option('--model_name', required=True, type=click.Choice([RES_CNN_NAME, GRU_NAME]))
 @click.option('--pre_training_phase/--no_pre_training_phase', default=False, show_default=True)
-def train_model(working_dir, model_name, pre_training_phase):
+def train_model(working_dir: str, model_name: str, pre_training_phase: bool):
     # PRE TRAINING
     # LibriSpeech train-clean-data360 (600, 100). 0.991 on test set (enough for pre-training).
-
-    # TRIPLET TRAINING
+    # TRIPLET TRAINING with ResCNN.
     # [...]
     # Epoch 175/1000
     # 2000/2000 [==============================] - 919s 459ms/step - loss: 0.0077 - val_loss: 0.0058

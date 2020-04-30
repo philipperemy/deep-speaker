@@ -8,8 +8,9 @@ from constants import SAMPLE_RATE, NUM_FRAMES
 from models import ResCNNModel
 from test import batch_cosine_similarity
 
-np.random.seed(123)
-random.seed(123)
+seed = 123
+np.random.seed(seed)
+random.seed(seed)
 
 model = ResCNNModel()
 model.m.load_weights('/Users/premy/deep-speaker/checkpoints/ResCNN_triplet_training_checkpoint_175.h5', by_name=True)

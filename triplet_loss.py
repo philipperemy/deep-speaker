@@ -1,6 +1,6 @@
 import keras.backend as K
 
-ALPHA = 0.1  # used in Deep Speaker.
+ALPHA = 0.1
 
 
 def batch_cosine_similarity(x1, x2):
@@ -13,8 +13,8 @@ def batch_cosine_similarity(x1, x2):
 
 def deep_speaker_loss(y_true, y_pred, alpha=ALPHA):
     # y_true is not used. we respect this convention:
-    # y_true.shape = (batch_size, embedding_size) [not used]
-    # y_pred.shape = (batch_size, embedding_size)
+    # y_true.shape = (batch_size * 3, embedding_size) [not used]
+    # y_pred.shape = (batch_size * 3, embedding_size)
     # EXAMPLE:
     # _____________________________________________________
     # ANCHOR 1 (512,)

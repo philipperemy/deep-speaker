@@ -8,8 +8,7 @@ from audio import Audio
 from batcher import LazyTripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES, BATCH_SIZE
 from eval_metrics import evaluate
-from models import ResCNNModel, select_model_class
-from utils import score_fusion, embedding_fusion
+from models import ResCNNModel, select_model_class, embedding_fusion, score_fusion
 
 logger = logging.getLogger(__name__)
 
