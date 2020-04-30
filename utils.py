@@ -123,12 +123,20 @@ def train_test_sp_to_utt(audio, is_test):
 def embedding_fusion(embeddings_1: np.array, embeddings_2: np.array):
     assert len(embeddings_1.shape) == 2  # (batch_size, 512).
     assert embeddings_1.shape == embeddings_2.shape
-    fusion = np.linalg.norm(embeddings_1 + embeddings_2, ord=2, axis=1)
+    embeddings_sum = embeddings_1 + embeddings_2
+    fusion = embeddings_sum / np.linalg.norm(embeddings_sum, ord=2, axis=1, keepdims=True)
+    assert np.all((-1 <= fusion) & (fusion <= 1))
+    assert np.all(abs(np.sum(fusion ** 2, axis=1) - 1) < 1e-6)
     return fusion
-
 
 def score_fusion(scores_1: np.array, scores_2: np.array):
     def normalize_scores(m, epsilon=1e-12):
         return (m - np.mean(m)) / max(np.std(m), epsilon)
 
-    return normalize_scores(scores_1) + normalize_scores(scores_2)
+    # score has to be between -1 and 1.
+    return np.tanh(np.sum(normalize_scores(np.stack((scores_1, scores_2), axis=2)), axis=2))
+
+
+if __name__ == '__main__':
+    score_fusion(np.ones((5, 100)), np.ones((5, 100)))
+

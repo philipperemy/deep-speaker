@@ -30,7 +30,7 @@ def batch_cosine_similarity(x1, x2):
 
 
 def eval_models(working_dir: str, models: List[ResCNNModel]):
-    if len(models) > 1:  # multiple models -> fusion of results.
+    if isinstance(models, list) and len(models) > 1:  # multiple models -> fusion of results.
         y_pred_score_fusion = score_fusion(*[run_speaker_verification_task(working_dir, m) for m in models])
         y_pred_emb_fusion = run_speaker_verification_task(working_dir, models)
         assert y_pred_score_fusion.shape == y_pred_emb_fusion.shape
@@ -38,17 +38,17 @@ def eval_models(working_dir: str, models: List[ResCNNModel]):
         y_true[:, 0] = 1.0
         fm_1, tpr_1, acc_1, eer_1 = evaluate(y_pred_score_fusion, y_true)
         fm_2, tpr_2, acc_2, eer_2 = evaluate(y_pred_emb_fusion, y_true)
-        logger.info(f'[score fusion] f-measure = {fm_1:.3f}, true positive rate = {tpr_1:.3f}, '
-                    f'accuracy = {acc_1:.3f}, equal error rate = {eer_1:.3f}')
-        logger.info(f'[emb fusion] f-measure = {fm_2:.3f}, true positive rate = {tpr_2:.3f}, '
-                    f'accuracy = {acc_2:.3f}, equal error rate = {eer_2:.3f}')
+        logger.info(f'[score fusion] f-measure = {fm_1:.5f}, true positive rate = {tpr_1:.5f}, '
+                    f'accuracy = {acc_1:.5f}, equal error rate = {eer_1:.5f}')
+        logger.info(f'[emb fusion] f-measure = {fm_2:.5f}, true positive rate = {tpr_2:.5f}, '
+                    f'accuracy = {acc_2:.5f}, equal error rate = {eer_2:.5f}')
     else:
         y_pred = run_speaker_verification_task(working_dir, models)
         y_true = np.zeros_like(y_pred)  # positive is at index 0.
         y_true[:, 0] = 1.0
         fm, tpr, acc, eer = evaluate(y_pred, y_true)
-        logger.info(f'f-measure = {fm:.3f}, true positive rate = {tpr:.3f}, '
-                    f'accuracy = {acc:.3f}, equal error rate = {eer:.3f}')
+        logger.info(f'[single] f-measure = {fm:.5f}, true positive rate = {tpr:.5f}, '
+                    f'accuracy = {acc:.5f}, equal error rate = {eer:.5f}')
 
 
 def run_speaker_verification_task(working_dir, model):
@@ -89,3 +89,6 @@ def test(working_dir, model_names: tuple, checkpoint_files: tuple):
             exit(1)
         models.append(dsm)
     eval_models(working_dir, models)
+    if len(models) > 1:
+        for model in models:
+            eval_models(working_dir, model)
