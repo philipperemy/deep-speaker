@@ -42,6 +42,8 @@ System requirements for a complete training are:
 ./deep-speaker train_triplet           # takes ~3 days.
 ```
 
+NOTE: If you want to use your own dataset, make sure you follow the directory structure of librispeech. Audio files have to be in `.flac`. format. If you have `.wav`, you can use `ffmpeg` to make the conversion. Both formats are flawless (FLAC is compressed WAV).
+
 ### Test instruction using pretrained model
 - Download the trained models
  
