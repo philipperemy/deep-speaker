@@ -35,6 +35,7 @@ System requirements for a complete training are:
 - A NVIDIA GPU such as the 1080Ti.
 
 ```
+pip uninstall -y tensorflow && pip install tensorflow-gpu==2.0
 ./deep-speaker download_librispeech
 ./deep-speaker build_mfcc
 ./deep-speaker build_model_inputs
