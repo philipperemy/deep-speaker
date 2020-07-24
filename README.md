@@ -34,9 +34,9 @@ System requirements for a complete training are:
 - 32GB of memory.
 - A NVIDIA GPU such as the 1080Ti.
 
-```
+```bash
 pip uninstall -y tensorflow && pip install tensorflow-gpu
-./deep-speaker download_librispeech
+./deep-speaker download_librispeech    # if the download is too slow, consider replacing [wget] by [axel -n 10 -a] in download_librispeech.sh.
 ./deep-speaker build_mfcc
 ./deep-speaker build_model_inputs
 ./deep-speaker train_softmax           # takes ~3 days.
