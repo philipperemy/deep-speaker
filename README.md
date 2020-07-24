@@ -30,15 +30,15 @@ pip install -r requirements.txt
 The code for training is available in this repository. It takes a bit less than a week with a GTX1070 to train the models.
 
 System requirements for a complete training are:
-- At least 200GB of free disk space on a fast SSD.
-- 32GB of memory.
+- At least 300GB of free disk space on a fast SSD (250GB just for all the uncompressed + processed data)
+- 32GB of memory and at least 32GB of swap (can create swap with SSD space).
 - A NVIDIA GPU such as the 1080Ti.
 
 ```bash
 pip uninstall -y tensorflow && pip install tensorflow-gpu
 ./deep-speaker download_librispeech    # if the download is too slow, consider replacing [wget] by [axel -n 10 -a] in download_librispeech.sh.
-./deep-speaker build_mfcc
-./deep-speaker build_model_inputs
+./deep-speaker build_mfcc              # will build MFCC for softmax pre-training and triplet training.
+./deep-speaker build_model_inputs      # will build inputs for softmax pre-training.
 ./deep-speaker train_softmax           # takes ~3 days.
 ./deep-speaker train_triplet           # takes ~3 days.
 ```
