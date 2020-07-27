@@ -25,6 +25,8 @@ verification, and clustering.
 pip install -r requirements.txt
 ```
 
+If you see this error: `libsndfile not found`, run this: `sudo apt-get install libsndfile-dev`.
+
 ### Training
 
 The code for training is available in this repository. It takes a bit less than a week with a GTX1070 to train the models.
