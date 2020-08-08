@@ -3,6 +3,7 @@ Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/
 
 ### Sample Results
 
+Models were trained on clean speech data.
 
  *Model name* | *Testing dataset* | *Num speakers* | *F* | *TPR* | *ACC* | *EER* | Training Logs | Download model
  | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
