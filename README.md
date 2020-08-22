@@ -81,6 +81,9 @@ model = DeepSpeakerModel()
 model.m.load_weights('ResCNN_triplet_training_checkpoint_265.h5', by_name=True)
 
 # Sample some inputs for WAV/FLAC files for the same speaker.
+# To have reproducible results every time you call this function, set the seed every time before calling it.
+# np.random.seed(123)
+# random.seed(123)
 mfcc_001 = sample_from_mfcc(read_mfcc('samples/PhilippeRemy/PhilippeRemy_001.wav', SAMPLE_RATE), NUM_FRAMES)
 mfcc_002 = sample_from_mfcc(read_mfcc('samples/PhilippeRemy/PhilippeRemy_002.wav', SAMPLE_RATE), NUM_FRAMES)
 
