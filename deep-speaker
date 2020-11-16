@@ -19,6 +19,7 @@ case "$1" in
 
 download_librispeech)
   echo "[download_librispeech] selected."
+  echo "Will download and unzip the datasets in ${WORKING_DIR}."
   # WORKING_DIR/LibriSpeech
   cp download_librispeech.sh "${WORKING_DIR}"
   cd "${WORKING_DIR}" && bash download_librispeech.sh && cd -
