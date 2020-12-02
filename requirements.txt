@@ -10,3 +10,4 @@ tensorflow==2.1.0
 Keras==2.3.1
 numpy==1.18.2
 numba==0.48
+h5py<3.0.0
