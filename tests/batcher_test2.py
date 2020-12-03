@@ -2,13 +2,13 @@ import numpy as np
 
 from batcher import LazyTripletBatcher
 from constants import NUM_FBANKS, NUM_FRAMES
-from conv_models import DeepSpeakerModel
+from models import ResCNNModel
 from triplet_loss import deep_speaker_loss
 
 
 def main2():
     batch_input_shape = [None, NUM_FRAMES, NUM_FBANKS, 1]
-    dsm = DeepSpeakerModel(batch_input_shape, include_softmax=False)
+    dsm = ResCNNModel(batch_input_shape, include_softmax=False)
     dsm.m.compile(optimizer='adam', loss=deep_speaker_loss)
     dsm.m.load_weights('/Users/premy/deep-speaker/ResCNN_checkpoint_102.h5', by_name=True)
     dsm.m.summary()

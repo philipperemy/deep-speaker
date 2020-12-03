@@ -1,15 +1,17 @@
-import numpy as np
 import random
+
+import numpy as np
+
 from audio import read_mfcc
 from batcher import sample_from_mfcc
 from constants import SAMPLE_RATE, NUM_FRAMES
-from conv_models import DeepSpeakerModel
+from models import ResCNNModel
 from test import batch_cosine_similarity
 
 np.random.seed(123)
 random.seed(123)
 
-model = DeepSpeakerModel()
+model = ResCNNModel()
 model.m.load_weights('/Users/premy/deep-speaker/checkpoints/ResCNN_triplet_training_checkpoint_175.h5', by_name=True)
 
 mfcc_001 = sample_from_mfcc(read_mfcc('samples/PhilippeRemy/PhilippeRemy_001.wav', SAMPLE_RATE), NUM_FRAMES)
