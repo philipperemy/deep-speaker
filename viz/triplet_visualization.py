@@ -1,11 +1,10 @@
 import logging
 
 import matplotlib
-
-matplotlib.use('Agg')
-
 import matplotlib.pyplot as plt
 import numpy as np
+
+matplotlib.use('Agg')
 
 
 def remove_values_along_axes():
@@ -43,9 +42,9 @@ def newline(p1, p2, color):
     y_min = p2[0]
     y_max = p2[1]
     logging.info('{} {}'.format([x_min, x_max], [y_min, y_max]))
-    l = mlines.Line2D([x_min, x_max], [y_min, y_max], color=color, linestyle='dashdot', linewidth=3)
-    ax.add_line(l)
-    return l
+    li = mlines.Line2D([x_min, x_max], [y_min, y_max], color=color, linestyle='dashdot', linewidth=3)
+    ax.add_line(li)
+    return li
 
 
 # plt.ion()

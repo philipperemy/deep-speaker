@@ -48,7 +48,7 @@ def main():
     select = True
     try:
         sys.argv[1]
-    except:
+    except Exception:
         select = False
     print('select', select)
 
