@@ -96,5 +96,4 @@ class TripleLossTest(unittest.TestCase):
         self.assertTrue(highest_loss >= high_loss >= low_loss >= lowest_loss)
 
     def test_2(self):
-        b = equal_positive_random_negative_batch()
-        a = 2
+        equal_positive_random_negative_batch()
