@@ -83,9 +83,9 @@ class TripleLossTest(unittest.TestCase):
 
         x2 = 0  # nothing because not used.
 
+        np.random.seed(123)
         highest_loss = deep_speaker_loss(x2, opposite_positive_equal_negative_batch()).numpy()
         high_loss = deep_speaker_loss(x2, random_positive_random_negative_batch())
         low_loss = deep_speaker_loss(x2, equal_positive_random_negative_batch())
         lowest_loss = deep_speaker_loss(x2, equal_positive_opposite_negative_batch())
-
         self.assertTrue(highest_loss >= high_loss >= low_loss >= lowest_loss)
