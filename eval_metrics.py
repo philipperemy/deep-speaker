@@ -10,7 +10,6 @@ def evaluate(sims, labels):
 
 
 def calculate_roc(thresholds, sims, labels):
-    nrof_pairs = min(len(labels), len(sims))
     nrof_thresholds = len(thresholds)
 
     tprs = np.zeros((nrof_thresholds))
@@ -18,15 +17,12 @@ def calculate_roc(thresholds, sims, labels):
     acc_train = np.zeros((nrof_thresholds))
     precisions = np.zeros((nrof_thresholds))
     fms = np.zeros((nrof_thresholds))
-    accuracy = 0.0
-
-    indices = np.arange(nrof_pairs)
 
     # Find the best threshold for the fold
 
     for threshold_idx, threshold in enumerate(thresholds):
-        tprs[threshold_idx], fprs[threshold_idx], precisions[threshold_idx], \
-        fms[threshold_idx], acc_train[threshold_idx] = calculate_accuracy(threshold, sims, labels)
+        tprs[threshold_idx], fprs[threshold_idx], precisions[threshold_idx], fms[threshold_idx], acc_train[
+            threshold_idx] = calculate_accuracy(threshold, sims, labels)
 
     bestindex = np.argmax(fms)
     bestfm = fms[bestindex]
@@ -52,10 +48,7 @@ def calculate_accuracy(threshold, sims, actual_issame):
 
 
 def calculate_eer(thresholds, sims, labels):
-    nrof_pairs = min(len(labels), len(sims))
     nrof_thresholds = len(thresholds)
-
-    indices = np.arange(nrof_pairs)
 
     # Find the threshold that gives FAR = far_target
     far_train = np.zeros(nrof_thresholds)

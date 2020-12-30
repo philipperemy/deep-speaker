@@ -222,7 +222,7 @@ class LazyTripletBatcher:
 
     def get_batch_train(self, batch_size):
         from test import batch_cosine_similarity
-        s1 = time()
+        # s1 = time()
         self.batch_count += 1
         if self.batch_count % self.history_every == 0:
             self.update_triplets_history()
@@ -230,12 +230,12 @@ class LazyTripletBatcher:
         all_indexes = range(len(self.history_embeddings_train))
         anchor_indexes = np.random.choice(a=all_indexes, size=batch_size // 3, replace=False)
 
-        s2 = time()
+        # s2 = time()
         similar_negative_indexes = []
         dissimilar_positive_indexes = []
         # could be made parallel.
         for anchor_index in anchor_indexes:
-            s21 = time()
+            # s21 = time()
             anchor_embedding = self.history_embeddings[anchor_index]
             anchor_speaker = extract_speaker(self.history_utterances[anchor_index])
 
@@ -244,34 +244,34 @@ class LazyTripletBatcher:
                                 if extract_speaker(a) != anchor_speaker]
             negative_indexes = np.random.choice(negative_indexes, size=self.nb_speakers // 2)
 
-            s22 = time()
+            # s22 = time()
 
             anchor_embedding_tile = [anchor_embedding] * len(negative_indexes)
             anchor_cos = batch_cosine_similarity(anchor_embedding_tile, self.history_embeddings[negative_indexes])
 
-            s23 = time()
+            # s23 = time()
             similar_negative_index = negative_indexes[np.argsort(anchor_cos)[-1]]  # [-1:]
             similar_negative_indexes.append(similar_negative_index)
 
-            s24 = time()
+            # s24 = time()
             positive_indexes = [j for (j, a) in enumerate(self.history_utterances) if
                                 extract_speaker(a) == anchor_speaker and j != anchor_index]
-            s25 = time()
+            # s25 = time()
             anchor_embedding_tile = [anchor_embedding] * len(positive_indexes)
-            s26 = time()
+            # s26 = time()
             anchor_cos = batch_cosine_similarity(anchor_embedding_tile, self.history_embeddings[positive_indexes])
             dissimilar_positive_index = positive_indexes[np.argsort(anchor_cos)[0]]  # [:1]
             dissimilar_positive_indexes.append(dissimilar_positive_index)
-            s27 = time()
+            # s27 = time()
 
-        s3 = time()
+        # s3 = time()
         batch_x = np.vstack([
             self.history_model_inputs[anchor_indexes],
             self.history_model_inputs[dissimilar_positive_indexes],
             self.history_model_inputs[similar_negative_indexes]
         ])
 
-        s4 = time()
+        # s4 = time()
 
         # for anchor, positive, negative in zip(history_utterances[anchor_indexes],
         #                                       history_utterances[dissimilar_positive_indexes],
@@ -302,7 +302,7 @@ class LazyTripletBatcher:
         for a in negative_speakers:
             self.metadata_train_speakers[a] += 1
 
-        s5 = time()
+        # s5 = time()
         # print('1-2', s2 - s1)
         # print('2-3', s3 - s2)
         # print('3-4', s4 - s3)
