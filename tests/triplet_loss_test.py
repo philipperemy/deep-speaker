@@ -1,16 +1,13 @@
 import unittest
 
-import keras.backend as K
 import numpy as np
-import tensorflow as tf
-from last.triplet_loss import deep_speaker_loss
 
-BATCH_SIZE = 3
+from triplet_loss import deep_speaker_loss
 
 
 def opposite_positive_equal_negative_batch():
     # should be the highest
-    b = np.random.uniform(low=-1, high=1, size=(BATCH_SIZE * 3, 512))
+    b = np.random.uniform(low=-1, high=1, size=(18, 512))
     b[0] = -b[6]
     b[1] = -b[7]
     b[2] = -b[8]
@@ -28,7 +25,7 @@ def opposite_positive_equal_negative_batch():
 
 def random_positive_random_negative_batch():
     # should be high
-    b = np.random.uniform(low=-1, high=1, size=(BATCH_SIZE * 3, 512))
+    b = np.random.uniform(low=-1, high=1, size=(18, 512))
     return b
 
 
@@ -46,7 +43,7 @@ def equal_positive_random_negative_batch():
 
 def equal_positive_opposite_negative_batch():
     # should be the lowest
-    b = np.random.uniform(low=-1, high=1, size=(BATCH_SIZE * 3, 512))
+    b = np.random.uniform(low=-1, high=1, size=(18, 512))
     b[0] = b[6]
     b[1] = b[7]
     b[2] = b[8]
@@ -84,16 +81,11 @@ class TripleLossTest(unittest.TestCase):
         # NEG EX 5 (512,), index = 16
         # NEG EX 6 (512,), index = 17
 
-        x2 = 1
-        sess = tf.InteractiveSession()
-        K.set_session(sess)
+        x2 = 0  # nothing because not used.
 
-        highest_loss = deep_speaker_loss(tf.constant(opposite_positive_equal_negative_batch()), x2).eval()
-        high_loss = deep_speaker_loss(tf.constant(random_positive_random_negative_batch()), x2).eval()
-        low_loss = deep_speaker_loss(tf.constant(equal_positive_random_negative_batch()), x2).eval()
-        lowest_loss = deep_speaker_loss(tf.constant(equal_positive_opposite_negative_batch()), x2).eval()
-
+        np.random.seed(123)
+        highest_loss = deep_speaker_loss(x2, opposite_positive_equal_negative_batch()).numpy()
+        high_loss = deep_speaker_loss(x2, random_positive_random_negative_batch())
+        low_loss = deep_speaker_loss(x2, equal_positive_random_negative_batch())
+        lowest_loss = deep_speaker_loss(x2, equal_positive_opposite_negative_batch())
         self.assertTrue(highest_loss >= high_loss >= low_loss >= lowest_loss)
-
-    def test_2(self):
-        equal_positive_random_negative_batch()
