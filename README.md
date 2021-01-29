@@ -22,6 +22,7 @@ verification, and clustering.
 #### Requirements
 - tensorflow>=2.0
 - keras>=2.3.1
+- python>=3.6
 ```bash
 pip install -r requirements.txt
 ```
