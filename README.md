@@ -78,7 +78,7 @@ random.seed(123)
 # Define the model here.
 model = DeepSpeakerModel()
 
-# Load the checkpoint.
+# Load the checkpoint. https://drive.google.com/file/d/1F9NvdrarWZNktdX9KlRYWWHDwRkip_aP.
 model.m.load_weights('ResCNN_triplet_training_checkpoint_265.h5', by_name=True)
 
 # Sample some inputs for WAV/FLAC files for the same speaker.
