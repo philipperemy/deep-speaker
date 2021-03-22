@@ -2,7 +2,7 @@ import logging
 import os
 from collections import defaultdict
 from pathlib import Path
-
+from multiprocessing import Pool, cpu_count
 import librosa
 import numpy as np
 from python_speech_features import fbank
@@ -76,7 +76,13 @@ class Audio:
         audio, sr = librosa.load(filename, sr=sample_rate, mono=True, dtype=np.float32)
         assert sr == sample_rate
         return audio
-
+    
+    def subprocess(self, slibri, sample_rate):
+        print(slibri[0])
+        for i in range(len(slibri)):
+            filename = slibri[i]
+            self.cache_audio_file(filename, sample_rate)
+            
     def build_cache(self, audio_dir, sample_rate):
         logger.info(f'audio_dir: {audio_dir}.')
         logger.info(f'sample_rate: {sample_rate:,} hz.')
@@ -84,20 +90,32 @@ class Audio:
         audio_files_count = len(audio_files)
         assert audio_files_count != 0, f'Could not find any {self.ext} files in {audio_dir}.'
         logger.info(f'Found {audio_files_count:,} files in {audio_dir}.')
-        with tqdm(audio_files) as bar:
-            for audio_filename in bar:
-                bar.set_description(audio_filename)
-                self.cache_audio_file(audio_filename, sample_rate)
+        thread = cpu_count()
+        p = Pool(thread)
+        patch = int(len(audio_files) / thread)
+        for i in range(thread):
+            if i < thread - 1:
+                slibri = audio_files[i * patch:(i + 1) * patch]
+            else:
+                slibri = audio_files[i * patch:]
+            print("task %s slibri length: %d" % (i, len(slibri)))
+            p.apply_async(self.subprocess, args=(slibri, sample_rate))
+        p.close()
+        p.join()
+        print("*^ˍ^*  *^ˍ^*  *^ˍ^*  *^ˍ^*  *^ˍ^*  *^ˍ^*  *^ˍ^*  *^ˍ^*  *^ˍ^*  *^ˍ^*  *^ˍ^*")
 
     def cache_audio_file(self, input_filename, sample_rate):
         sp, utt = extract_speaker_and_utterance_ids(input_filename)
         cache_filename = os.path.join(self.cache_dir, f'{sp}_{utt}.npy')
-        if not os.path.isfile(cache_filename):
-            try:
-                mfcc = read_mfcc(input_filename, sample_rate)
-                np.save(cache_filename, mfcc)
-            except librosa.util.exceptions.ParameterError as e:
-                logger.error(e)
+        if (os.path.exists(cache_filename)):
+            print('file exist:', cache_filename)
+        else:
+            if not os.path.isfile(cache_filename):
+                try:
+                    mfcc = read_mfcc(input_filename, sample_rate)
+                    np.save(cache_filename, mfcc)
+                except librosa.util.exceptions.ParameterError as e:
+                    logger.error(e)
 
 
 def pad_mfcc(mfcc, max_length):  # num_frames, nfilt=64.
