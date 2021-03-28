@@ -1,8 +1,8 @@
 import json
 import logging
 import os
+import random
 from collections import deque, Counter
-from random import choice
 from time import time
 
 import dill
@@ -10,9 +10,9 @@ import numpy as np
 from tqdm import tqdm
 
 from audio import pad_mfcc, Audio
-from constants import NUM_FRAMES, NUM_FBANKS
+from constants import NUM_FRAMES, NUM_FBANKS, TRAIN_TEST_RATIO
 from models import DeepSpeakerModel
-from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
+from utils import ensures_dir, load_pickle, load_npy
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +21,28 @@ def extract_speaker(utt_file):
     return utt_file.split('/')[-1].split('_')[0]
 
 
-def sample_from_mfcc(mfcc, max_length):
+def sample_from_mfcc(mfcc, max_length, seed=None):
     if mfcc.shape[0] >= max_length:
-        r = choice(range(0, len(mfcc) - max_length + 1))
+        random.seed(seed)
+        r = random.choice(range(0, len(mfcc) - max_length + 1))
         s = mfcc[r:r + max_length]
     else:
         s = pad_mfcc(mfcc, max_length)
     return np.expand_dims(s, axis=-1)
 
 
-def sample_from_mfcc_file(utterance_file, max_length):
+def sample_from_mfcc_file(utterance_file, max_length, seed=None):
     mfcc = np.load(utterance_file)
-    return sample_from_mfcc(mfcc, max_length)
+    return sample_from_mfcc(mfcc, max_length, seed)
+
+
+def train_test_sp_to_utt(audio, is_test):
+    sp_to_utt = {}
+    for speaker_id, utterances in audio.speakers_to_utterances.items():
+        utterances_files = sorted(utterances.values())
+        train_test_sep = int(len(utterances_files) * TRAIN_TEST_RATIO)
+        sp_to_utt[speaker_id] = utterances_files[train_test_sep:] if is_test else utterances_files[:train_test_sep]
+    return sp_to_utt
 
 
 class KerasFormatConverter:
@@ -147,8 +157,9 @@ class LazyTripletBatcher:
         self.history_model_inputs = None
 
         self.batch_count = 0
-        for _ in tqdm(range(self.history_length), desc='Initializing the batcher'):  # init history.
-            self.update_triplets_history()
+        if self.model is not None:
+            for _ in tqdm(range(self.history_length), desc='Initializing the batcher'):  # init history.
+                self.update_triplets_history()
 
     def update_triplets_history(self):
         model_inputs = []
@@ -316,14 +327,17 @@ class LazyTripletBatcher:
 
         return batch_x, batch_y
 
-    def get_speaker_verification_data(self, anchor_speaker, num_different_speakers):
-        speakers = list(self.audio.speakers_to_utterances.keys())
+    def get_speaker_verification_data(self, anchor_speaker, num_different_speakers, seed=123):
+        speakers = list(self.audio.speaker_ids)
         anchor_utterances = []
         positive_utterances = []
         negative_utterances = []
+        np.random.seed(seed)
         negative_speakers = np.random.choice(list(set(speakers) - {anchor_speaker}), size=num_different_speakers)
         assert [negative_speaker != anchor_speaker for negative_speaker in negative_speakers]
+        np.random.seed(seed)
         pos_utterances = np.random.choice(self.sp_to_utt_test[anchor_speaker], 2, replace=False)
+        np.random.seed(seed)
         neg_utterances = [np.random.choice(self.sp_to_utt_test[neg], 1, replace=True)[0] for neg in negative_speakers]
         anchor_utterances.append(pos_utterances[0])
         positive_utterances.append(pos_utterances[1])
@@ -336,13 +350,12 @@ class LazyTripletBatcher:
             [extract_speaker(s) for s in anc_pos[1, :]]))
 
         batch_x = np.vstack([
-            [sample_from_mfcc_file(u, self.max_length) for u in anchor_utterances],
-            [sample_from_mfcc_file(u, self.max_length) for u in positive_utterances],
-            [sample_from_mfcc_file(u, self.max_length) for u in negative_utterances]
+            [sample_from_mfcc_file(u, self.max_length, seed) for u in anchor_utterances],
+            [sample_from_mfcc_file(u, self.max_length, seed) for u in positive_utterances],
+            [sample_from_mfcc_file(u, self.max_length, seed) for u in negative_utterances]
         ])
 
-        batch_y = np.zeros(shape=(len(batch_x), 1))  # dummy. sparse softmax needs something.
-        return batch_x, batch_y
+        return batch_x
 
 
 class TripletBatcher:

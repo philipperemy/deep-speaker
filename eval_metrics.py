@@ -1,4 +1,29 @@
 import numpy as np
+from scipy.interpolate import interp1d
+from scipy.optimize import brentq
+from sklearn.metrics import roc_curve, f1_score, precision_score, accuracy_score
+
+
+def evaluate2(y_pred, y_true):
+    # TODO: still not perfect.
+    fpr, tpr, threshold = roc_curve(y_true, y_pred, pos_label=1)
+    fnr = 1 - tpr
+    eer1 = fpr[np.nanargmin(np.absolute((fnr - fpr)))]
+    eer2 = fnr[np.nanargmin(np.absolute((fnr - fpr)))]
+    eer3 = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+
+    thresholds = np.arange(-1, 1, 0.01)
+    best_index = np.argmax([f1_score(y_true, y_pred > t) for t in thresholds])
+    t = thresholds[best_index]
+    f1 = f1_score(y_true, y_pred > t)
+    precision = precision_score(y_true, y_pred > t)
+    # roc = roc_auc_score(y_true, y_pred > t)
+    acc = accuracy_score(y_true, y_pred > t)
+    # recall = recall_score(y_true, y_pred > t)
+
+    assert abs(eer1 - eer2) <= 1e-2
+    assert abs(eer2 - eer3) <= 1e-2
+    return f1, precision, acc, eer1
 
 
 def evaluate(sims, labels):
@@ -10,7 +35,6 @@ def evaluate(sims, labels):
 
 
 def calculate_roc(thresholds, sims, labels):
-    nrof_pairs = min(len(labels), len(sims))
     nrof_thresholds = len(thresholds)
 
     tprs = np.zeros((nrof_thresholds))
@@ -18,10 +42,6 @@ def calculate_roc(thresholds, sims, labels):
     acc_train = np.zeros((nrof_thresholds))
     precisions = np.zeros((nrof_thresholds))
     fms = np.zeros((nrof_thresholds))
-    accuracy = 0.0
-
-    indices = np.arange(nrof_pairs)
-
     # Find the best threshold for the fold
 
     for threshold_idx, threshold in enumerate(thresholds):
