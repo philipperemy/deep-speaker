@@ -2,6 +2,7 @@ import logging
 import os
 
 import numpy as np
+import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras import layers
 from tensorflow.keras import regularizers
@@ -14,7 +15,7 @@ from tensorflow.keras.layers import Reshape
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
-from constants import NUM_FBANKS, NUM_FRAMES
+from constants import NUM_FBANKS, NUM_FRAMES, SAMPLE_RATE
 from triplet_loss import deep_speaker_loss
 
 logger = logging.getLogger(__name__)
@@ -26,8 +27,8 @@ class DeepSpeakerModel:
     # would be better to have 4 dimensions:
     # MFCC, DIFF(MFCC), DIFF(DIFF(MFCC)), ENERGIES (probably tiled across the frequency domain).
     # this seems to help match the parameter counts.
-    def __init__(self, batch_input_shape=(None, NUM_FRAMES, NUM_FBANKS, 1), include_softmax=False,
-                 num_speakers_softmax=None):
+    def __init__(self, batch_input_shape=None, include_softmax=False,
+                 num_speakers_softmax=None, pcm_input=False):
         self.include_softmax = include_softmax
         if self.include_softmax:
             assert num_speakers_softmax > 0
@@ -48,8 +49,20 @@ class DeepSpeakerModel:
         # used to share all the layers across the inputs
 
         # num_frames = K.shape() - do it dynamically after.
-        inputs = Input(batch_shape=batch_input_shape, name='input')
-        x = self.cnn_component(inputs)
+
+        if pcm_input:
+            batch_input_shape = batch_input_shape or (None, None)  # Batch-size, num-samples
+            inputs = Input(batch_shape=batch_input_shape, name='raw_inputs')
+            x = inputs
+            x = Lambda(tf_fbank)(x)
+            x = Lambda(lambda x: tf_normalize(x, 1, 1e-12))(x)
+            x = Lambda(lambda x: tf.expand_dims(x, axis=-1))(x)
+        else:
+            batch_input_shape = batch_input_shape or (None, None, NUM_FBANKS, 1)
+            inputs = Input(batch_shape=batch_input_shape, name='input')
+            x = inputs
+
+        x = self.cnn_component(x)
 
         x = Reshape((-1, 2048))(x)
         # Temporal average layer. axis=1 is time.
@@ -197,3 +210,69 @@ def _test_checkpoint_compatibility():
 
 if __name__ == '__main__':
     _test_checkpoint_compatibility()
+
+    
+@tf.function
+def tf_normalize(data, ndims, eps=0, adjusted=False):
+    data = tf.convert_to_tensor(data, name='data')
+
+    reduce_dims = [- i - 1 for i in range(ndims)]
+    
+    data = tf.cast(data, dtype=tf.dtypes.float32)
+    data_num = tf.reduce_prod(data.shape[-ndims:])
+    data_mean = tf.reduce_mean(data, axis=reduce_dims, keepdims=True)
+
+    # Apply a minimum normalization that protects us against uniform images.
+    stddev = tf.math.reduce_std(data, axis=reduce_dims, keepdims=True)
+    adjusted_stddev = stddev
+    if adjusted:
+        min_stddev = tf.math.rsqrt(tf.cast(data_num, tf.dtypes.float32))
+        eps = tf.maximum(eps, min_stddev)
+    if eps > 0:
+        adjusted_stddev = tf.maximum(adjusted_stddev, eps)
+
+    return (data - data_mean) / adjusted_stddev
+
+@tf.function
+def tf_fbank(samples):
+    """
+    Compute Mel-filterbank energy features from an audio signal.
+    See python_speech_features.fbank
+    """
+    frame_length = int(0.025 * SAMPLE_RATE)
+    frame_step = int(0.01 * SAMPLE_RATE)
+    fft_length = 512
+    fft_bins = fft_length // 2 + 1
+
+    preemphasis = samples[:,1:] - 0.97 * samples[:, :-1]
+    
+    # Original implementation from python_speech_features
+    #frames = tf.expand_dims(sigproc.framesig(preemphasis[0], frame_length, frame_step, winfunc=lambda x: np.ones((x,))), 0)
+    #powspec = sigproc.powspec(frames, fft_length)
+        
+    # Tensorflow impl #1, using manually-split frames and rfft
+    #spec = tf.abs(tf.signal.rfft(frames, [fft_length]))
+    #powspec = tf.square(spec) / fft_length
+
+    # Tensorflow impl #2, using stft to handle framing automatically 
+    # (There is a one-off mismatch on the number of frames on the resulting tensor, but I guess this is ok)
+    spec = tf.abs(tf.signal.stft(preemphasis, frame_length, frame_step, fft_length, window_fn=tf.ones))
+    powspec = tf.square(spec) / fft_length
+    
+    
+    # Matrix to transform spectrum to mel-frequencies
+    
+    # Original implementation from python_speech_features
+    # linear_to_mel_weight_matrix = get_filterbanks(NUM_FBANKS, fft_length, SAMPLE_RATE, 0, SAMPLE_RATE/2).astype(np.float32).T
+    
+    linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
+        num_mel_bins=NUM_FBANKS, 
+        num_spectrogram_bins=fft_bins,
+        sample_rate=SAMPLE_RATE,
+        lower_edge_hertz=0, 
+        upper_edge_hertz=SAMPLE_RATE / 2)
+    
+    feat = tf.matmul(powspec, linear_to_mel_weight_matrix)
+    #feat = tf.where(feat == 0, np.finfo(np.float32).eps, feat)
+    return feat
+
