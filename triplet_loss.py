@@ -1,4 +1,4 @@
-import keras.backend as K
+import tensorflow.keras.backend as K
 
 # ALPHA = 0.2  # used in FaceNet https://arxiv.org/pdf/1503.03832.pdf
 ALPHA = 0.1  # used in Deep Speaker.
