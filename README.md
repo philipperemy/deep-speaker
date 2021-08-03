@@ -3,7 +3,7 @@ Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/
 
 ### Sample Results
 
-Models were trained on clean speech data. Keep in mind that the performance will be lower on noisy data. It is advised to remove silence and background noise before computing the embeddings (by using Sox for example).
+Models were trained on clean speech data. Keep in mind that the performance will be lower on noisy data. It is advised to remove silence and background noise before computing the embeddings (by using Sox for example). There is a discussion on the topic: [Silence / Background Noise similarity](https://github.com/philipperemy/deep-speaker/issues/62).
 
  *Model name* | *Testing dataset* | *Num speakers* | *F* | *TPR* | *ACC* | *EER* | Training Logs | Download model
  | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
