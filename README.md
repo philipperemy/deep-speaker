@@ -62,6 +62,8 @@ NOTE: If you want to use your own dataset, make sure you follow the directory st
 ResCNN Softmax trained  | [LibriSpeech](http://www.openslr.org/12/) train-clean-360 | 921 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
 ResCNN Softmax+Triplet trained  | [LibriSpeech](http://www.openslr.org/12/) all | 2484 | [Click](https://drive.google.com/file/d/1F9NvdrarWZNktdX9KlRYWWHDwRkip_aP)
 
+Note: the pre-training was performed on a subset of all the speakers we have. This is to match the philosophy of the paper where they first trained the model with softmax and then trained it on the whole dataset (bigger than this repo!) with triplets.
+
 * Run with pretrained model
 
 ```python
