@@ -110,6 +110,8 @@ print('DIFF SPEAKER', batch_cosine_similarity(predict_001, predict_003)) # DIFF 
 
 * Commands to reproduce the test results after the training
 
+**NOTE**: For some reasons, the `test-model` does not work with tensorflow>2.3. Make sure to run `pip install tensorflow==2.3` if you want to run those two commands below.
+
 ```bash
 $ export CUDA_VISIBLE_DEVICES=0; python cli.py test-model --working_dir ~/.deep-speaker-wd/triplet-training/ --
 checkpoint_file checkpoints-softmax/ResCNN_checkpoint_102.h5
