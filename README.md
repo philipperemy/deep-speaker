@@ -123,6 +123,8 @@ $ export CUDA_VISIBLE_DEVICES=0; python cli.py test-model --working_dir ~/.deep-
 f-measure = 0.849, true positive rate = 0.798, accuracy = 0.997, equal error rate = 0.025
 ```
 
+When the triplet loss select the hard examples, then the training loss does not really decrease. Because the hard samples are always hard meaning they are on average above alpha. The test set should however decreased.
+
 ### Further work
 
 - LSTM model: https://github.com/philipperemy/deep-speaker/pull/53
