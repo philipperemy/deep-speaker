@@ -129,3 +129,9 @@ When the triplet loss select the hard examples, then the training loss does not 
 
 - LSTM model: https://github.com/philipperemy/deep-speaker/pull/53
 - Fusion score: https://github.com/philipperemy/deep-speaker/pull/76
+
+## Contributors
+
+<a href="https://github.com/philipperemy/deep-speaker/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=philipperemy/deep-speaker" />
+</a>
