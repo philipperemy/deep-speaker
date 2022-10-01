@@ -1,9 +1,11 @@
 ## Deep Speaker: An End-to-End Neural Speaker Embedding System.
-Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/1705.02304.pdf) | [Pretrained Models](https://drive.google.com/open?id=18h2bmsAWrqoUMsh_FQHDDxp7ioGpcNBa).
+Unofficial Tensorflow/Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/1705.02304.pdf) | [Pretrained Models](https://drive.google.com/open?id=18h2bmsAWrqoUMsh_FQHDDxp7ioGpcNBa).
+
+Tested with Tensorflow 2.3, 2.4, 2.5 and 2.6.
 
 ### Sample Results
 
-Models were trained on clean speech data. Keep in mind that the performance will be lower on noisy data. It is advised to remove silence and background noise before computing the embeddings (by using Sox for example).
+Models were trained on clean speech data. Keep in mind that the performance will be lower on noisy data. It is advised to remove silence and background noise before computing the embeddings (by using Sox for example). There is a discussion on the topic: [Silence / Background Noise similarity](https://github.com/philipperemy/deep-speaker/issues/62).
 
  *Model name* | *Testing dataset* | *Num speakers* | *F* | *TPR* | *ACC* | *EER* | Training Logs | Download model
  | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -60,6 +62,8 @@ NOTE: If you want to use your own dataset, make sure you follow the directory st
 ResCNN Softmax trained  | [LibriSpeech](http://www.openslr.org/12/) train-clean-360 | 921 | [Click](https://drive.google.com/open?id=1SJBmHpnaW1VcbFWP6JfvbT3wWP9PsqxS)
 ResCNN Softmax+Triplet trained  | [LibriSpeech](http://www.openslr.org/12/) all | 2484 | [Click](https://drive.google.com/file/d/1F9NvdrarWZNktdX9KlRYWWHDwRkip_aP)
 
+Note: the pre-training was performed on a subset of all the speakers we have. This is to match the philosophy of the paper where they first trained the model with softmax and then trained it on the whole dataset (bigger than this repo!) with triplets.
+
 * Run with pretrained model
 
 ```python
@@ -106,6 +110,8 @@ print('DIFF SPEAKER', batch_cosine_similarity(predict_001, predict_003)) # DIFF 
 
 * Commands to reproduce the test results after the training
 
+**NOTE**: For some reasons, the `test-model` does not work with tensorflow>2.3. Make sure to run `pip install tensorflow==2.3` if you want to run those two commands below.
+
 ```bash
 $ export CUDA_VISIBLE_DEVICES=0; python cli.py test-model --working_dir ~/.deep-speaker-wd/triplet-training/ --
 checkpoint_file checkpoints-softmax/ResCNN_checkpoint_102.h5
@@ -117,7 +123,15 @@ $ export CUDA_VISIBLE_DEVICES=0; python cli.py test-model --working_dir ~/.deep-
 f-measure = 0.849, true positive rate = 0.798, accuracy = 0.997, equal error rate = 0.025
 ```
 
+When the triplet loss select the hard examples, then the training loss does not really decrease. Because the hard samples are always hard meaning they are on average above alpha. The test set should however decreased.
+
 ### Further work
 
 - LSTM model: https://github.com/philipperemy/deep-speaker/pull/53
 - Fusion score: https://github.com/philipperemy/deep-speaker/pull/76
+
+## Contributors
+
+<a href="https://github.com/philipperemy/deep-speaker/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=philipperemy/deep-speaker" />
+</a>

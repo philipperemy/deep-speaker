@@ -12,9 +12,9 @@ jobs:
         python-version: [3.7]
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -25,7 +25,7 @@ jobs:
         pip install tox flake8
     - name: Download checkpoints
       run: |
-        wget -O ResCNN_triplet_training_checkpoint_265.h5 https://drive.google.com/uc\?export\=download\&id\=1F9NvdrarWZNktdX9KlRYWWHDwRkip_aP
+        wget -nv -O ResCNN_triplet_training_checkpoint_265.h5 https://drive.google.com/uc\?export\=download\&id\=1F9NvdrarWZNktdX9KlRYWWHDwRkip_aP
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
