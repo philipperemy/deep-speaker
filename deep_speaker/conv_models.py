@@ -3,8 +3,11 @@ import os
 
 import numpy as np
 import tensorflow as tf
+# pylint: disable=E0611,E0401
 import tensorflow.keras.backend as K
+# pylint: disable=E0611,E0401
 from tensorflow.keras import layers, regularizers
+# pylint: disable=E0611,E0401
 from tensorflow.keras.layers import (
     BatchNormalization,
     Conv2D,
@@ -14,7 +17,9 @@ from tensorflow.keras.layers import (
     Lambda,
     Reshape,
 )
+# pylint: disable=E0611,E0401
 from tensorflow.keras.models import Model
+# pylint: disable=E0611,E0401
 from tensorflow.keras.optimizers import Adam
 
 from deep_speaker.constants import NUM_FBANKS, SAMPLE_RATE, NUM_FRAMES

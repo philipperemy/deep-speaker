@@ -1,7 +1,9 @@
 import logging
 import os
 
+# pylint: disable=E0611,E0401
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
+# pylint: disable=E0611,E0401
 from tensorflow.keras.optimizers import SGD
 from tqdm import tqdm
 
