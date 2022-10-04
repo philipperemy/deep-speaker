@@ -10,9 +10,7 @@ if platform.system() == 'Darwin' and platform.processor() == 'arm':
     os.environ['GRPC_PYTHON_BUILD_SYSTEM_OPENSSL'] = '1'
     os.environ['GRPC_PYTHON_BUILD_SYSTEM_ZLIB'] = '1'
 
-# numba>=0.48
 install_requires = [
-    tensorflow,
     'numpy',
     'natsort',
     'librosa',
