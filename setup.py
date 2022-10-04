@@ -12,6 +12,7 @@ if platform.system() == 'Darwin' and platform.processor() == 'arm':
 
 install_requires = [
     'numpy',
+    tensorflow,
     'natsort',
     'librosa',
     'dill',
