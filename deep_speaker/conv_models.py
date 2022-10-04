@@ -33,7 +33,7 @@ def tf_normalize(data, ndims, eps=0, adjusted=False):
     data = tf.convert_to_tensor(data, name='data')
 
     reduce_dims = [-i - 1 for i in range(ndims)]
-
+    # pylint: disable=E1123,E1120
     data = tf.cast(data, dtype=tf.dtypes.float32)
     data_num = tf.reduce_prod(data.shape[-ndims:])
     data_mean = tf.reduce_mean(data, axis=reduce_dims, keepdims=True)

@@ -1,3 +1,4 @@
+# pylint: disable=E0611,E0401
 import tensorflow.keras.backend as K
 
 # ALPHA = 0.2  # used in FaceNet https://arxiv.org/pdf/1503.03832.pdf

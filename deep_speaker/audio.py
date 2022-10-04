@@ -57,6 +57,7 @@ class Audio:
     @staticmethod
     def trim_silence(audio, threshold):
         """Removes silence at the beginning and end of a sample."""
+        # pylint: disable=E1121
         energy = librosa.feature.rms(audio)
         frames = np.nonzero(np.array(energy > threshold))
         indices = librosa.core.frames_to_samples(frames)[1]
