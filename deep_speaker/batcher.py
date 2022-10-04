@@ -106,6 +106,7 @@ class SparseCategoricalSpeakers:
 class OneHotSpeakers:
 
     def __init__(self, speakers_list):
+        # pylint: disable=E0611,E0401
         from tensorflow.keras.utils import to_categorical
         self.speaker_ids = sorted(speakers_list)
         self.int_speaker_ids = list(range(len(self.speaker_ids)))
