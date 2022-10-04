@@ -1,15 +1,17 @@
 import logging
 import os
 
+# pylint: disable=E0611,E0401
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
+# pylint: disable=E0611,E0401
 from tensorflow.keras.optimizers import SGD
 from tqdm import tqdm
 
-from batcher import KerasFormatConverter, LazyTripletBatcher
-from constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
-from conv_models import DeepSpeakerModel
-from triplet_loss import deep_speaker_loss
-from utils import load_best_checkpoint, ensures_dir
+from deep_speaker.batcher import KerasFormatConverter, LazyTripletBatcher
+from deep_speaker.constants import BATCH_SIZE, CHECKPOINTS_SOFTMAX_DIR, CHECKPOINTS_TRIPLET_DIR, NUM_FRAMES, NUM_FBANKS
+from deep_speaker.conv_models import DeepSpeakerModel
+from deep_speaker.triplet_loss import deep_speaker_loss
+from deep_speaker.utils import load_best_checkpoint, ensures_dir
 
 logger = logging.getLogger(__name__)
 

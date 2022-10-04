@@ -1,4 +1,4 @@
-name: Deep Speaker TCN CI
+name: Deep Speaker CI
 
 on: [push, pull_request]
 

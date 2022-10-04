@@ -8,8 +8,8 @@ import numpy as np
 from python_speech_features import fbank
 from tqdm import tqdm
 
-from constants import SAMPLE_RATE, NUM_FBANKS
-from utils import find_files, ensures_dir
+from deep_speaker.constants import SAMPLE_RATE, NUM_FBANKS
+from deep_speaker.utils import find_files, ensures_dir
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ class Audio:
     @staticmethod
     def trim_silence(audio, threshold):
         """Removes silence at the beginning and end of a sample."""
+        # pylint: disable=E1121
         energy = librosa.feature.rms(audio)
         frames = np.nonzero(np.array(energy > threshold))
         indices = librosa.core.frames_to_samples(frames)[1]

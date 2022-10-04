@@ -6,13 +6,13 @@ import os
 
 import click
 
-from audio import Audio
-from batcher import KerasFormatConverter
-from constants import SAMPLE_RATE, NUM_FRAMES
-from test import test
-from train import start_training
-from utils import ClickType as Ct, ensures_dir
-from utils import init_pandas
+from deep_speaker.audio import Audio
+from deep_speaker.batcher import KerasFormatConverter
+from deep_speaker.constants import SAMPLE_RATE, NUM_FRAMES
+from deep_speaker.test import test
+from deep_speaker.train import start_training
+from deep_speaker.utils import ClickType as Ct, ensures_dir
+from deep_speaker.utils import init_pandas
 
 logger = logging.getLogger(__name__)
 

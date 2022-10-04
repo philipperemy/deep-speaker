@@ -9,10 +9,10 @@ import dill
 import numpy as np
 from tqdm import tqdm
 
-from audio import pad_mfcc, Audio
-from constants import NUM_FRAMES, NUM_FBANKS
-from conv_models import DeepSpeakerModel
-from utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
+from deep_speaker.audio import pad_mfcc, Audio
+from deep_speaker.constants import NUM_FRAMES, NUM_FBANKS
+from deep_speaker.conv_models import DeepSpeakerModel
+from deep_speaker.utils import ensures_dir, load_pickle, load_npy, train_test_sp_to_utt
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,7 @@ class SparseCategoricalSpeakers:
 class OneHotSpeakers:
 
     def __init__(self, speakers_list):
+        # pylint: disable=E0611,E0401
         from tensorflow.keras.utils import to_categorical
         self.speaker_ids = sorted(speakers_list)
         self.int_speaker_ids = list(range(len(self.speaker_ids)))
@@ -221,7 +222,7 @@ class LazyTripletBatcher:
         return batch_x, batch_y
 
     def get_batch_train(self, batch_size):
-        from test import batch_cosine_similarity
+        from deep_speaker.test import batch_cosine_similarity
         # s1 = time()
         self.batch_count += 1
         if self.batch_count % self.history_every == 0:
@@ -424,7 +425,7 @@ class TripletBatcherSelectHardNegatives(TripletBatcher):
     def get_batch(self, batch_size, is_test=False, predict=None):
         if predict is None:
             predict = self.model.m.predict
-        from test import batch_cosine_similarity
+        from deep_speaker.test import batch_cosine_similarity
         num_triplets = batch_size // 3
         inputs = []
         k = 2  # do not change this.
