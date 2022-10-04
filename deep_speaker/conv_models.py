@@ -17,8 +17,8 @@ from tensorflow.keras.layers import (
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
-from constants import NUM_FBANKS, SAMPLE_RATE, NUM_FRAMES
-from triplet_loss import deep_speaker_loss
+from deep_speaker.constants import NUM_FBANKS, SAMPLE_RATE, NUM_FRAMES
+from deep_speaker.triplet_loss import deep_speaker_loss
 
 logger = logging.getLogger(__name__)
 

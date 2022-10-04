@@ -2,9 +2,9 @@ import librosa
 import numpy as np
 import tensorflow as tf
 
-from constants import SAMPLE_RATE
-from conv_models import DeepSpeakerModel
-from test import batch_cosine_similarity
+from deep_speaker.constants import SAMPLE_RATE
+from deep_speaker.conv_models import DeepSpeakerModel
+from deep_speaker.test import batch_cosine_similarity
 
 # Define the model here.
 model = DeepSpeakerModel(pcm_input=True)
