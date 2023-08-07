@@ -71,11 +71,11 @@ import random
 
 import numpy as np
 
-from audio import read_mfcc
-from batcher import sample_from_mfcc
-from constants import SAMPLE_RATE, NUM_FRAMES
-from conv_models import DeepSpeakerModel
-from test import batch_cosine_similarity
+from deep_speaker.audio import read_mfcc
+from deep_speaker.batcher import sample_from_mfcc
+from deep_speaker.constants import SAMPLE_RATE, NUM_FRAMES
+from deep_speaker.conv_models import DeepSpeakerModel
+from deep_speaker.test import batch_cosine_similarity
 
 # Reproducible results.
 np.random.seed(123)
